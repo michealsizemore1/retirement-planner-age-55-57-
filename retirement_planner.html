@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retirement Planner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#132a3e;
+    --teal:#1f7a6c;
+    --teal-light:#e6f3f1;
+    --orange:#e08c2b;
+    --bg:#f5f7f8;
+    --card:#ffffff;
+    --border:#e1e6e9;
+    --text:#1c2b34;
+    --muted:#5c6b74;
+    --danger:#c0392b;
+    --good:#1f7a6c;
+    --warn2:#c07a1f;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{font-size:17px;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:16px;
+  }
+  header{
+    background:var(--navy);
+    color:#fff;
+    padding:22px 32px;
+  }
+  header h1{margin:0; font-size:28px; font-weight:600;}
+  header p{margin:6px 0 0; color:#b9c6ce; font-size:16px;}
+
+  .header-bar{display:flex; align-items:center; gap:14px;}
+  .hamburger-btn{
+    background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.25);
+    color:#fff;
+    border-radius:8px;
+    width:46px; height:46px;
+    font-size:22px;
+    cursor:pointer;
+    flex-shrink:0;
+    line-height:1;
+  }
+  .hamburger-btn:hover{background:rgba(255,255,255,0.22);}
+  .header-titles{flex:1; min-width:0;}
+  .current-page-label{
+    display:inline-block;
+    margin-top:4px;
+    font-size:15px;
+    color:#cfe6e0;
+    background:rgba(31,122,108,0.35);
+    padding:3px 12px;
+    border-radius:12px;
+  }
+
+  .shell{
+    padding:20px;
+    max-width:1100px;
+    margin:0 auto;
+  }
+
+  .nav-overlay{
+    position:fixed; inset:0;
+    background:rgba(10,20,30,0.4);
+    display:none;
+    z-index:998;
+  }
+  .nav-overlay.open{display:block;}
+
+  .sidenav{
+    position:fixed;
+    top:0; left:-280px;
+    width:260px;
+    height:100%;
+    background:var(--card);
+    border-right:1px solid var(--border);
+    padding:16px 10px;
+    z-index:999;
+    overflow-y:auto;
+    transition:left .22s ease;
+    box-shadow:2px 0 12px rgba(0,0,0,0.08);
+  }
+  .sidenav.open{left:0;}
+  .sidenav-header{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:4px 8px 14px;
+    border-bottom:1px solid var(--border);
+    margin-bottom:10px;
+  }
+  .sidenav-header span{font-size:16px; font-weight:700; color:var(--navy);}
+  .sidenav-close{background:none; border:none; font-size:24px; color:var(--muted); cursor:pointer; line-height:1;}
+  .nav-item{
+    padding:13px 14px;
+    border-radius:8px;
+    font-size:16px;
+    color:var(--muted);
+    cursor:pointer;
+    margin-bottom:2px;
+    white-space:nowrap;
+  }
+  .nav-item:hover{background:#f2f6f5;}
+  .nav-item.active{background:var(--teal); color:#fff; font-weight:600;}
+
+  .page{display:none;}
+  .page.active{display:block;}
+  .page-header{margin-bottom:14px;}
+  .page-header h2{margin:0 0 4px; font-size:24px; color:var(--navy);}
+  .page-header p{margin:0; font-size:15.5px; color:var(--muted); line-height:1.5;}
+
+  .mini-chart-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    margin-bottom:16px;
+  }
+  .mini-chart-card canvas{max-height:230px;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    margin-bottom:16px;
+  }
+  .card h3{
+    font-size:17px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    color:var(--teal);
+    margin:0 0 14px;
+    font-weight:700;
+  }
+  .card h3 .sub-label{
+    text-transform:none; letter-spacing:0; color:var(--muted); font-weight:400;
+    font-size:14px; display:block; margin-top:3px;
+  }
+  .field{margin-bottom:13px;}
+  .field label{display:flex; justify-content:space-between; font-size:15px; color:var(--muted); margin-bottom:5px;}
+  .field input[type="number"], .field input[type="date"], .field input[type="text"], .field select{
+    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font-size:17px; background:#fbfcfc;
+  }
+  .field input[type="checkbox"]{width:19px; height:19px; accent-color:var(--teal);}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .three-col{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+  .divider{border:none; border-top:1px dashed var(--border); margin:12px 0;}
+  .mini-label{font-size:14px; font-weight:600; color:var(--navy); margin:2px 0 10px;}
+  .checkbox-row{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .checkbox-row label{margin:0; font-size:15.5px; color:var(--text);}
+  .pill-row{display:flex; gap:8px; margin-top:8px;}
+  .pill{border:1px solid var(--border); background:#fbfcfc; color:var(--muted); font-size:14px; padding:6px 13px; border-radius:20px; cursor:pointer;}
+  .pill.active{background:var(--teal); color:#fff; border-color:var(--teal);}
+  .sub-fields{border-left:2px solid var(--teal-light); padding-left:14px; margin-top:10px;}
+
+  .row-list{margin-top:8px;}
+  .row-item{display:grid; grid-template-columns:1.3fr 0.9fr 26px; gap:8px; align-items:center; margin-bottom:8px;}
+  .row-item.debt-row{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
+  .row-item.tx-row{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
+  .row-item input, .row-item select{padding:8px 9px; border:1px solid var(--border); border-radius:6px; font-size:15px; background:#fbfcfc; width:100%;}
+  .remove-btn{background:none; border:none; color:var(--danger); cursor:pointer; font-size:19px; line-height:1; padding:2px;}
+  .add-btn{background:var(--teal-light); color:var(--teal); border:none; border-radius:6px; padding:8px 13px; font-size:15px; font-weight:600; cursor:pointer; margin-top:6px;}
+  .total-row{display:flex; justify-content:space-between; font-size:15.5px; font-weight:700; color:var(--navy); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);}
+
+  .results-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:14px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
+  .stat .label{font-size:14.5px; color:var(--muted); margin-bottom:8px;}
+  .stat .value{font-size:26px; font-weight:700; color:var(--navy);}
+  .stat.warn .value{color:var(--danger);}
+  .stat.ok .value{color:var(--good);}
+
+  .score-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px 22px; margin-bottom:14px; display:flex; align-items:center; gap:22px; flex-wrap:wrap;
+  }
+  .score-ring{width:96px; height:96px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; color:#fff; flex-shrink:0;}
+  .score-text h3{margin:0 0 6px; font-size:19px; color:var(--navy); text-transform:none; letter-spacing:0; font-weight:700;}
+  .score-text p{margin:0; font-size:15.5px; color:var(--muted); line-height:1.55;}
+
+  .compare-box{
+    background:var(--teal-light); border:1px solid #c9e4de; border-radius:var(--radius);
+    padding:14px 18px; font-size:15.5px; color:var(--navy); margin-bottom:14px; line-height:1.7;
+  }
+  .compare-box b{color:var(--teal);}
+
+  .chart-wrap{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px;}
+  .chart-wrap h2{font-size:18px; margin:0 0 6px; color:var(--navy);}
+  .chart-wrap p.sub{margin:0 0 16px; font-size:15px; color:var(--muted);}
+  canvas{max-height:380px;}
+  .legend-note{display:flex; flex-wrap:wrap; gap:18px; font-size:14.5px; color:var(--muted); margin-top:12px;}
+  .legend-note span{display:flex; align-items:center; gap:6px;}
+  .dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
+  .dash{width:14px; height:0; border-top:2px dashed #8892a0; display:inline-block;}
+
+  details{margin-top:16px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px;}
+  summary{cursor:pointer; font-weight:600; font-size:16px; color:var(--navy);}
+  .table-scroll{overflow-x:auto;}
+  table{width:100%; border-collapse:collapse; margin-top:12px; font-size:15px; min-width:1100px;}
+  th,td{padding:8px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap;}
+  th:first-child,td:first-child{text-align:left;}
+  thead th{color:var(--muted); font-weight:600;}
+  tr.retire-row td{background:var(--teal-light); font-weight:600;}
+
+  .note{font-size:14.5px; color:var(--muted); line-height:1.65; margin-top:14px; padding:14px 16px; background:#fffaf0; border:1px solid #f0e0bd; border-radius:8px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-bar">
+    <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Open menu">☰</button>
+    <div class="header-titles">
+      <h1>Retirement Planner</h1>
+      <p>Tap the menu to jump to a section. <span class="current-page-label" id="currentPageLabel">Dashboard</span></p>
+    </div>
+  </div>
+</header>
+
+<div class="nav-overlay" id="navOverlay" onclick="closeMenu()"></div>
+
+<nav class="sidenav" id="sidenav">
+  <div class="sidenav-header">
+    <span>Sections</span>
+    <button class="sidenav-close" onclick="closeMenu()" aria-label="Close menu">×</button>
+  </div>
+  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">Dashboard</div>
+  <div class="nav-item" data-page="personal" onclick="showPage('personal')">Personal &amp; Family</div>
+  <div class="nav-item" data-page="income" onclick="showPage('income')">Income &amp; Contributions</div>
+  <div class="nav-item" data-page="investments" onclick="showPage('investments')">Investments</div>
+  <div class="nav-item" data-page="housing" onclick="showPage('housing')">Housing</div>
+  <div class="nav-item" data-page="expenses" onclick="showPage('expenses')">Expenses</div>
+  <div class="nav-item" data-page="debt" onclick="showPage('debt')">Debt</div>
+  <div class="nav-item" data-page="transactions" onclick="showPage('transactions')">Transactions</div>
+  <div class="nav-item" data-page="guaranteed" onclick="showPage('guaranteed')">Guaranteed Income</div>
+  <div class="nav-item" data-page="taxes" onclick="showPage('taxes')">Taxes</div>
+  <div class="nav-item" data-page="assumptions" onclick="showPage('assumptions')">Assumptions &amp; Guardrails</div>
+  <div class="nav-item" data-page="explorers" onclick="showPage('explorers')">Explorers</div>
+</nav>
+
+<div class="shell">
+
+  <div class="content">
+
+    <!-- ================= DASHBOARD ================= -->
+    <div class="page active" data-page="dashboard">
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <p>The full picture, pulled from every section.</p>
+      </div>
+
+      <div class="score-card">
+        <div class="score-ring" id="scoreRing">—</div>
+        <div class="score-text">
+          <h3 id="scoreTitle">Retirement Confidence Score</h3>
+          <p id="scoreDesc">Based on 1,000 simulated market scenarios with randomized annual returns, this is the share of scenarios where your money lasts through age <span id="scoreLifeExp"></span> without running short.</p>
+        </div>
+      </div>
+
+      <div class="results-grid" id="statCards"></div>
+
+      <div class="compare-box" id="compareBox"></div>
+
+      <div class="chart-wrap">
+        <h2>Projected Balances</h2>
+        <p class="sub">Investable accounts (TSP + brokerage) grow, then draw down in retirement using the withdrawal order: brokerage → Traditional TSP → Roth TSP. Net worth adds cash, home equity, and subtracts debt.</p>
+        <canvas id="balanceChart"></canvas>
+        <div class="legend-note">
+          <span><span class="dot" style="background:#1f7a6c"></span>Investable (accumulation)</span>
+          <span><span class="dot" style="background:#e08c2b"></span>Investable (drawdown)</span>
+          <span><span class="dash"></span>Retirement age marker</span>
+          <span><span class="dot" style="background:#8892a0"></span>Cash &amp; bank</span>
+          <span><span class="dot" style="background:#5a4fcf"></span>Net worth</span>
+        </div>
+      </div>
+
+      <details>
+        <summary>Year-by-year detail</summary>
+        <div class="table-scroll">
+        <table id="yearTable">
+          <thead>
+            <tr><th>Age</th><th>Spouse Age</th><th>Income</th><th>Contributions</th><th>Spousal Benefit</th><th>Guaranteed Income</th><th>Spending</th><th>Withdrawal</th><th>LTC Cost</th><th>Investable</th><th>Cash</th><th>Debt Balance</th><th>Home Equity</th><th>Net Worth</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        </div>
+      </details>
+
+      <div class="note">
+        This is a simplified model: taxes use flat rates rather than IRS brackets (brokerage capital-gains tax is applied to the whole withdrawal, not just the gain portion, so real taxes are likely lower), and it doesn't model Medicare or one-time expenses. The plan runs through age 100 for both of you — specifically, through whichever spouse's life expectancy is later once translated to your age, so household spending doesn't stop early just because it's keyed to your age. Spouse's long-term care is modeled starting at her age 85 for 3 years, paid from Roth TSP first (tax-free, outside the normal order) and falling back to Brokerage then Traditional TSP if Roth runs short; your own long-term care is assumed to be covered by insurance and isn't charged against the portfolio. Withdrawals in retirement otherwise draw from brokerage first, then Traditional TSP, then Roth TSP last; checking/savings/HYSA are tracked as liquidity and not spent down. Rent, debt payments, and expenses are assumed covered by income before retirement and only enter the withdrawal need afterward. The spousal Social Security benefit assumes your spouse claims at the age you specify and that you've already filed for your own benefit. Four separate rates now drive different parts of the plan (all on the Assumptions page): General Inflation for most expenses and rent, Medical Inflation for Healthcare spending specifically, Social Security COLA for your SS and spousal benefit, and Housing Appreciation for home value — which only comes into play if you model a future purchase. The Monte Carlo score randomizes annual investment returns (not rent, debt, or guaranteed income) around your assumed averages — it's a directional signal, not a guarantee. The Transactions section is a standalone ledger for logging actual activity; it does not feed the projection, which runs on your Expenses assumptions instead. Treat all of this as a first pass — let me know what you'd like refined next.
+      </div>
+    </div>
+
+    <!-- ================= PERSONAL ================= -->
+    <div class="page" data-page="personal">
+      <div class="page-header"><h2>Personal &amp; Family</h2><p>Ages and household details that drive every other section.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_personal"></canvas></div>
+
+      <div class="card">
+        <h3>Personal</h3>
+        <div class="two-col">
+          <div class="field"><label>Current age</label><input type="number" id="currentAge" value="52" min="18" max="90"></div>
+          <div class="field">
+            <label>Retirement age</label>
+            <input type="number" id="retirementAge" value="55" min="40" max="90">
+            <div class="pill-row">
+              <span class="pill" id="pill55" onclick="setRetirementAge(55)">Retire at 55</span>
+              <span class="pill" id="pill57" onclick="setRetirementAge(57)">Retire at 57</span>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Planned last working day</label>
+          <input type="date" id="retirementDate" value="2028-12-31" oninput="syncRetirementDate(true)">
+          <div id="retirementDateHint" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+        </div>
+        <div class="field"><label>Plan until age (your life expectancy)</label><input type="number" id="lifeExpectancy" value="100" min="60" max="105"></div>
+      </div>
+
+      <div class="card">
+        <h3>Spouse</h3>
+        <div class="two-col">
+          <div class="field"><label>Spouse's current age</label><input type="number" id="spouseAge" value="50" min="18" max="90"></div>
+          <div class="field"><label>Spouse's life expectancy</label><input type="number" id="spouseLifeExpectancy" value="100" min="60" max="105"></div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="spouseWorks">
+          <label for="spouseWorks">Spouse has their own earnings record / Social Security</label>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin:2px 0 0;">The plan runs through whichever of you two lives longer, so household spending doesn't stop early for the survivor.</p>
+        <hr class="divider">
+        <div class="mini-label">Long-Term Care (spouse)</div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="ltcEnabled" checked>
+          <label for="ltcEnabled">Model long-term care costs for spouse, funded from Roth TSP</label>
+        </div>
+        <div class="sub-fields" id="ltcFields">
+          <div class="two-col">
+            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="85" min="60" max="105"></div>
+            <div class="field"><label>Duration (years)</label><input type="number" id="ltcDuration" value="3" min="1" max="20"></div>
+          </div>
+          <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="75000" step="1000"></div>
+          <p style="font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= INCOME & CONTRIBUTIONS ================= -->
+    <div class="page" data-page="income">
+      <div class="page-header"><h2>Income &amp; Contributions</h2><p>What comes in, and how much of it goes toward retirement.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_income"></canvas></div>
+
+      <div class="card">
+        <h3>Income</h3>
+        <div class="field"><label>Current annual job income ($)</label><input type="number" id="currentIncome" value="77432" step="1"></div>
+        <div class="field"><label>Expected annual raise (%)</label><input type="number" id="incomeGrowth" value="2.5" step="0.1"></div>
+      </div>
+
+      <div class="card">
+        <h3>Investment Contributions<span class="sub-label">How much goes in each pay period</span></h3>
+        <div class="two-col">
+          <div class="field"><label>Traditional TSP (% of income)</label><input type="number" id="tradTSPPct" value="10" step="0.5"></div>
+          <div class="field"><label>Roth TSP (% of income)</label><input type="number" id="rothTSPPct" value="5" step="0.5"></div>
+        </div>
+        <div class="field"><label>Agency match (up to % of income)</label><input type="number" id="matchPct" value="5" step="0.5"></div>
+        <div class="field"><label>Brokerage annual contribution ($)</label><input type="number" id="brokerageContribution" value="6000" step="500"></div>
+      </div>
+    </div>
+
+    <!-- ================= INVESTMENTS ================= -->
+    <div class="page" data-page="investments">
+      <div class="page-header"><h2>Investments</h2><p>Current balances across your retirement and brokerage accounts.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_investments"></canvas></div>
+
+      <div class="card">
+        <h3>TSP — Thrift Savings Plan<span class="sub-label">Agency match always deposits into Traditional TSP</span></h3>
+        <div class="two-col">
+          <div class="field"><label>Traditional TSP balance ($)</label><input type="number" id="tradTSPBalance" value="101613" step="1"></div>
+          <div class="field"><label>Roth TSP balance ($)</label><input type="number" id="rothTSPBalance" value="81942" step="1"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Brokerage (M1 Finance)<span class="sub-label">Each pie tracked separately; they sum to one taxable balance for the projection</span></h3>
+        <div class="row-list" id="brokeragePieRows"></div>
+        <button class="add-btn" onclick="addBrokeragePie()">+ Add pie</button>
+        <div class="total-row"><span>Total brokerage</span><span id="brokeragePieTotal">$0</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Bank Accounts<span class="sub-label">Liquidity — not spent down in this projection</span></h3>
+        <div class="three-col">
+          <div class="field"><label>Checking ($)</label><input type="number" id="checkingBalance" value="8000" step="500"></div>
+          <div class="field"><label>Savings ($)</label><input type="number" id="savingsBalance" value="15000" step="500"></div>
+          <div class="field"><label>HYSA ($)</label><input type="number" id="hysaBalance" value="10000" step="500"></div>
+        </div>
+        <div class="two-col">
+          <div class="field"><label>Checking/Savings APY (%)</label><input type="number" id="cashRate" value="0.5" step="0.1"></div>
+          <div class="field"><label>HYSA APY (%)</label><input type="number" id="hysaRate" value="4.5" step="0.1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= HOUSING ================= -->
+    <div class="page" data-page="housing">
+      <div class="page-header"><h2>Housing</h2><p>Currently renting — optionally model a future purchase.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_housing"></canvas></div>
+
+      <div class="card">
+        <h3>Housing</h3>
+        <div class="two-col">
+          <div class="field"><label>Monthly rent ($)</label><input type="number" id="rentMonthly" value="1800" step="50"></div>
+          <div class="field"><label>Annual rent growth (%)</label><input type="number" id="rentGrowth" value="3" step="0.1"></div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="buyHome">
+          <label for="buyHome">Model a possible future home purchase</label>
+        </div>
+        <div class="sub-fields" id="buyHomeFields" style="display:none;">
+          <div class="two-col">
+            <div class="field"><label>Purchase age</label><input type="number" id="purchaseAge" value="60" min="18" max="95"></div>
+            <div class="field"><label>Home price ($)</label><input type="number" id="homePrice" value="350000" step="5000"></div>
+          </div>
+          <div class="two-col">
+            <div class="field"><label>Down payment (%)</label><input type="number" id="downPct" value="20" step="1"></div>
+            <div class="field"><label>Mortgage rate (%/yr)</label><input type="number" id="mortgageRate" value="6.5" step="0.1"></div>
+          </div>
+          <div class="two-col">
+            <div class="field"><label>Mortgage term (years)</label><input type="number" id="mortgageTerm" value="30" step="1"></div>
+            <div class="field"><label>Property tax + insurance (%/yr of value)</label><input type="number" id="propTaxInsPct" value="1.5" step="0.1"></div>
+          </div>
+          <div class="field"><label>Home appreciation (%/yr)</label><input type="number" id="homeAppreciation" value="3" step="0.1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= EXPENSES ================= -->
+    <div class="page" data-page="expenses">
+      <div class="page-header"><h2>Expenses</h2><p>Retirement spending by category, in today's dollars. The Healthcare category grows using the Medical Inflation Rate (set on the Assumptions page); every other category uses General Inflation.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_expenses"></canvas></div>
+
+      <div class="card">
+        <h3>Expenses</h3>
+        <div class="row-list" id="expenseRows"></div>
+        <button class="add-btn" onclick="addExpense()">+ Add expense</button>
+        <div class="total-row"><span>Total (excl. housing)</span><span id="expenseTotal">$0</span></div>
+      </div>
+    </div>
+
+    <!-- ================= DEBT ================= -->
+    <div class="page" data-page="debt">
+      <div class="page-header"><h2>Debt</h2><p>Loans and balances, amortized and paid off over time.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_debt"></canvas></div>
+
+      <div class="card">
+        <h3>Debt</h3>
+        <div class="row-list" id="debtRows"></div>
+        <button class="add-btn" onclick="addDebt()">+ Add debt</button>
+        <div class="total-row"><span>Total balance</span><span id="debtTotal">$0</span></div>
+      </div>
+    </div>
+
+    <!-- ================= TRANSACTIONS ================= -->
+    <div class="page" data-page="transactions">
+      <div class="page-header"><h2>Transactions</h2><p>A log of actual account activity. This is a standalone ledger — it doesn't feed the projection, which runs on your Expenses assumptions instead.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_transactions"></canvas></div>
+
+      <div class="card">
+        <h3>Recent Transactions</h3>
+        <div class="row-list" id="transactionRows"></div>
+        <button class="add-btn" onclick="addTransaction()">+ Add transaction</button>
+        <div class="total-row"><span>Income logged</span><span id="txIncomeTotal">$0</span></div>
+        <div class="total-row"><span>Expenses logged</span><span id="txExpenseTotal">$0</span></div>
+        <div class="total-row"><span>Net</span><span id="txNetTotal">$0</span></div>
+      </div>
+    </div>
+
+    <!-- ================= GUARANTEED INCOME ================= -->
+    <div class="page" data-page="guaranteed">
+      <div class="page-header"><h2>Guaranteed Income</h2><p>Social Security, spousal benefit, military pension, and VA disability. SS, spousal benefit, pension, and VA disability all grow using Social Security COLA (set on the Assumptions page) — pension and VA disability compensation are both COLA-adjusted in real life the same way Social Security is.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_guaranteed"></canvas></div>
+
+      <div class="card">
+        <h3>Guaranteed Income</h3>
+        <div class="two-col">
+          <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2200" step="50"></div>
+          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70"></div>
+        </div>
+        <div class="two-col" id="spousalBenefitFields">
+          <div class="field"><label>Spousal benefit (% of your benefit)</label><input type="number" id="spousalPct" value="50" min="0" max="50" step="1"></div>
+          <div class="field"><label>Spousal benefit start age (spouse's age)</label><input type="number" id="spousalStartAge" value="67" min="62" max="70"></div>
+        </div>
+        <hr class="divider">
+        <div class="two-col">
+          <div class="field"><label>Military Pension ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
+          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90"></div>
+        </div>
+        <div class="two-col">
+          <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
+          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90"></div>
+        </div>
+        <p style="font-size:14px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both the pension and VA disability are treated as already active today. Note: this simplified model doesn't apply income tax to any guaranteed income source, so the VA disability's tax-free status doesn't change the math yet — it's broken out separately for clarity and in case that changes later.</p>
+      </div>
+    </div>
+
+    <!-- ================= TAXES ================= -->
+    <div class="page" data-page="taxes">
+      <div class="page-header"><h2>Taxes</h2><p>Simplified flat-rate treatment of retirement withdrawals.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_taxes"></canvas></div>
+
+      <div class="card">
+        <h3>Taxes</h3>
+        <div class="two-col">
+          <div class="field"><label>Tax rate on Traditional TSP withdrawals (%)</label><input type="number" id="tradTaxRate" value="15" step="1"></div>
+          <div class="field"><label>Capital gains rate on brokerage (%)</label><input type="number" id="capGainsRate" value="15" step="1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= ASSUMPTIONS ================= -->
+    <div class="page" data-page="assumptions">
+      <div class="page-header"><h2>Assumptions &amp; Guardrails</h2><p>Growth, volatility, and how spending adapts to market performance.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_assumptions"></canvas></div>
+
+      <div class="card">
+        <h3>Growth Assumptions<span class="sub-label">Applies to TSP and brokerage</span></h3>
+        <div class="two-col">
+          <div class="field"><label>Return before retirement (%/yr)</label><input type="number" id="preReturn" value="7" step="0.1"></div>
+          <div class="field"><label>Volatility, pre-retirement (%)</label><input type="number" id="preStdev" value="12" step="0.5"></div>
+        </div>
+        <div class="two-col">
+          <div class="field"><label>Return during retirement (%/yr)</label><input type="number" id="postReturn" value="5" step="0.1"></div>
+          <div class="field"><label>Volatility, in retirement (%)</label><input type="number" id="postStdev" value="8" step="0.5"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Inflation &amp; COLA Rates<span class="sub-label">Each rate only drives the part of the plan it applies to</span></h3>
+        <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="2.5" step="0.1"></div>
+        <div class="field"><label>Medical Inflation Rate (%/yr)</label><input type="number" id="medicalInflation" value="5" step="0.1"></div>
+        <div class="field"><label>Social Security COLA (%/yr)</label><input type="number" id="ssCola" value="2.5" step="0.1"></div>
+        <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (pension still uses General Inflation). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
+      </div>
+
+      <div class="card">
+        <h3>Monte Carlo &amp; Guardrails<span class="sub-label">Market-uncertainty testing &amp; adaptive spending</span></h3>
+        <div class="checkbox-row">
+          <input type="checkbox" id="guardrailsEnabled">
+          <label for="guardrailsEnabled">Enable dynamic spending guardrails</label>
+        </div>
+        <div class="two-col">
+          <div class="field"><label>Guardrail band (±% of initial withdrawal rate)</label><input type="number" id="guardBand" value="20" step="1"></div>
+          <div class="field"><label>Spending adjustment when triggered (%)</label><input type="number" id="guardAdj" value="10" step="1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= EXPLORERS ================= -->
+    <div class="page" data-page="explorers">
+      <div class="page-header"><h2>Explorers</h2><p>What-if and market-risk scenarios, each compared against your current plan.</p></div>
+
+      <div class="card">
+        <h3>What-If Scenarios<span class="sub-label">Single-lever changes to your plan</span></h3>
+        <div class="mini-chart-card"><canvas id="chart_whatif"></canvas></div>
+        <div class="table-scroll">
+          <table id="whatIfTable">
+            <thead><tr><th>Scenario</th><th>Investable at Retirement</th><th>Ending Investable Balance</th><th>Ending Net Worth</th><th>Runs Out At</th><th>Confidence Score</th></tr></thead>
+            <tbody id="whatIfRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Market Risk Scenarios<span class="sub-label">Stress-tests using return shocks, weak markets, or high inflation</span></h3>
+        <div class="mini-chart-card"><canvas id="chart_marketrisk"></canvas></div>
+        <div class="table-scroll">
+          <table id="marketRiskTable">
+            <thead><tr><th>Scenario</th><th>Investable at Retirement</th><th>Ending Investable Balance</th><th>Ending Net Worth</th><th>Runs Out At</th><th>Confidence Score</th></tr></thead>
+            <tbody id="marketRiskRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="note">Each scenario re-runs your full plan with one change applied (or, for market risk, a specific sequence of returns/inflation pinned in). "Confidence Score" is a 300-simulation Monte Carlo success rate for that scenario alone, so it's directly comparable to your baseline score on the Dashboard.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const els = id => document.getElementById(id);
+const fmtMoney = n => n < 0 ? '-$' + Math.round(Math.abs(n)).toLocaleString() : '$' + Math.round(n).toLocaleString();
+const fmtMoneyK = n => {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1000000) return sign + '$' + (abs/1000000).toFixed(2) + 'M';
+  if (abs >= 1000) return sign + '$' + Math.round(abs/1000) + 'k';
+  return sign + '$' + Math.round(abs);
+};
+const CHART_COLORS = ['#1f7a6c','#e08c2b','#5a4fcf','#c0392b','#3f9c7c','#8892a0','#c07a1f','#2b6ea3','#a15fc9','#5c8a3f'];
+
+// ---------- Page navigation (hamburger drawer) ----------
+let charts = {};
+let lastSnapshot = null;
+const PAGE_LABELS = {
+  dashboard:'Dashboard', personal:'Personal & Family', income:'Income & Contributions',
+  investments:'Investments', housing:'Housing', expenses:'Expenses', debt:'Debt',
+  transactions:'Transactions', guaranteed:'Guaranteed Income', taxes:'Taxes', assumptions:'Assumptions & Guardrails',
+  explorers:'Explorers'
+};
+
+function toggleMenu() {
+  els('sidenav').classList.toggle('open');
+  els('navOverlay').classList.toggle('open');
+}
+function closeMenu() {
+  els('sidenav').classList.remove('open');
+  els('navOverlay').classList.remove('open');
+}
+
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.dataset.page === pageId));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === pageId));
+  els('currentPageLabel').textContent = PAGE_LABELS[pageId] || pageId;
+  if (lastSnapshot) ensureOrUpdateChart(pageId, lastSnapshot);
+  if (pageId === 'explorers') renderExplorers();
+  closeMenu();
+}
+
+function setRetirementAge(age) {
+  els('retirementAge').value = age;
+  render();
+}
+
+function syncRetirementDate(force) {
+  const dateVal = els('retirementDate').value;
+  if (!dateVal) return;
+  const today = new Date();
+  const target = new Date(dateVal + 'T00:00:00');
+  const msPerYear = 365.25*24*60*60*1000;
+  const yearsAway = (target - today) / msPerYear;
+  const currentAge = +els('currentAge').value;
+  const impliedAge = Math.round(currentAge + yearsAway);
+  if (force) els('retirementAge').value = Math.max(1, impliedAge);
+  const months = Math.round(yearsAway*12);
+  const y = Math.floor(months/12), m = months%12;
+  els('retirementDateHint').textContent = yearsAway >= 0
+    ? `≈ ${y} yr${y!==1?'s':''} ${m} mo from today — sets retirement age to ${Math.max(1,impliedAge)}`
+    : `That date is in the past — pick a future date`;
+  render();
+}
+
+// ---------- Persistence (localStorage) so values survive a page refresh ----------
+const STORAGE_KEY = 'retirementPlannerState_v1';
+
+function saveState() {
+  const fields = {};
+  document.querySelectorAll('.page input, .page select').forEach(el => {
+    if (!el.id) return;
+    fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+  const state = { fields, expenses, brokeragePies, debts, transactions };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, ignore */ }
+}
+
+function loadState() {
+  let raw;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return false; }
+  if (!raw) return false;
+  let state;
+  try { state = JSON.parse(raw); } catch (e) { return false; }
+  if (Array.isArray(state.expenses)) expenses = state.expenses;
+  if (Array.isArray(state.brokeragePies)) brokeragePies = state.brokeragePies;
+  if (Array.isArray(state.debts)) debts = state.debts;
+  if (Array.isArray(state.transactions)) transactions = state.transactions;
+  if (state.fields) {
+    Object.keys(state.fields).forEach(id => {
+      const el = els(id);
+      if (!el) return;
+      if (el.type === 'checkbox') el.checked = !!state.fields[id];
+      else el.value = state.fields[id];
+    });
+  }
+  return true;
+}
+
+// ---------- Expenses (dynamic rows) ----------
+const EXPENSE_CATEGORIES = ['Food & Groceries','Transportation','Healthcare','Insurance','Utilities','Entertainment & Travel','Personal Care','Shopping','Gifts & Donations','Other'];
+let expenses = [
+  { category:'Food & Groceries', amount:9000 },
+  { category:'Transportation', amount:6000 },
+  { category:'Healthcare', amount:8000 },
+  { category:'Insurance', amount:3000 },
+  { category:'Utilities', amount:4000 },
+  { category:'Entertainment & Travel', amount:6000 },
+  { category:'Other', amount:4000 }
+];
+function renderExpenseRows() {
+  const container = els('expenseRows');
+  container.innerHTML = expenses.map((e,i) => `
+    <div class="row-item">
+      <select onchange="updateExpense(${i},'category',this.value)">
+        ${EXPENSE_CATEGORIES.map(c => `<option value="${c}" ${c===e.category?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <input type="number" value="${e.amount}" step="500" oninput="updateExpense(${i},'amount',this.value)">
+      <button class="remove-btn" onclick="removeExpense(${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+  els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0));
+}
+function updateExpense(i, field, value) {
+  expenses[i][field] = field==='amount' ? +value : value;
+  els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0));
+  render();
+}
+function addExpense() { expenses.push({ category:'Other', amount:1000 }); renderExpenseRows(); render(); }
+function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render(); }
+
+// ---------- Brokerage pies (dynamic rows, M1 Finance) ----------
+let brokeragePies = [
+  { name:'Secondary Bridge If Needed / Cash Refill', balance:646.26 },
+  { name:'Sequence of Returns Risk (T-Bills)', balance:349.51 },
+  { name:'Taxes Post Age 59.5', balance:11360.11 }
+];
+function renderBrokeragePieRows() {
+  const container = els('brokeragePieRows');
+  container.innerHTML = brokeragePies.map((p,i) => `
+    <div class="row-item">
+      <input type="text" value="${p.name}" placeholder="Pie name" oninput="updateBrokeragePie(${i},'name',this.value)">
+      <input type="number" value="${p.balance}" step="0.01" oninput="updateBrokeragePie(${i},'balance',this.value)">
+      <button class="remove-btn" onclick="removeBrokeragePie(${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+  els('brokeragePieTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.balance||0), 0));
+}
+function updateBrokeragePie(i, field, value) {
+  brokeragePies[i][field] = field==='balance' ? +value : value;
+  els('brokeragePieTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.balance||0), 0));
+  render();
+}
+function addBrokeragePie() { brokeragePies.push({ name:'New pie', balance:1000 }); renderBrokeragePieRows(); render(); }
+function removeBrokeragePie(i) { brokeragePies.splice(i,1); renderBrokeragePieRows(); render(); }
+
+// ---------- Debt (dynamic rows) ----------
+const DEBT_CATEGORIES = ['Credit Card','Auto Loan','Student Loan','Personal Loan','Medical Debt','Other'];
+let debts = [
+  { name:'Auto Loan', category:'Auto Loan', balance:18000, apr:6, payment:380 },
+  { name:'Credit Card', category:'Credit Card', balance:4000, apr:22, payment:200 }
+];
+function renderDebtRows() {
+  const container = els('debtRows');
+  container.innerHTML = debts.map((d,i) => `
+    <div class="row-item debt-row">
+      <select onchange="updateDebt(${i},'category',this.value)">
+        ${DEBT_CATEGORIES.map(c => `<option value="${c}" ${c===d.category?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <input type="number" value="${d.balance}" step="500" title="Balance ($)" oninput="updateDebt(${i},'balance',this.value)">
+      <input type="number" value="${d.apr}" step="0.5" title="APR (%)" oninput="updateDebt(${i},'apr',this.value)">
+      <input type="number" value="${d.payment}" step="25" title="Monthly payment ($)" oninput="updateDebt(${i},'payment',this.value)">
+      <button class="remove-btn" onclick="removeDebt(${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+  els('debtTotal').textContent = fmtMoney(debts.reduce((s,d) => s + (+d.balance||0), 0));
+}
+function updateDebt(i, field, value) {
+  debts[i][field] = (field==='balance'||field==='apr'||field==='payment') ? +value : value;
+  els('debtTotal').textContent = fmtMoney(debts.reduce((s,d) => s + (+d.balance||0), 0));
+  render();
+}
+function addDebt() { debts.push({ name:'New debt', category:'Other', balance:5000, apr:10, payment:150 }); renderDebtRows(); render(); }
+function removeDebt(i) { debts.splice(i,1); renderDebtRows(); render(); }
+
+// ---------- Transactions (dynamic rows, standalone ledger) ----------
+const TX_TYPES = ['Expense','Income'];
+let transactions = [
+  { date:'2026-06-01', description:'Paycheck', type:'Income', category:'Other', amount:3200 },
+  { date:'2026-06-03', description:'Grocery Store', type:'Expense', category:'Food & Groceries', amount:145 },
+  { date:'2026-06-05', description:'Electric Bill', type:'Expense', category:'Utilities', amount:210 },
+  { date:'2026-06-10', description:'Gas Station', type:'Expense', category:'Transportation', amount:60 }
+];
+function renderTransactionRows() {
+  const container = els('transactionRows');
+  container.innerHTML = transactions.map((t,i) => `
+    <div class="row-item tx-row">
+      <input type="date" value="${t.date}" oninput="updateTransaction(${i},'date',this.value)">
+      <input type="text" value="${t.description}" placeholder="Description" oninput="updateTransaction(${i},'description',this.value)">
+      <select onchange="updateTransaction(${i},'type',this.value)">
+        ${TX_TYPES.map(c => `<option value="${c}" ${c===t.type?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <select onchange="updateTransaction(${i},'category',this.value)">
+        ${EXPENSE_CATEGORIES.map(c => `<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <input type="number" value="${t.amount}" step="10" title="Amount ($)" oninput="updateTransaction(${i},'amount',this.value)">
+      <button class="remove-btn" onclick="removeTransaction(${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+  updateTransactionTotals();
+}
+function updateTransactionTotals() {
+  const income = transactions.filter(t=>t.type==='Income').reduce((s,t)=>s+(+t.amount||0),0);
+  const expense = transactions.filter(t=>t.type==='Expense').reduce((s,t)=>s+(+t.amount||0),0);
+  els('txIncomeTotal').textContent = fmtMoney(income);
+  els('txExpenseTotal').textContent = fmtMoney(expense);
+  els('txNetTotal').textContent = fmtMoney(income-expense);
+}
+function updateTransaction(i, field, value) {
+  transactions[i][field] = field==='amount' ? +value : value;
+  updateTransactionTotals();
+  render();
+}
+function addTransaction() {
+  transactions.push({ date: new Date().toISOString().slice(0,10), description:'New transaction', type:'Expense', category:'Other', amount:50 });
+  renderTransactionRows();
+  render();
+}
+function removeTransaction(i) { transactions.splice(i,1); renderTransactionRows(); render(); }
+
+// ---------- Debt amortization schedule (return-independent, computed once per render) ----------
+function buildDebtSchedule(debt, maxYears) {
+  const r = debt.apr/100/12;
+  const neverPaysOff = r > 0 && debt.payment <= debt.balance*r;
+  const balanceAtYearEnd = new Array(maxYears+1).fill(0);
+  const paymentDuringYear = new Array(maxYears+1).fill(0);
+  let bal = debt.balance;
+  if (neverPaysOff || debt.balance <= 0) {
+    for (let y=0; y<=maxYears; y++) { paymentDuringYear[y] = neverPaysOff ? debt.payment*12 : 0; balanceAtYearEnd[y] = bal; }
+    return { balanceAtYearEnd, paymentDuringYear, neverPaysOff };
+  }
+  let y = 0, paidThisYear = 0, month = 0;
+  while (bal > 0.01 && month < maxYears*12) {
+    const interest = bal*r;
+    let principal = debt.payment - interest;
+    if (principal > bal) principal = bal;
+    bal -= principal;
+    paidThisYear += interest + principal;
+    month++;
+    if (month % 12 === 0) { balanceAtYearEnd[y] = bal; paymentDuringYear[y] = paidThisYear; y++; paidThisYear = 0; }
+  }
+  if (bal <= 0.01 && month % 12 !== 0 && y <= maxYears) { balanceAtYearEnd[y] = 0; paymentDuringYear[y] = paidThisYear; y++; }
+  for (; y <= maxYears; y++) { balanceAtYearEnd[y] = 0; paymentDuringYear[y] = 0; }
+  return { balanceAtYearEnd, paymentDuringYear, neverPaysOff };
+}
+
+// ---------- Mortgage helpers ----------
+function mortgagePayment(principal, aprPct, termYears) {
+  const r = aprPct/100/12, n = termYears*12;
+  if (r === 0) return principal/n;
+  return principal * r*Math.pow(1+r,n) / (Math.pow(1+r,n)-1);
+}
+function mortgageBalanceAfter(principal, aprPct, termYears, monthsElapsed) {
+  const r = aprPct/100/12, n = termYears*12;
+  const M = mortgagePayment(principal, aprPct, termYears);
+  const k = Math.min(monthsElapsed, n);
+  if (k <= 0) return principal;
+  if (r === 0) return Math.max(0, principal - M*k);
+  const bal = principal*Math.pow(1+r,k) - M*((Math.pow(1+r,k)-1)/r);
+  return Math.max(0, bal);
+}
+function buildMortgageSchedule(inputs, maxYears) {
+  const purchaseYearIdx = inputs.purchaseAge - inputs.currentAge;
+  const principal = inputs.homePrice * (1 - inputs.downPct);
+  const M = mortgagePayment(principal, inputs.mortgageRate, inputs.mortgageTerm);
+  const homeValue = new Array(maxYears+1).fill(0);
+  const mortgageBalance = new Array(maxYears+1).fill(0);
+  const annualPayment = new Array(maxYears+1).fill(0);
+  const equity = new Array(maxYears+1).fill(0);
+  for (let y = 0; y <= maxYears; y++) {
+    if (y < purchaseYearIdx) continue;
+    const yearsOwned = y - purchaseYearIdx;
+    homeValue[y] = inputs.homePrice * Math.pow(1+inputs.homeAppreciation, yearsOwned);
+    const monthsElapsed = Math.min((yearsOwned+1)*12, inputs.mortgageTerm*12);
+    mortgageBalance[y] = mortgageBalanceAfter(principal, inputs.mortgageRate, inputs.mortgageTerm, monthsElapsed);
+    annualPayment[y] = (yearsOwned*12 < inputs.mortgageTerm*12) ? M*12 : 0;
+    equity[y] = homeValue[y] - mortgageBalance[y];
+  }
+  return { homeValue, mortgageBalance, annualPayment, equity, purchaseYearIdx, downPayment: inputs.homePrice*inputs.downPct };
+}
+
+// ---------- Random normal (Box-Muller) ----------
+function randNormal(mean, stdev) {
+  let u = 1 - Math.random(), v = Math.random();
+  let z = Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+  return mean + z*stdev;
+}
+
+// ---------- Read all inputs ----------
+function readInputs() {
+  return {
+    currentAge: +els('currentAge').value,
+    retirementAge: +els('retirementAge').value,
+    lifeExpectancy: +els('lifeExpectancy').value,
+    currentIncome: +els('currentIncome').value,
+    incomeGrowth: +els('incomeGrowth').value/100,
+    tradTSPBalance: +els('tradTSPBalance').value,
+    rothTSPBalance: +els('rothTSPBalance').value,
+    brokerageBalance: brokeragePies.reduce((s,p) => s + (+p.balance || 0), 0),
+    brokerageContribution: +els('brokerageContribution').value,
+    tradPct: +els('tradTSPPct').value/100,
+    rothPct: +els('rothTSPPct').value/100,
+    matchCapPct: +els('matchPct').value/100,
+    checkingBalance: +els('checkingBalance').value,
+    savingsBalance: +els('savingsBalance').value,
+    hysaBalance: +els('hysaBalance').value,
+    cashRate: +els('cashRate').value/100,
+    hysaRate: +els('hysaRate').value/100,
+    preReturn: +els('preReturn').value/100,
+    postReturn: +els('postReturn').value/100,
+    preStdev: +els('preStdev').value/100,
+    postStdev: +els('postStdev').value/100,
+    inflation: +els('inflation').value/100,
+    medicalInflation: +els('medicalInflation').value/100,
+    ssCola: +els('ssCola').value/100,
+    ssMonthly: +els('ssMonthly').value,
+    ssAge: +els('ssAge').value,
+    pensionAnnual: +els('pensionAnnual').value,
+    vaDisabilityAnnual: +els('vaDisabilityAnnual').value,
+    vaDisabilityAge: +els('vaDisabilityAge').value,
+    pensionAge: +els('pensionAge').value,
+    spouseCurrentAge: +els('spouseAge').value,
+    spouseLifeExpectancy: +els('spouseLifeExpectancy').value,
+    spouseWorks: els('spouseWorks').checked,
+    spousalPct: +els('spousalPct').value/100,
+    spousalStartAge: +els('spousalStartAge').value,
+    ltcEnabled: els('ltcEnabled').checked,
+    ltcStartAge: +els('ltcStartAge').value,
+    ltcDuration: +els('ltcDuration').value,
+    ltcAnnualCost: +els('ltcAnnualCost').value,
+    rentMonthly: +els('rentMonthly').value,
+    rentGrowth: +els('rentGrowth').value/100,
+    buyHome: els('buyHome').checked,
+    purchaseAge: +els('purchaseAge').value,
+    homePrice: +els('homePrice').value,
+    downPct: +els('downPct').value/100,
+    mortgageRate: +els('mortgageRate').value,
+    mortgageTerm: +els('mortgageTerm').value,
+    propTaxInsPct: +els('propTaxInsPct').value/100,
+    homeAppreciation: +els('homeAppreciation').value/100,
+    tradTaxRate: +els('tradTaxRate').value/100,
+    capGainsRate: +els('capGainsRate').value/100,
+    guardrailsEnabled: els('guardrailsEnabled').checked,
+    guardBand: +els('guardBand').value/100,
+    guardAdj: +els('guardAdj').value/100
+  };
+}
+
+// ---------- Core projection engine (shared by deterministic run, Monte Carlo, and Explorer scenarios) ----------
+function projectRun(inputs, ctx, randomize, shocks) {
+  shocks = shocks || {};
+  let balTrad = inputs.tradTSPBalance, balRoth = inputs.rothTSPBalance, balBrokerage = inputs.brokerageBalance;
+  let balChecking = inputs.checkingBalance, balSavings = inputs.savingsBalance, balHYSA = inputs.hysaBalance;
+  let income = inputs.currentIncome;
+  let depletionAge = null, shortfallEver = false;
+  let investableAtRetirement = null, cashAtRetirement = null;
+  let initialWithdrawalRate = null;
+  const rows = [];
+
+  for (let age = inputs.currentAge; age <= ctx.effectiveLifeExpectancy; age++) {
+    const y = age - inputs.currentAge;
+    const startInvestable = balTrad + balRoth + balBrokerage;
+    const spouseAgeThisYear = age - ctx.ageGap;
+
+    if (ctx.mortgageSchedule && y === ctx.mortgageSchedule.purchaseYearIdx) {
+      let remaining = ctx.mortgageSchedule.downPayment;
+      const t1 = Math.min(remaining, balChecking); balChecking -= t1; remaining -= t1;
+      const t2 = Math.min(remaining, balSavings); balSavings -= t2; remaining -= t2;
+      const t3 = Math.min(remaining, balHYSA); balHYSA -= t3; remaining -= t3;
+      if (remaining > 0) balBrokerage = Math.max(0, balBrokerage - remaining);
+    }
+
+    // Long-term care for spouse: paid from Roth TSP first, tax-free; overflow falls back to Brokerage then Traditional TSP.
+    let ltcCostThisYear = 0;
+    if (inputs.ltcEnabled && spouseAgeThisYear >= inputs.ltcStartAge && spouseAgeThisYear < inputs.ltcStartAge + inputs.ltcDuration) {
+      const medicalInflatorNow = Math.pow(1+inputs.medicalInflation, y);
+      ltcCostThisYear = inputs.ltcAnnualCost * medicalInflatorNow;
+      let ltcRemaining = ltcCostThisYear;
+      const fromRoth = Math.min(ltcRemaining, balRoth); balRoth -= fromRoth; ltcRemaining -= fromRoth;
+      const fromBrokerage = Math.min(ltcRemaining, balBrokerage); balBrokerage -= fromBrokerage; ltcRemaining -= fromBrokerage;
+      const fromTrad = Math.min(ltcRemaining, balTrad); balTrad -= fromTrad; ltcRemaining -= fromTrad;
+    }
+
+    const debtBalanceThisYear = ctx.debtSchedules.reduce((s,d) => s + (d.balanceAtYearEnd[y] ?? 0), 0);
+    const debtPaymentThisYear = ctx.debtSchedules.reduce((s,d) => s + (d.paymentDuringYear[y] ?? 0), 0);
+    const homeValueThisYear = ctx.mortgageSchedule ? ctx.mortgageSchedule.homeValue[y] : 0;
+    const homeEquityThisYear = ctx.mortgageSchedule ? ctx.mortgageSchedule.equity[y] : 0;
+    const mortgagePmtThisYear = ctx.mortgageSchedule ? ctx.mortgageSchedule.annualPayment[y] : 0;
+    const inflator = Math.pow(1+inputs.inflation, y);
+    const medicalInflator = Math.pow(1+inputs.medicalInflation, y);
+    const ssInflator = Math.pow(1+inputs.ssCola, y);
+    let housingCost;
+    if (ctx.mortgageSchedule && y >= ctx.mortgageSchedule.purchaseYearIdx) {
+      housingCost = mortgagePmtThisYear + homeValueThisYear*inputs.propTaxInsPct;
+    } else {
+      housingCost = inputs.rentMonthly*12*Math.pow(1+inputs.rentGrowth, y);
+    }
+
+    let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, vaDisabilityAmount=0;
+    let tradContribOut=0, rothContribOut=0, matchContribOut=0;
+
+    if (age < inputs.retirementAge) {
+      const preR = (shocks.pre && shocks.pre[y] !== undefined) ? shocks.pre[y]
+        : (randomize ? randNormal(inputs.preReturn, inputs.preStdev) : inputs.preReturn);
+      if (y > 0) income *= (1+inputs.incomeGrowth);
+      const tradContrib = income*inputs.tradPct;
+      const rothContrib = income*inputs.rothPct;
+      const matchContrib = income*Math.min(inputs.tradPct+inputs.rothPct, inputs.matchCapPct);
+      tradContribOut = tradContrib; rothContribOut = rothContrib; matchContribOut = matchContrib;
+      contributions = tradContrib+rothContrib+matchContrib+inputs.brokerageContribution;
+      balTrad = balTrad*(1+preR) + tradContrib + matchContrib;
+      balRoth = balRoth*(1+preR) + rothContrib;
+      balBrokerage = balBrokerage*(1+preR) + inputs.brokerageContribution;
+      balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate); balHYSA *= (1+inputs.hysaRate);
+    } else {
+      if (investableAtRetirement === null) {
+        investableAtRetirement = startInvestable;
+        cashAtRetirement = balChecking + balSavings + balHYSA;
+      }
+      const yearsSinceRetirement = age - inputs.retirementAge;
+      const postR = (shocks.post && shocks.post[yearsSinceRetirement] !== undefined) ? shocks.post[yearsSinceRetirement]
+        : (randomize ? randNormal(inputs.postReturn, inputs.postStdev) : inputs.postReturn);
+      const spendMult = inputs.spendingMultiplier || 1;
+      const expensesInflated = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) * spendMult;
+      let totalSpending = expensesInflated + housingCost + debtPaymentThisYear;
+
+      ssAmount = age >= inputs.ssAge ? inputs.ssMonthly*12*ssInflator : 0;
+      spousalBenefit = (!inputs.spouseWorks && age >= ctx.effectiveSpousalStartAge) ? inputs.ssMonthly*inputs.spousalPct*12*ssInflator : 0;
+      pensionAmount = age >= inputs.pensionAge ? inputs.pensionAnnual*ssInflator : 0;
+      vaDisabilityAmount = age >= inputs.vaDisabilityAge ? inputs.vaDisabilityAnnual*ssInflator : 0;
+      guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + vaDisabilityAmount;
+
+      const need0 = Math.max(0, totalSpending - guaranteedIncome);
+      if (initialWithdrawalRate === null && startInvestable > 0) initialWithdrawalRate = need0/startInvestable;
+
+      if (inputs.guardrailsEnabled && initialWithdrawalRate !== null && startInvestable > 0) {
+        const currentRate = need0/startInvestable;
+        if (currentRate < initialWithdrawalRate*(1-inputs.guardBand)) totalSpending *= (1+inputs.guardAdj);
+        else if (currentRate > initialWithdrawalRate*(1+inputs.guardBand)) totalSpending *= (1-inputs.guardAdj);
+      }
+      spending = totalSpending;
+      const need = Math.max(0, totalSpending - guaranteedIncome);
+
+      let brokGrown = balBrokerage*(1+postR), tradGrown = balTrad*(1+postR), rothGrown = balRoth*(1+postR);
+      let remaining = need;
+      const t1 = inputs.capGainsRate, t2 = inputs.tradTaxRate;
+      let netTake = Math.min(remaining, brokGrown*(1-t1));
+      let grossTake = t1 < 1 ? netTake/(1-t1) : 0;
+      brokGrown -= grossTake; remaining -= netTake; grossWithdrawal += grossTake;
+
+      netTake = Math.min(remaining, tradGrown*(1-t2));
+      grossTake = t2 < 1 ? netTake/(1-t2) : 0;
+      tradGrown -= grossTake; remaining -= netTake; grossWithdrawal += grossTake;
+
+      netTake = Math.min(remaining, rothGrown);
+      rothGrown -= netTake; remaining -= netTake; grossWithdrawal += netTake;
+
+      withdrawal = need - remaining;
+      if (remaining > 1) shortfallEver = true;
+
+      balBrokerage = Math.max(0, brokGrown); balTrad = Math.max(0, tradGrown); balRoth = Math.max(0, rothGrown);
+      balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate); balHYSA *= (1+inputs.hysaRate);
+
+      const endInvestable = balTrad + balRoth + balBrokerage;
+      if (endInvestable <= 0 && depletionAge === null && startInvestable > 0) depletionAge = age;
+    }
+
+    const investable = balTrad + balRoth + balBrokerage;
+    const cash = balChecking + balSavings + balHYSA;
+    const netWorth = investable + cash + homeEquityThisYear - debtBalanceThisYear;
+
+    if (!randomize) {
+      rows.push({
+        age, spouseAge: age - ctx.ageGap, income: age < inputs.retirementAge ? income : null,
+        contributions, tradContribOut, rothContribOut, matchContribOut,
+        guaranteedIncome, spousalBenefit, ssAmount, pensionAmount, vaDisabilityAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
+        investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost
+      });
+    }
+  }
+
+  if (investableAtRetirement === null) {
+    investableAtRetirement = balTrad + balRoth + balBrokerage;
+    cashAtRetirement = balChecking + balSavings + balHYSA;
+  }
+
+  return { rows, investableAtRetirement, cashAtRetirement, depletionAge, success: !shortfallEver };
+}
+
+function buildContext(inputs) {
+  const ageGap = inputs.currentAge - inputs.spouseCurrentAge;
+  // Plan through whichever spouse lives longer, expressed in the primary user's age terms.
+  const effectiveLifeExpectancy = Math.max(inputs.lifeExpectancy, inputs.spouseLifeExpectancy + ageGap);
+  const maxYears = effectiveLifeExpectancy - inputs.currentAge;
+  const effectiveSpousalStartAge = Math.max(inputs.ssAge, ageGap + inputs.spousalStartAge);
+  const debtSchedules = debts.map(d => buildDebtSchedule(d, maxYears));
+  const mortgageSchedule = inputs.buyHome ? buildMortgageSchedule(inputs, maxYears) : null;
+  const expensesTotal = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
+  const expensesMedical = expenses.filter(e => e.category === 'Healthcare').reduce((s,e) => s + (+e.amount || 0), 0);
+  const expensesNonMedical = expensesTotal - expensesMedical;
+  return { maxYears, ageGap, effectiveLifeExpectancy, effectiveSpousalStartAge, debtSchedules, mortgageSchedule, expensesTotal, expensesMedical, expensesNonMedical };
+}
+
+function runMonteCarlo(inputs, ctx, N, shocks) {
+  let successes = 0;
+  for (let i = 0; i < N; i++) { if (projectRun(inputs, ctx, true, shocks).success) successes++; }
+  return successes / N * 100;
+}
+
+// ---------- Explorers: What-If and Market Risk scenario libraries ----------
+const WHAT_IF_SCENARIOS = [
+  { name: 'Retire 2 years earlier', apply: inp => ({ ...inp, retirementAge: inp.retirementAge - 2 }) },
+  { name: 'Retire 2 years later', apply: inp => ({ ...inp, retirementAge: inp.retirementAge + 2 }) },
+  { name: 'Spend 10% less in retirement', apply: inp => ({ ...inp, spendingMultiplier: 0.9 }) },
+  { name: 'Spend 10% more in retirement', apply: inp => ({ ...inp, spendingMultiplier: 1.1 }) },
+  { name: 'Claim Social Security at 62', apply: inp => ({ ...inp, ssAge: 62, ssMonthly: inp.ssMonthly * 0.7 }) },
+  { name: 'Delay Social Security to 70', apply: inp => ({ ...inp, ssAge: 70, ssMonthly: inp.ssMonthly * 1.24 }) },
+  { name: 'Contribute 5% more to TSP', apply: inp => ({ ...inp, tradPct: inp.tradPct + 0.05 }) },
+  { name: 'Pay off all debt today', special: 'payoffDebt' }
+];
+
+const MARKET_RISK_SCENARIOS = [
+  { name: 'Sequence of returns risk (rough first 3 yrs)', shocks: { post: { 0: -0.25, 1: -0.15, 2: 0.05 } } },
+  { name: '2008-style crash right after retiring', shocks: { post: { 1: -0.37 } } },
+  { name: 'Prolonged bear market (returns -3%/yr)', apply: inp => ({ ...inp, preReturn: inp.preReturn - 0.03, postReturn: inp.postReturn - 0.03 }) },
+  { name: 'High inflation (+3% general & medical)', apply: inp => ({ ...inp, inflation: inp.inflation + 0.03, medicalInflation: inp.medicalInflation + 0.03, ssCola: inp.ssCola + 0.01 }) },
+  { name: 'Stagflation (weak returns + high inflation)', apply: inp => ({ ...inp, preReturn: inp.preReturn - 0.03, postReturn: inp.postReturn - 0.03, inflation: inp.inflation + 0.03, medicalInflation: inp.medicalInflation + 0.03, ssCola: inp.ssCola + 0.01 }) }
+];
+
+function runExplorerScenario(scenario, baseInputs, baseCtx) {
+  let inputs = baseInputs, ctx = baseCtx;
+  if (scenario.special === 'payoffDebt') {
+    const totalDebt = debts.reduce((s,d) => s + (+d.balance || 0), 0);
+    inputs = { ...baseInputs, brokerageBalance: Math.max(0, baseInputs.brokerageBalance - totalDebt) };
+    ctx = { ...baseCtx, debtSchedules: [] };
+  } else if (scenario.apply) {
+    inputs = scenario.apply(baseInputs);
+  }
+  const shocks = scenario.shocks || {};
+  const det = projectRun(inputs, ctx, false, shocks);
+  const score = runMonteCarlo(inputs, ctx, 300, shocks);
+  const lastRow = det.rows.length ? det.rows[det.rows.length - 1] : null;
+  return {
+    name: scenario.name,
+    investableAtRetirement: det.investableAtRetirement,
+    depletionAge: det.depletionAge,
+    endingBalance: lastRow ? lastRow.investable : det.investableAtRetirement,
+    endingNetWorth: lastRow ? lastRow.netWorth : 0,
+    score
+  };
+}
+
+// ---------- Per-section chart configs ----------
+function barConfig(labels, values, opts) {
+  opts = opts || {};
+  const fmt = v => opts.percent ? (Math.round(v*10)/10)+'%' : (opts.plain ? Math.round(v)+(opts.suffix||'') : fmtMoneyK(v));
+  const fmtFull = v => opts.percent ? (Math.round(v*10)/10)+'%' : (opts.plain ? Math.round(v)+(opts.suffix||'') : fmtMoney(v));
+  return {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: labels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]), borderRadius: 4 }] },
+    options: {
+      indexAxis: opts.horizontal ? 'y' : 'x',
+      responsive: true,
+      animation: false,
+      interaction: { mode: 'nearest', axis: opts.horizontal ? 'y' : 'x', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          displayColors: false,
+          callbacks: { label: item => fmtFull(item.parsed[opts.horizontal ? 'x' : 'y']) }
+        }
+      },
+      scales: {
+        x: opts.horizontal ? { ticks: { callback: fmt } } : { ticks: { autoSkip: false, font:{size:10} } },
+        y: opts.horizontal ? { ticks: { font:{size:10} } } : { ticks: { callback: fmt } }
+      }
+    }
+  };
+}
+
+function buildChartConfig(pageId, snap) {
+  switch (pageId) {
+    case 'personal':
+      return barConfig(['Years to retirement','Years in retirement'], [snap.yearsToRetirement, snap.yearsInRetirement], { plain:true, suffix:' yrs' });
+    case 'income':
+      return barConfig(['Traditional TSP','Roth TSP','Agency Match','Brokerage'],
+        [snap.tradContribFirstYear, snap.rothContribFirstYear, snap.matchContribFirstYear, snap.brokerageContribution]);
+    case 'investments':
+      return barConfig(['Traditional TSP','Roth TSP','Brokerage','Cash (bank)'],
+        [snap.tradTSPBalance, snap.rothTSPBalance, snap.brokerageBalance, snap.cashTotal]);
+    case 'housing':
+      return barConfig(['Current annual rent','Housing cost at retirement'], [snap.currentRentAnnual, snap.housingCostAtRetirement]);
+    case 'expenses':
+      return barConfig(expenses.map(e=>e.category), expenses.map(e=>+e.amount||0), { horizontal:true });
+    case 'debt':
+      return barConfig(debts.map(d=>d.name||d.category), debts.map(d=>+d.balance||0), { horizontal:true });
+    case 'transactions': {
+      const byCat = {};
+      transactions.filter(t=>t.type==='Expense').forEach(t => { byCat[t.category] = (byCat[t.category]||0) + (+t.amount||0); });
+      const labels = Object.keys(byCat);
+      return barConfig(labels.length?labels:['No expenses logged'], labels.length?labels.map(l=>byCat[l]):[0], { horizontal:true });
+    }
+    case 'guaranteed':
+      return barConfig(['Your Social Security','Spousal Benefit','Military Pension','VA Disability'],
+        [snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.vaDisabilityAtRetirement], { horizontal:true });
+    case 'taxes':
+      return barConfig(['Gross withdrawn from accounts','Net spending covered'], [snap.grossWithdrawalFirstYear, snap.netSpendingFirstYear]);
+    case 'assumptions': {
+      const labels = ['Pre-retirement return','Post-retirement return','General Inflation','Medical Inflation','SS COLA'];
+      const values = [snap.preReturnPct, snap.postReturnPct, snap.inflationPct, snap.medicalInflationPct, snap.ssColaPct];
+      if (snap.buyHome) { labels.push('Housing Appreciation'); values.push(snap.homeAppreciationPct); }
+      return barConfig(labels, values, { percent:true, horizontal:true });
+    }
+    default:
+      return null;
+  }
+}
+
+function ensureOrUpdateChart(pageId, snap) {
+  if (pageId === 'dashboard' || pageId === 'explorers') return; // handled separately
+  const config = buildChartConfig(pageId, snap);
+  if (!config) return;
+  if (charts[pageId]) {
+    charts[pageId].data = config.data;
+    charts[pageId].options = config.options;
+    charts[pageId].update();
+  } else {
+    const canvas = els('chart_' + pageId);
+    if (!canvas) return;
+    charts[pageId] = new Chart(canvas.getContext('2d'), config);
+  }
+}
+
+function renderExplorers() {
+  const inputs = readInputs();
+  const ctx = buildContext(inputs);
+  const whatIf = WHAT_IF_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
+  const marketRisk = MARKET_RISK_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
+
+  const rowsHtml = list => list.map(r => `
+    <tr>
+      <td>${r.name}</td>
+      <td>${fmtMoney(r.investableAtRetirement)}</td>
+      <td>${fmtMoney(r.endingBalance)}</td>
+      <td>${fmtMoney(r.endingNetWorth)}</td>
+      <td>${r.depletionAge ? 'Age ' + r.depletionAge : 'Never'}</td>
+      <td>${Math.round(r.score)}%</td>
+    </tr>`).join('');
+  if (els('whatIfRows')) els('whatIfRows').innerHTML = rowsHtml(whatIf);
+  if (els('marketRiskRows')) els('marketRiskRows').innerHTML = rowsHtml(marketRisk);
+
+  const whatIfConfig = barConfig(whatIf.map(r => r.name), whatIf.map(r => r.score), { percent:true, horizontal:true });
+  const marketRiskConfig = barConfig(marketRisk.map(r => r.name), marketRisk.map(r => r.score), { percent:true, horizontal:true });
+
+  if (charts.explorers_whatif) {
+    charts.explorers_whatif.data = whatIfConfig.data; charts.explorers_whatif.options = whatIfConfig.options; charts.explorers_whatif.update();
+  } else {
+    const c = els('chart_whatif'); if (c) charts.explorers_whatif = new Chart(c.getContext('2d'), whatIfConfig);
+  }
+
+  if (charts.explorers_marketrisk) {
+    charts.explorers_marketrisk.data = marketRiskConfig.data; charts.explorers_marketrisk.options = marketRiskConfig.options; charts.explorers_marketrisk.update();
+  } else {
+    const c = els('chart_marketrisk'); if (c) charts.explorers_marketrisk = new Chart(c.getContext('2d'), marketRiskConfig);
+  }
+}
+
+function render() {
+  els('spousalBenefitFields').style.display = els('spouseWorks').checked ? 'none' : 'grid';
+  els('buyHomeFields').style.display = els('buyHome').checked ? 'block' : 'none';
+  els('ltcFields').style.display = els('ltcEnabled').checked ? 'block' : 'none';
+  els('pill55').classList.toggle('active', +els('retirementAge').value === 55);
+  els('pill57').classList.toggle('active', +els('retirementAge').value === 57);
+
+  const inputs = readInputs();
+  const ctx = buildContext(inputs);
+  const result = projectRun(inputs, ctx, false);
+  const { rows, investableAtRetirement, cashAtRetirement, depletionAge } = result;
+  const retirementAge = inputs.retirementAge, lifeExpectancy = ctx.effectiveLifeExpectancy;
+
+  const netWorthToday = inputs.tradTSPBalance + inputs.rothTSPBalance + inputs.brokerageBalance
+    + inputs.checkingBalance + inputs.savingsBalance + inputs.hysaBalance
+    - debts.reduce((s,d) => s + (+d.balance||0), 0);
+  const rowAtRetirement = rows.find(r => r.age === retirementAge);
+  const netWorthAtRetirement = rowAtRetirement ? rowAtRetirement.netWorth : (rows.length ? rows[rows.length-1].netWorth : netWorthToday);
+
+  // Monte Carlo score
+  const score = runMonteCarlo(inputs, ctx, 1000);
+  els('scoreLifeExp').textContent = lifeExpectancy;
+  const ring = els('scoreRing');
+  ring.textContent = Math.round(score) + '%';
+  let ringColor = '#c0392b', label = 'Needs attention';
+  if (score >= 80) { ringColor = '#1f7a6c'; label = 'Strong'; }
+  else if (score >= 60) { ringColor = '#3f9c7c'; label = 'Good'; }
+  else if (score >= 40) { ringColor = '#c07a1f'; label = 'Uncertain'; }
+  ring.style.background = ringColor;
+  els('scoreTitle').textContent = `Retirement Confidence Score — ${label}`;
+
+  const longevityLabel = depletionAge ? `Runs out at age ${depletionAge}` : `Lasts through age ${lifeExpectancy}`;
+  const longevityClass = depletionAge ? 'warn' : 'ok';
+
+  const firstYearGuaranteed = rowAtRetirement ? rowAtRetirement.guaranteedIncome : 0;
+  const firstYearSpending = rowAtRetirement ? rowAtRetirement.spending : (ctx.expensesTotal + inputs.rentMonthly*12);
+  const gapToday = Math.max(0, firstYearSpending - firstYearGuaranteed);
+
+  els('statCards').innerHTML = `
+    <div class="stat"><div class="label">Investable balance at retirement (age ${retirementAge})</div><div class="value">${fmtMoneyK(investableAtRetirement)}</div></div>
+    <div class="stat ${longevityClass}"><div class="label">Portfolio longevity (deterministic)</div><div class="value">${longevityLabel}</div></div>
+    <div class="stat"><div class="label">Guaranteed income at retirement</div><div class="value">${fmtMoneyK(firstYearGuaranteed)}/yr</div></div>
+    <div class="stat"><div class="label">Portfolio must cover</div><div class="value">${fmtMoneyK(gapToday)}/yr</div></div>
+    <div class="stat"><div class="label">Cash reserves at retirement</div><div class="value">${fmtMoneyK(cashAtRetirement)}</div></div>
+    <div class="stat"><div class="label">Net worth today</div><div class="value">${fmtMoneyK(netWorthToday)}</div></div>
+    <div class="stat"><div class="label">Net worth at retirement</div><div class="value">${fmtMoneyK(netWorthAtRetirement)}</div></div>
+  `;
+
+  const run55 = projectRun({...inputs, retirementAge:55}, ctx, false);
+  const run57 = projectRun({...inputs, retirementAge:57}, ctx, false);
+  const score55 = runMonteCarlo({...inputs, retirementAge:55}, ctx, 1000);
+  const score57 = runMonteCarlo({...inputs, retirementAge:57}, ctx, 1000);
+  els('compareBox').innerHTML = `<b>Retire at 55</b> vs <b>Retire at 57</b>: investable balance at retirement ${fmtMoneyK(run55.investableAtRetirement)} vs ${fmtMoneyK(run57.investableAtRetirement)}
+    &nbsp;•&nbsp; confidence score ${Math.round(score55)}% vs ${Math.round(score57)}%
+    &nbsp;•&nbsp; ${run55.depletionAge ? 'runs out at ' + run55.depletionAge : 'lasts to ' + lifeExpectancy} vs ${run57.depletionAge ? 'runs out at ' + run57.depletionAge : 'lasts to ' + lifeExpectancy}.`;
+
+  // Dashboard chart
+  const retirementIndex = rows.findIndex(r => r.age === retirementAge);
+  const investablePoints = rows.map(r => ({ x: r.age, y: r.investable }));
+  const cashPoints = rows.map(r => ({ x: r.age, y: r.cash }));
+  const netWorthPoints = rows.map(r => ({ x: r.age, y: r.netWorth }));
+
+  const verticalLinePlugin = {
+    id: 'verticalLine',
+    afterDatasetsDraw(c) {
+      const xScale = c.scales.x, yScale = c.scales.y;
+      const xPix = xScale.getPixelForValue(retirementAge);
+      const ctx2 = c.ctx;
+      ctx2.save();
+      ctx2.strokeStyle = '#8892a0'; ctx2.setLineDash([4,4]); ctx2.lineWidth = 1;
+      ctx2.beginPath(); ctx2.moveTo(xPix, yScale.getPixelForValue(yScale.min)); ctx2.lineTo(xPix, yScale.getPixelForValue(yScale.max)); ctx2.stroke();
+      ctx2.restore();
+    }
+  };
+
+  const data = {
+    datasets: [
+      { label: 'Investable (TSP + brokerage)', data: investablePoints, borderWidth: 2.5, pointRadius: 0, tension: 0.15, fill: true,
+        backgroundColor: 'rgba(31,122,108,0.08)', segment: { borderColor: c => c.p0DataIndex < retirementIndex ? '#1f7a6c' : '#e08c2b' } },
+      { label: 'Cash & bank accounts', data: cashPoints, borderWidth: 1.75, borderColor: '#8892a0', borderDash: [3,3], pointRadius: 0, tension: 0.15, fill: false },
+      { label: 'Net worth', data: netWorthPoints, borderWidth: 2, borderColor: '#5a4fcf', pointRadius: 0, tension: 0.15, fill: false }
+    ]
+  };
+  const options = {
+    responsive: true, animation: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: {
+      title: items => 'Age ' + items[0].parsed.x, label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.y)
+    } } },
+    scales: {
+      x: { type: 'linear', title: { display: true, text: 'Age' }, ticks: { stepSize: 5 } },
+      y: { title: { display: true, text: 'Balance' }, ticks: { callback: v => fmtMoneyK(v) } }
+    }
+  };
+  if (charts.dashboard) { charts.dashboard.data = data; charts.dashboard.options = options; charts.dashboard.update(); }
+  else { charts.dashboard = new Chart(els('balanceChart').getContext('2d'), { type:'line', data, options, plugins:[verticalLinePlugin] }); }
+
+  // Table
+  const tbody = document.querySelector('#yearTable tbody');
+  tbody.innerHTML = rows.map(r => `
+    <tr class="${r.age === retirementAge ? 'retire-row' : ''}">
+      <td>${r.age}</td><td>${r.spouseAge}</td>
+      <td>${r.income ? fmtMoney(r.income) : '—'}</td>
+      <td>${r.contributions ? fmtMoney(r.contributions) : '—'}</td>
+      <td>${r.spousalBenefit ? fmtMoney(r.spousalBenefit) : '—'}</td>
+      <td>${r.guaranteedIncome ? fmtMoney(r.guaranteedIncome) : '—'}</td>
+      <td>${r.spending ? fmtMoney(r.spending) : '—'}</td>
+      <td>${r.withdrawal ? fmtMoney(r.withdrawal) : '—'}</td>
+      <td>${r.ltcCost ? fmtMoney(r.ltcCost) : '—'}</td>
+      <td>${fmtMoney(r.investable)}</td><td>${fmtMoney(r.cash)}</td>
+      <td>${fmtMoney(r.debtBalance)}</td><td>${fmtMoney(r.homeEquity)}</td><td>${fmtMoney(r.netWorth)}</td>
+    </tr>
+  `).join('');
+
+  // Build snapshot for per-section charts
+  lastSnapshot = {
+    yearsToRetirement: Math.max(0, inputs.retirementAge - inputs.currentAge),
+    yearsInRetirement: Math.max(0, ctx.effectiveLifeExpectancy - inputs.retirementAge),
+    tradContribFirstYear: rows[0] ? rows[0].tradContribOut : 0,
+    rothContribFirstYear: rows[0] ? rows[0].rothContribOut : 0,
+    matchContribFirstYear: rows[0] ? rows[0].matchContribOut : 0,
+    brokerageContribution: inputs.brokerageContribution,
+    tradTSPBalance: inputs.tradTSPBalance,
+    rothTSPBalance: inputs.rothTSPBalance,
+    brokerageBalance: inputs.brokerageBalance,
+    cashTotal: inputs.checkingBalance + inputs.savingsBalance + inputs.hysaBalance,
+    currentRentAnnual: inputs.rentMonthly*12,
+    housingCostAtRetirement: rowAtRetirement ? rowAtRetirement.housingCost : inputs.rentMonthly*12,
+    ssAtRetirement: rowAtRetirement ? rowAtRetirement.ssAmount : 0,
+    spousalAtRetirement: rowAtRetirement ? rowAtRetirement.spousalBenefit : 0,
+    pensionAtRetirement: rowAtRetirement ? rowAtRetirement.pensionAmount : 0,
+    vaDisabilityAtRetirement: rowAtRetirement ? rowAtRetirement.vaDisabilityAmount : 0,
+    grossWithdrawalFirstYear: rowAtRetirement ? rowAtRetirement.grossWithdrawal : 0,
+    netSpendingFirstYear: rowAtRetirement ? rowAtRetirement.withdrawal : 0,
+    preReturnPct: +els('preReturn').value,
+    postReturnPct: +els('postReturn').value,
+    inflationPct: +els('inflation').value,
+    medicalInflationPct: +els('medicalInflation').value,
+    ssColaPct: +els('ssCola').value,
+    buyHome: inputs.buyHome,
+    homeAppreciationPct: +els('homeAppreciation').value
+  };
+
+  // Refresh chart for whichever page is currently visible (and any already-built ones)
+  const activePage = document.querySelector('.page.active');
+  Object.keys(charts).forEach(pid => { if (pid !== 'dashboard' && pid !== 'explorers_whatif' && pid !== 'explorers_marketrisk') ensureOrUpdateChart(pid, lastSnapshot); });
+  if (activePage && activePage.dataset.page !== 'dashboard' && activePage.dataset.page !== 'explorers' && !charts[activePage.dataset.page]) {
+    ensureOrUpdateChart(activePage.dataset.page, lastSnapshot);
+  }
+  if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
+
+  saveState();
+}
+
+const hadSavedState = loadState();
+renderExpenseRows();
+renderBrokeragePieRows();
+renderDebtRows();
+renderTransactionRows();
+document.querySelectorAll('.page input, .page select').forEach(el => el.addEventListener('input', render));
+syncRetirementDate(!hadSavedState);
+render();
+</script>
+
+</body>
+</html>
