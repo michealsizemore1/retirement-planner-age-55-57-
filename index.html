@@ -708,7 +708,7 @@
 
     <!-- ================= INCOME GAP & WITHDRAWALS ================= -->
     <div class="page" data-page="gap">
-      <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, pension, VA disability, annuity — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
+      <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, pension, VA disability, annuity, after income tax — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
       <div class="mini-chart-card"><canvas id="chart_gap"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><canvas id="chart_gap_yearly"></canvas></div>
 
@@ -716,11 +716,11 @@
         <h3>Year-by-Year Gap &amp; Withdrawals</h3>
         <div class="table-scroll">
           <table id="gapTable">
-            <thead><tr><th>Age</th><th>Guaranteed Income</th><th>Total Spending</th><th>Surplus / (Gap)</th><th>Portfolio Withdrawal (gross)</th></tr></thead>
+            <thead><tr><th>Age</th><th>Guaranteed Income (after tax)</th><th>Total Spending</th><th>Surplus / (Gap)</th><th>Portfolio Withdrawal (gross)</th></tr></thead>
             <tbody id="gapRows"></tbody>
           </table>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">A positive surplus means guaranteed income covers that year's spending with room to spare; a gap (shown in red) is the shortfall pulled from Traditional TSP, Roth TSP, and Brokerage. Pre-retirement years aren't shown — spending and withdrawals aren't tracked against the portfolio until retirement.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Guaranteed income here is shown after federal + Idaho income tax (progressive, using your standard deduction) — VA disability stays untaxed, but Social Security (85%), pension, and annuity income all have real tax owed on them before they're available to spend. A positive surplus means guaranteed income covers that year's spending with room to spare; a gap (shown in red) is the shortfall pulled from your accounts in the order set on the Income & Contributions page. Pre-retirement years aren't shown — spending and withdrawals aren't tracked against the portfolio until retirement.</p>
       </div>
     </div>
 
@@ -781,7 +781,7 @@
 
     <!-- ================= INSURANCE ================= -->
     <div class="page" data-page="insurance">
-      <div class="page-header"><h2>Insurance</h2><p>A policy tracker — informational, doesn't feed the projection math.</p></div>
+      <div class="page-header"><h2>Insurance</h2><p>A policy tracker. Total monthly premiums below are added to your spending every year (growing with General Inflation) in both the deterministic projection and the Monte Carlo simulation — coverage amounts are informational only.</p></div>
       <div class="mini-chart-card"><canvas id="chart_insurance"></canvas></div>
 
       <div class="card">
@@ -790,6 +790,7 @@
         <div class="row-list" id="insuranceRows"></div>
         <button class="add-btn" onclick="addInsurancePolicy()">+ Add policy</button>
         <div class="total-row"><span>Total premiums</span><span id="insuranceTotal">$0/mo</span></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">If you already listed a premium under the "Insurance" category on the Expenses page, remove it from one place or the other so it isn't counted twice.</p>
       </div>
     </div>
 
@@ -979,6 +980,17 @@ function marginalRateFromBrackets(taxableIncome, brackets) {
   const income = Math.max(0, taxableIncome);
   for (const b of brackets) { if (income <= b.upTo) return b.rate; }
   return brackets[brackets.length-1].rate;
+}
+// Progressive tax actually owed on a given taxable income, summed bracket-by-bracket (not just the marginal rate).
+function taxOwedFromBrackets(taxableIncome, brackets) {
+  const income = Math.max(0, taxableIncome);
+  let tax = 0, lower = 0;
+  for (const b of brackets) {
+    if (income <= lower) break;
+    tax += (Math.min(income, b.upTo) - lower) * b.rate;
+    lower = b.upTo;
+  }
+  return tax;
 }
 
 // ---------- Page navigation (hamburger drawer) ----------
@@ -1558,6 +1570,7 @@ function readInputs() {
     rothPct: +els('rothTSPPct').value/100,
     matchCapPct: +els('matchPct').value/100,
     excessIncomeSavingsPct: +els('excessIncomeSavingsPct').value/100,
+    insurancePremiumMonthly: insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0),
     brokeragePieBalances: brokeragePies.map(p => +p.balance || 0),
     brokeragePieContributionsMonthly: brokeragePies.map(p => +p.contribution || 0),
     withdrawalOrder: withdrawalOrderState.slice(),
@@ -1674,7 +1687,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const t1 = Math.min(remaining, balChecking); balChecking -= t1; remaining -= t1;
       const t2 = Math.min(remaining, balSavings); balSavings -= t2; remaining -= t2;
       const t3 = Math.min(remaining, balHYSA); balHYSA -= t3; remaining -= t3;
-      if (remaining > 0) applyPooledDelta(balBrokeragePies, -remaining);
+      if (remaining > 0) {
+        if (remaining - sumPies(balBrokeragePies) > 0.01) shortfallEver = true;
+        applyPooledDelta(balBrokeragePies, -remaining);
+      }
     }
 
     // Long-term care for spouse: paid from Roth TSP first, tax-free; overflow falls back to Brokerage then Traditional TSP.
@@ -1687,6 +1703,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const brokerageAvailable = sumPies(balBrokeragePies);
       const fromBrokerage = Math.min(ltcRemaining, brokerageAvailable); applyPooledDelta(balBrokeragePies, -fromBrokerage); ltcRemaining -= fromBrokerage;
       const fromTrad = Math.min(ltcRemaining, balTrad); balTrad -= fromTrad; ltcRemaining -= fromTrad;
+      if (ltcRemaining > 0.01) shortfallEver = true;
     }
 
     // Future / one-time planned expenses: hit at a specific age (or a recurring range), drawn from cash first then brokerage.
@@ -1700,7 +1717,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const f1 = Math.min(feRemaining, balHYSA); balHYSA -= f1; feRemaining -= f1;
       const f2 = Math.min(feRemaining, balSavings); balSavings -= f2; feRemaining -= f2;
       const f3 = Math.min(feRemaining, balChecking); balChecking -= f3; feRemaining -= f3;
-      if (feRemaining > 0) applyPooledDelta(balBrokeragePies, -feRemaining);
+      if (feRemaining > 0) {
+        if (feRemaining - sumPies(balBrokeragePies) > 0.01) shortfallEver = true;
+        applyPooledDelta(balBrokeragePies, -feRemaining);
+      }
     }
 
     // Windfalls: one-time inflows at a specific age, deposited into the chosen account.
@@ -1728,8 +1748,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
     } else {
       housingCost = inputs.rentMonthly*12*Math.pow(1+inputs.rentGrowth, y);
     }
+    // Insurance policy premiums (from the Insurance page) grow with General Inflation and apply in every year, not just retirement.
+    const insurancePremiumAnnual = (inputs.insurancePremiumMonthly || 0) * 12 * inflator;
 
-    let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, vaDisabilityAmount=0, annuityAmount=0;
+    let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, vaDisabilityAmount=0, annuityAmount=0;
     let fedMarginal=null, ltcgMarginal=null;
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
     let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0;
@@ -1746,7 +1768,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const brokerageContribThisYear = pieContribsMonthly.reduce((s,c) => s + (+c||0), 0) * 12 * Math.pow(1+inputs.incomeGrowth, y);
       // Excess income savings: whatever's left of your paycheck after contributions and recurring living costs,
       // times the chosen %, gets swept into Brokerage on top of the fixed contributions above.
-      const recurringLivingCostThisYear = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) + housingCost + debtPaymentThisYear;
+      const recurringLivingCostThisYear = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
       const excessIncomeAvailable = Math.max(0, income - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
       excessIncomeSaved = excessIncomeAvailable * (inputs.excessIncomeSavingsPct || 0);
       tradContribOut = tradContrib; rothContribOut = rothContrib; matchContribOut = matchContrib;
@@ -1783,7 +1805,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       medicalCostAnnual = medicarePremiumBase * medicalInflator;
       expensesCategoriesAnnual = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) * spendMult;
       const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
-      let totalSpending = expensesInflated + housingCost + debtPaymentThisYear;
+      let totalSpending = expensesInflated + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
 
       ssAmount = age >= inputs.ssAge ? inputs.ssMonthly*12*ssInflator : 0;
       spousalBenefit = (!inputs.spouseWorks && age >= ctx.effectiveSpousalStartAge) ? inputs.ssMonthly*inputs.spousalPct*12*ssInflator : 0;
@@ -1792,7 +1814,17 @@ function projectRun(inputs, ctx, randomize, shocks) {
       annuityAmount = age >= inputs.annuityStartAge ? inputs.annuityMonthly*12*annuityInflator : 0;
       guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + vaDisabilityAmount + annuityAmount;
 
-      const need0 = Math.max(0, totalSpending - guaranteedIncome);
+      // Real federal marginal brackets (2026 MFJ) + Idaho's flat state rate.
+      // SS/spousal benefit treated as 85% taxable; VA disability excluded (tax-free); pension/annuity fully taxable.
+      const taxableGuaranteed = 0.85*(ssAmount+spousalBenefit) + pensionAmount + annuityAmount;
+      const taxableBeforeWithdrawal = Math.max(0, taxableGuaranteed - inputs.stdDeduction);
+      // Guaranteed income doesn't arrive tax-free — actual federal + Idaho tax owed on it (progressive, using the
+      // standard deduction) is deducted before comparing it against spending, instead of treating it at face value.
+      const fedTaxOnGuaranteed = taxOwedFromBrackets(taxableBeforeWithdrawal, FEDERAL_BRACKETS_MFJ);
+      const idahoTaxOnGuaranteed = taxableBeforeWithdrawal * inputs.idahoRate;
+      guaranteedIncomeAfterTax = Math.max(0, guaranteedIncome - fedTaxOnGuaranteed - idahoTaxOnGuaranteed);
+
+      const need0 = Math.max(0, totalSpending - guaranteedIncomeAfterTax);
       if (initialWithdrawalRate === null && startInvestable > 0) initialWithdrawalRate = need0/startInvestable;
 
       if (inputs.guardrailsEnabled && initialWithdrawalRate !== null && startInvestable > 0) {
@@ -1801,7 +1833,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         else if (currentRate > initialWithdrawalRate*(1+inputs.guardBand)) totalSpending *= (1-inputs.guardAdj);
       }
       spending = totalSpending;
-      const need = Math.max(0, totalSpending - guaranteedIncome);
+      const need = Math.max(0, totalSpending - guaranteedIncomeAfterTax);
 
       let brokPiesGrown = balBrokeragePies.map(b => b*(1+postR));
       let tradGrown = balTrad*(1+postR), rothGrown = balRoth*(1+postR);
@@ -1812,10 +1844,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // (separating from federal service in the year you turn 55+). If that assumption is turned off, the
       // penalty applies to any Traditional TSP withdrawal taken before 59.5.
       const earlyPenalty = (!inputs.ruleOf55Applies && age < 59.5) ? 0.10 : 0;
-      // Real federal marginal brackets (2026 MFJ) + Idaho's flat state rate, stacked on top of guaranteed income.
-      // SS/spousal benefit treated as 85% taxable; VA disability excluded (tax-free); pension/annuity fully taxable.
-      const taxableGuaranteed = 0.85*(ssAmount+spousalBenefit) + pensionAmount + annuityAmount;
-      const taxableBeforeWithdrawal = Math.max(0, taxableGuaranteed - inputs.stdDeduction);
+      // Marginal bracket for the withdrawal itself stacks on top of the same guaranteed-income taxable base above.
       fedMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, FEDERAL_BRACKETS_MFJ);
       ltcgMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, LTCG_BRACKETS_MFJ);
       const t1 = ltcgMarginal + inputs.idahoRate, t2 = fedMarginal + inputs.idahoRate + earlyPenalty;
@@ -1873,9 +1902,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
       rows.push({
         age, spouseAge: age - ctx.ageGap, income: age < inputs.retirementAge ? income : null,
         contributions, tradContribOut, rothContribOut, matchContribOut,
-        guaranteedIncome, spousalBenefit, ssAmount, pensionAmount, vaDisabilityAmount, annuityAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
+        guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, vaDisabilityAmount, annuityAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
-        medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved,
+        medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual,
         fedMarginalRate: age >= inputs.retirementAge ? fedMarginal : null, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null
       });
     }
@@ -2500,7 +2529,7 @@ function renderGapTable(rows, inputs, retirementAge) {
   const retirementRows = rows.filter(r => r.age >= retirementAge);
   if (!retirementRows.length) { body.innerHTML = '<tr><td colspan="5">No retirement years in the current projection.</td></tr>'; return; }
   body.innerHTML = retirementRows.map(r => {
-    const guaranteed = r.guaranteedIncome || 0;
+    const guaranteed = r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0);
     const spending = r.spending || 0;
     const surplus = guaranteed - spending;
     const surplusStyle = surplus < 0 ? ' style="color:var(--danger);"' : '';
@@ -2556,14 +2585,14 @@ function render() {
   const longevityLabel = depletionAge ? `Runs out at age ${depletionAge}` : `Lasts through age ${lifeExpectancy}`;
   const longevityClass = depletionAge ? 'warn' : 'ok';
 
-  const firstYearGuaranteed = rowAtRetirement ? rowAtRetirement.guaranteedIncome : 0;
+  const firstYearGuaranteed = rowAtRetirement ? (rowAtRetirement.guaranteedIncomeAfterTax != null ? rowAtRetirement.guaranteedIncomeAfterTax : rowAtRetirement.guaranteedIncome) : 0;
   const firstYearSpending = rowAtRetirement ? rowAtRetirement.spending : (ctx.expensesTotal + inputs.rentMonthly*12);
   const gapToday = Math.max(0, firstYearSpending - firstYearGuaranteed);
 
   els('statCards').innerHTML = `
     <div class="stat"><div class="label">Investable balance at retirement (age ${retirementAge})</div><div class="value">${fmtMoneyK(dv(investableAtRetirement, retirementAge, inputs))}</div></div>
     <div class="stat ${longevityClass}"><div class="label">Portfolio longevity (deterministic)</div><div class="value">${longevityLabel}</div></div>
-    <div class="stat"><div class="label">Guaranteed income at retirement</div><div class="value">${fmtMoneyK(dv(firstYearGuaranteed, retirementAge, inputs))}/yr</div></div>
+    <div class="stat"><div class="label">Guaranteed income at retirement (after tax)</div><div class="value">${fmtMoneyK(dv(firstYearGuaranteed, retirementAge, inputs))}/yr</div></div>
     <div class="stat"><div class="label">Portfolio must cover</div><div class="value">${fmtMoneyK(dv(gapToday, retirementAge, inputs))}/yr</div></div>
     <div class="stat"><div class="label">Cash reserves at retirement</div><div class="value">${fmtMoneyK(dv(cashAtRetirement, retirementAge, inputs))}</div></div>
     <div class="stat"><div class="label">Net worth today</div><div class="value">${fmtMoneyK(netWorthToday)}</div></div>
