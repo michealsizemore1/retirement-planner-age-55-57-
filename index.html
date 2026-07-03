@@ -22,23 +22,26 @@
     --radius:10px;
   }
   *{box-sizing:border-box;}
-  html{font-size:17px;}
+  html{font-size:18px;}
   body{
     margin:0;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg);
     color:var(--text);
-    font-size:16px;
+    font-size:17px;
   }
   header{
     background:var(--navy);
     color:#fff;
     padding:22px 32px;
   }
-  header h1{margin:0; font-size:28px; font-weight:600;}
-  header p{margin:6px 0 0; color:#b9c6ce; font-size:16px;}
+  header h1{margin:0; font-size:30px; font-weight:600;}
+  header p{margin:6px 0 0; color:#b9c6ce; font-size:17px;}
 
   .header-bar{display:flex; align-items:center; gap:14px;}
+  .dollar-toggle{display:flex; border:1px solid rgba(255,255,255,0.3); border-radius:20px; overflow:hidden; flex-shrink:0;}
+  .dollar-toggle-btn{padding:8px 14px; font-size:15px; color:#cfe6e0; cursor:pointer; white-space:nowrap;}
+  .dollar-toggle-btn.active{background:var(--teal); color:#fff; font-weight:600;}
   .hamburger-btn{
     background:rgba(255,255,255,0.12);
     border:1px solid rgba(255,255,255,0.25);
@@ -55,7 +58,7 @@
   .current-page-label{
     display:inline-block;
     margin-top:4px;
-    font-size:15px;
+    font-size:16.5px;
     color:#cfe6e0;
     background:rgba(31,122,108,0.35);
     padding:3px 12px;
@@ -96,12 +99,12 @@
     border-bottom:1px solid var(--border);
     margin-bottom:10px;
   }
-  .sidenav-header span{font-size:16px; font-weight:700; color:var(--navy);}
+  .sidenav-header span{font-size:17.5px; font-weight:700; color:var(--navy);}
   .sidenav-close{background:none; border:none; font-size:24px; color:var(--muted); cursor:pointer; line-height:1;}
   .nav-item{
     padding:13px 14px;
     border-radius:8px;
-    font-size:16px;
+    font-size:17px;
     color:var(--muted);
     cursor:pointer;
     margin-bottom:2px;
@@ -113,8 +116,8 @@
   .page{display:none;}
   .page.active{display:block;}
   .page-header{margin-bottom:14px;}
-  .page-header h2{margin:0 0 4px; font-size:24px; color:var(--navy);}
-  .page-header p{margin:0; font-size:15.5px; color:var(--muted); line-height:1.5;}
+  .page-header h2{margin:0 0 4px; font-size:26px; color:var(--navy);}
+  .page-header p{margin:0; font-size:17px; color:var(--muted); line-height:1.5;}
 
   .mini-chart-card{
     background:var(--card);
@@ -133,7 +136,7 @@
     margin-bottom:16px;
   }
   .card h3{
-    font-size:17px;
+    font-size:19px;
     text-transform:uppercase;
     letter-spacing:.03em;
     color:var(--teal);
@@ -142,22 +145,24 @@
   }
   .card h3 .sub-label{
     text-transform:none; letter-spacing:0; color:var(--muted); font-weight:400;
-    font-size:14px; display:block; margin-top:3px;
+    font-size:15.5px; display:block; margin-top:3px;
   }
   .field{margin-bottom:13px;}
-  .field label{display:flex; justify-content:space-between; font-size:15px; color:var(--muted); margin-bottom:5px;}
-  .field input[type="number"], .field input[type="date"], .field input[type="text"], .field select{
-    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font-size:17px; background:#fbfcfc;
+  .field label{display:flex; justify-content:space-between; font-size:16.5px; color:var(--muted); margin-bottom:5px;}
+  .field input[type="number"], .field input[type="date"], .field input[type="month"], .field input[type="text"], .field select{
+    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font-size:18px; background:#fbfcfc;
   }
-  .field input[type="checkbox"]{width:19px; height:19px; accent-color:var(--teal);}
+  .field input[type="checkbox"]{width:21px; height:21px; accent-color:var(--teal);}
+  .age-date-input{margin-top:6px; font-size:15.5px !important; padding:6px 9px !important;}
+  .age-date-hint{font-size:12.5px; color:var(--muted); margin-top:4px;}
   .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .three-col{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
   .divider{border:none; border-top:1px dashed var(--border); margin:12px 0;}
-  .mini-label{font-size:14px; font-weight:600; color:var(--navy); margin:2px 0 10px;}
+  .mini-label{font-size:15.5px; font-weight:600; color:var(--navy); margin:2px 0 10px;}
   .checkbox-row{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
-  .checkbox-row label{margin:0; font-size:15.5px; color:var(--text);}
+  .checkbox-row label{margin:0; font-size:17px; color:var(--text);}
   .pill-row{display:flex; gap:8px; margin-top:8px;}
-  .pill{border:1px solid var(--border); background:#fbfcfc; color:var(--muted); font-size:14px; padding:6px 13px; border-radius:20px; cursor:pointer;}
+  .pill{border:1px solid var(--border); background:#fbfcfc; color:var(--muted); font-size:15.5px; padding:6px 13px; border-radius:20px; cursor:pointer;}
   .pill.active{background:var(--teal); color:#fff; border-color:var(--teal);}
   .sub-fields{border-left:2px solid var(--teal-light); padding-left:14px; margin-top:10px;}
 
@@ -165,15 +170,52 @@
   .row-item{display:grid; grid-template-columns:1.3fr 0.9fr 26px; gap:8px; align-items:center; margin-bottom:8px;}
   .row-item.debt-row{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
   .row-item.tx-row{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
-  .row-item input, .row-item select{padding:8px 9px; border:1px solid var(--border); border-radius:6px; font-size:15px; background:#fbfcfc; width:100%;}
-  .remove-btn{background:none; border:none; color:var(--danger); cursor:pointer; font-size:19px; line-height:1; padding:2px;}
-  .add-btn{background:var(--teal-light); color:var(--teal); border:none; border-radius:6px; padding:8px 13px; font-size:15px; font-weight:600; cursor:pointer; margin-top:6px;}
-  .total-row{display:flex; justify-content:space-between; font-size:15.5px; font-weight:700; color:var(--navy); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);}
+  .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 26px;}
+  .row-item.future-row{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px;}
+  .row-item.windfall-row{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px;}
+  .row-item.insurance-row{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
+  .row-item input, .row-item select{padding:8px 9px; border:1px solid var(--border); border-radius:6px; font-size:16.5px; background:#fbfcfc; width:100%;}
+  .age-cell{display:flex; flex-direction:column; gap:4px;}
+  .age-cell input[type="month"]{font-size:13.5px; padding:5px 7px;}
+  .withdraw-order-row{
+    display:flex; align-items:center; gap:12px;
+    background:#fbfcfc; border:1px solid var(--border); border-radius:8px;
+    padding:11px 13px; margin-bottom:8px;
+  }
+  .withdraw-order-num{
+    width:28px; height:28px; flex:0 0 auto; border-radius:50%; background:var(--border);
+    color:var(--navy); font-weight:700; font-size:14.5px; display:flex; align-items:center; justify-content:center;
+  }
+  .withdraw-order-info{flex:1; min-width:0;}
+  .withdraw-order-name{font-size:16.5px; font-weight:600; color:var(--navy); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .withdraw-order-badge{font-size:13.5px; color:var(--muted); margin-top:2px;}
+  .withdraw-order-balance{font-size:16.5px; font-weight:600; color:var(--navy); flex:0 0 auto; text-align:right; min-width:78px;}
+  .withdraw-order-arrows{display:flex; flex-direction:column; gap:2px; flex:0 0 auto;}
+  .withdraw-order-arrows button{
+    width:26px; height:21px; border:1px solid var(--border); background:#fff; border-radius:4px;
+    font-size:11.5px; color:var(--muted); cursor:pointer; line-height:1; padding:0;
+  }
+  .withdraw-order-arrows button:disabled{opacity:0.35; cursor:not-allowed;}
+  .withdraw-order-arrows button:not(:disabled):hover{background:var(--teal-light); color:var(--teal);}
+  .row-header{display:grid; gap:8px; margin-bottom:6px; font-size:13.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
+  .row-header.cols-2{grid-template-columns:1.3fr 0.9fr 26px;}
+  .row-header.cols-debt{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
+  .row-header.cols-tx{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
+  .row-header.cols-contrib{grid-template-columns:1.6fr 0.9fr;}
+  .row-header.cols-future{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px;}
+  .row-header.cols-windfall{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px;}
+  .row-header.cols-expense{grid-template-columns:1.1fr 1fr 0.7fr 26px;}
+  .row-header.cols-insurance{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
+  .row-item.contrib-row{grid-template-columns:1.6fr 0.9fr; align-items:center;}
+  .pie-name-label{font-size:16.5px; color:var(--text);}
+  .remove-btn{background:none; border:none; color:var(--danger); cursor:pointer; font-size:20px; line-height:1; padding:2px;}
+  .add-btn{background:var(--teal-light); color:var(--teal); border:none; border-radius:6px; padding:8px 13px; font-size:16.5px; font-weight:600; cursor:pointer; margin-top:6px;}
+  .total-row{display:flex; justify-content:space-between; font-size:17px; font-weight:700; color:var(--navy); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);}
 
   .results-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:14px;}
   .stat{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
-  .stat .label{font-size:14.5px; color:var(--muted); margin-bottom:8px;}
-  .stat .value{font-size:26px; font-weight:700; color:var(--navy);}
+  .stat .label{font-size:16px; color:var(--muted); margin-bottom:8px;}
+  .stat .value{font-size:28px; font-weight:700; color:var(--navy);}
   .stat.warn .value{color:var(--danger);}
   .stat.ok .value{color:var(--good);}
 
@@ -181,35 +223,75 @@
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
     padding:20px 22px; margin-bottom:14px; display:flex; align-items:center; gap:22px; flex-wrap:wrap;
   }
-  .score-ring{width:96px; height:96px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; color:#fff; flex-shrink:0;}
-  .score-text h3{margin:0 0 6px; font-size:19px; color:var(--navy); text-transform:none; letter-spacing:0; font-weight:700;}
-  .score-text p{margin:0; font-size:15.5px; color:var(--muted); line-height:1.55;}
+  .score-ring{width:96px; height:96px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:27px; font-weight:800; color:#fff; flex-shrink:0;}
+  .score-text h3{margin:0 0 6px; font-size:21px; color:var(--navy); text-transform:none; letter-spacing:0; font-weight:700;}
+  .score-text p{margin:0; font-size:17px; color:var(--muted); line-height:1.55;}
 
   .compare-box{
     background:var(--teal-light); border:1px solid #c9e4de; border-radius:var(--radius);
-    padding:14px 18px; font-size:15.5px; color:var(--navy); margin-bottom:14px; line-height:1.7;
+    padding:14px 18px; font-size:17px; color:var(--navy); margin-bottom:14px; line-height:1.7;
   }
   .compare-box b{color:var(--teal);}
 
   .chart-wrap{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px;}
-  .chart-wrap h2{font-size:18px; margin:0 0 6px; color:var(--navy);}
-  .chart-wrap p.sub{margin:0 0 16px; font-size:15px; color:var(--muted);}
+  .chart-wrap h2{font-size:20px; margin:0 0 6px; color:var(--navy);}
+  .chart-wrap p.sub{margin:0 0 16px; font-size:16.5px; color:var(--muted);}
   canvas{max-height:380px;}
-  .legend-note{display:flex; flex-wrap:wrap; gap:18px; font-size:14.5px; color:var(--muted); margin-top:12px;}
+  .legend-note{display:flex; flex-wrap:wrap; gap:18px; font-size:16px; color:var(--muted); margin-top:12px;}
   .legend-note span{display:flex; align-items:center; gap:6px;}
   .dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
   .dash{width:14px; height:0; border-top:2px dashed #8892a0; display:inline-block;}
 
   details{margin-top:16px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px;}
-  summary{cursor:pointer; font-weight:600; font-size:16px; color:var(--navy);}
+  summary{cursor:pointer; font-weight:600; font-size:17.5px; color:var(--navy);}
   .table-scroll{overflow-x:auto;}
-  table{width:100%; border-collapse:collapse; margin-top:12px; font-size:15px; min-width:1100px;}
+  table{width:100%; border-collapse:collapse; margin-top:12px; font-size:16.5px; min-width:1100px;}
   th,td{padding:8px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap;}
   th:first-child,td:first-child{text-align:left;}
   thead th{color:var(--muted); font-weight:600;}
   tr.retire-row td{background:var(--teal-light); font-weight:600;}
 
-  .note{font-size:14.5px; color:var(--muted); line-height:1.65; margin-top:14px; padding:14px 16px; background:#fffaf0; border:1px solid #f0e0bd; border-radius:8px;}
+  .note{font-size:16px; color:var(--muted); line-height:1.65; margin-top:14px; padding:14px 16px; background:#fffaf0; border:1px solid #f0e0bd; border-radius:8px;}
+
+  .tip{display:flex; gap:12px; padding:14px 16px; border-radius:8px; margin-bottom:10px; border:1px solid var(--border); background:#fbfcfc; align-items:flex-start;}
+  .tip .tip-icon{font-size:20px; flex-shrink:0; line-height:1.4;}
+  .tip .tip-text{font-size:16.5px; line-height:1.55; color:var(--text);}
+  .tip.high{border-color:#f0c3bb; background:#fdf3f1;}
+  .tip.medium{border-color:#f0ddb5; background:#fffaf0;}
+  .tip.good{border-color:#c9e4de; background:var(--teal-light);}
+  .chat-box{border:1px solid var(--border); border-radius:8px; padding:12px; background:#fbfcfc; margin-top:10px;}
+  .chat-log{max-height:320px; overflow-y:auto; margin-bottom:10px;}
+  .chat-msg{padding:10px 12px; border-radius:8px; margin-bottom:8px; font-size:16.5px; line-height:1.55;}
+  .chat-msg.user{background:var(--teal-light); color:var(--navy);}
+  .chat-msg.ai{background:#fff; border:1px solid var(--border);}
+  .chat-input-row{display:flex; gap:8px;}
+  .chat-input-row textarea{flex:1; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font-size:16.5px; font-family:inherit; resize:vertical; min-height:44px;}
+  .chat-send-btn{background:var(--teal); color:#fff; border:none; border-radius:6px; padding:0 18px; font-size:16.5px; font-weight:600; cursor:pointer;}
+  .chat-send-btn:disabled{opacity:0.5; cursor:not-allowed;}
+
+  .ask-ai-fab{
+    position:fixed; right:20px; bottom:20px; z-index:500;
+    background:var(--teal); color:#fff; border:none; border-radius:26px;
+    padding:13px 20px; font-size:16.5px; font-weight:700; cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,0.22); display:flex; align-items:center; gap:6px;
+  }
+  .ask-ai-fab:hover{filter:brightness(1.05);}
+  .floating-ai-panel{
+    position:fixed; right:20px; bottom:84px; z-index:500;
+    width:min(380px, calc(100vw - 40px)); max-height:min(70vh, 560px);
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    box-shadow:0 10px 32px rgba(0,0,0,0.25); padding:14px 16px 16px;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .floating-ai-header{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px;}
+  .floating-ai-header > span{font-size:17.5px; font-weight:700; color:var(--navy);}
+  .floating-ai-close{background:none; border:none; font-size:22px; line-height:1; color:var(--muted); cursor:pointer; padding:0 2px;}
+  .floating-ai-panel .chat-box{margin-top:0; overflow-y:auto;}
+  .floating-ai-panel .chat-log{max-height:38vh;}
+  @media (max-width:480px){
+    .ask-ai-fab{padding:12px 16px; font-size:15.5px;}
+    .floating-ai-panel{right:10px; left:10px; width:auto; bottom:74px;}
+  }
 </style>
 </head>
 <body>
@@ -220,6 +302,10 @@
     <div class="header-titles">
       <h1>Retirement Planner</h1>
       <p>Tap the menu to jump to a section. <span class="current-page-label" id="currentPageLabel">Dashboard</span></p>
+    </div>
+    <div class="dollar-toggle" id="dollarToggle">
+      <span class="dollar-toggle-btn" data-mode="real" onclick="setDollarView('real')">Today's $</span>
+      <span class="dollar-toggle-btn active" data-mode="nominal" onclick="setDollarView('nominal')">Future $</span>
     </div>
   </div>
 </header>
@@ -240,9 +326,15 @@
   <div class="nav-item" data-page="debt" onclick="showPage('debt')">Debt</div>
   <div class="nav-item" data-page="transactions" onclick="showPage('transactions')">Transactions</div>
   <div class="nav-item" data-page="guaranteed" onclick="showPage('guaranteed')">Guaranteed Income</div>
+  <div class="nav-item" data-page="gap" onclick="showPage('gap')">Income Gap &amp; Withdrawals</div>
+  <div class="nav-item" data-page="medical" onclick="showPage('medical')">Medical</div>
+  <div class="nav-item" data-page="estate" onclick="showPage('estate')">Estate Planning</div>
+  <div class="nav-item" data-page="insurance" onclick="showPage('insurance')">Insurance</div>
   <div class="nav-item" data-page="taxes" onclick="showPage('taxes')">Taxes</div>
   <div class="nav-item" data-page="assumptions" onclick="showPage('assumptions')">Assumptions &amp; Guardrails</div>
   <div class="nav-item" data-page="explorers" onclick="showPage('explorers')">Explorers</div>
+  <div class="nav-item" data-page="coach" onclick="showPage('coach')">Coach</div>
+  <div class="nav-item" data-page="settings" onclick="showPage('settings')">Settings</div>
 </nav>
 
 <div class="shell">
@@ -269,8 +361,8 @@
       <div class="compare-box" id="compareBox"></div>
 
       <div class="chart-wrap">
-        <h2>Projected Balances</h2>
-        <p class="sub">Investable accounts (TSP + brokerage) grow, then draw down in retirement using the withdrawal order: brokerage → Traditional TSP → Roth TSP. Net worth adds cash, home equity, and subtracts debt.</p>
+        <h2>Projected Balances<span id="dollarModeNote" style="font-size:15px; font-weight:400; color:var(--muted);"></span></h2>
+        <p class="sub">Investable accounts (TSP + brokerage) grow, then draw down in retirement using your chosen Withdrawal Strategy (Income &amp; Contributions page). Net worth adds cash, home equity, and subtracts debt.</p>
         <canvas id="balanceChart"></canvas>
         <div class="legend-note">
           <span><span class="dot" style="background:#1f7a6c"></span>Investable (accumulation)</span>
@@ -294,7 +386,7 @@
       </details>
 
       <div class="note">
-        This is a simplified model: taxes use flat rates rather than IRS brackets (brokerage capital-gains tax is applied to the whole withdrawal, not just the gain portion, so real taxes are likely lower), and it doesn't model Medicare or one-time expenses. The plan runs through age 100 for both of you — specifically, through whichever spouse's life expectancy is later once translated to your age, so household spending doesn't stop early just because it's keyed to your age. Spouse's long-term care is modeled starting at her age 85 for 3 years, paid from Roth TSP first (tax-free, outside the normal order) and falling back to Brokerage then Traditional TSP if Roth runs short; your own long-term care is assumed to be covered by insurance and isn't charged against the portfolio. Withdrawals in retirement otherwise draw from brokerage first, then Traditional TSP, then Roth TSP last; checking/savings/HYSA are tracked as liquidity and not spent down. Rent, debt payments, and expenses are assumed covered by income before retirement and only enter the withdrawal need afterward. The spousal Social Security benefit assumes your spouse claims at the age you specify and that you've already filed for your own benefit. Four separate rates now drive different parts of the plan (all on the Assumptions page): General Inflation for most expenses and rent, Medical Inflation for Healthcare spending specifically, Social Security COLA for your SS and spousal benefit, and Housing Appreciation for home value — which only comes into play if you model a future purchase. The Monte Carlo score randomizes annual investment returns (not rent, debt, or guaranteed income) around your assumed averages — it's a directional signal, not a guarantee. The Transactions section is a standalone ledger for logging actual activity; it does not feed the projection, which runs on your Expenses assumptions instead. Treat all of this as a first pass — let me know what you'd like refined next.
+        This is a simplified model, not tax or legal advice. Traditional TSP withdrawals are taxed using real 2026 federal marginal brackets (Married Filing Jointly) plus Idaho's flat state rate, based on the standard deduction and Social Security's 85%-taxable assumption on the Taxes page; brokerage withdrawals use federal long-term capital gains brackets plus Idaho's flat rate on the whole withdrawal (not just the gain, so real taxes are likely somewhat lower). Rule of 55 is assumed by default, so Traditional TSP withdrawals avoid the 10% early-withdrawal penalty before 59½ — toggle that off on the Taxes page to see the alternative. The plan runs through age 100 for both of you — specifically, through whichever spouse's life expectancy is later once translated to your age, so household spending doesn't stop early just because it's keyed to your age. Spouse's long-term care is modeled starting at her age 85 for 3 years, paid from Roth TSP first (tax-free, outside the normal order) and falling back to Brokerage then Traditional TSP if Roth runs short; your own long-term care is assumed to be covered by insurance and isn't charged against the portfolio. Withdrawals in retirement draw from brokerage first, then Traditional TSP, then Roth TSP last; checking/savings/HYSA are tracked as liquidity and not spent down. Medicare-aware healthcare premiums (Medical page) and any future/one-time expenses (Expenses page) are added on top of your recurring monthly expenses once you're retired. Rent, debt payments, and expenses are assumed covered by income before retirement and only enter the withdrawal need afterward — future/one-time expenses and windfalls are the exception, since those can hit at any age. The spousal Social Security benefit assumes your spouse claims at the age you specify and that you've already filed for your own benefit. Five separate rates now drive different parts of the plan (all on the Assumptions page): General Inflation for most expenses, rent, and future expenses, Medical Inflation for Healthcare spending and Medical page premiums, Social Security COLA for your SS, spousal benefit, and any COLA-adjusted annuity, and Housing Appreciation for home value — which only comes into play if you model a future purchase. The Monte Carlo score randomizes annual investment returns (not rent, debt, or guaranteed income) around your assumed averages — it's a directional signal, not a guarantee. The Transactions section is a standalone ledger for logging actual activity; it does not feed the projection, which runs on your Expenses assumptions instead. The Estate Planning &amp; Insurance page is informational and doesn't feed the projection math. Treat all of this as a first pass — let me know what you'd like refined next.
       </div>
     </div>
 
@@ -302,6 +394,7 @@
     <div class="page" data-page="personal">
       <div class="page-header"><h2>Personal &amp; Family</h2><p>Ages and household details that drive every other section.</p></div>
       <div class="mini-chart-card"><canvas id="chart_personal"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">LTC cost by year</div><canvas id="chart_personal_yearly"></canvas></div>
 
       <div class="card">
         <h3>Personal</h3>
@@ -312,6 +405,7 @@
             <input type="number" id="retirementAge" value="55" min="40" max="90">
             <div class="pill-row">
               <span class="pill" id="pill55" onclick="setRetirementAge(55)">Retire at 55</span>
+              <span class="pill" id="pill56" onclick="setRetirementAge(56)">Retire at 56</span>
               <span class="pill" id="pill57" onclick="setRetirementAge(57)">Retire at 57</span>
             </div>
           </div>
@@ -319,7 +413,7 @@
         <div class="field">
           <label>Planned last working day</label>
           <input type="date" id="retirementDate" value="2028-12-31" oninput="syncRetirementDate(true)">
-          <div id="retirementDateHint" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+          <div id="retirementDateHint" style="font-size:15px;color:var(--muted);margin-top:4px;"></div>
         </div>
         <div class="field"><label>Plan until age (your life expectancy)</label><input type="number" id="lifeExpectancy" value="100" min="60" max="105"></div>
       </div>
@@ -334,7 +428,7 @@
           <input type="checkbox" id="spouseWorks">
           <label for="spouseWorks">Spouse has their own earnings record / Social Security</label>
         </div>
-        <p style="font-size:11px;color:var(--muted);margin:2px 0 0;">The plan runs through whichever of you two lives longer, so household spending doesn't stop early for the survivor.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:2px 0 0;">The plan runs through whichever of you two lives longer, so household spending doesn't stop early for the survivor.</p>
         <hr class="divider">
         <div class="mini-label">Long-Term Care (spouse)</div>
         <div class="checkbox-row">
@@ -343,11 +437,14 @@
         </div>
         <div class="sub-fields" id="ltcFields">
           <div class="two-col">
-            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="85" min="60" max="105"></div>
+            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="85" min="60" max="105">
+              <input type="month" id="ltcStartAgeDate" class="age-date-input" oninput="syncAgeDate('ltcStartAgeDate','ltcStartAge','ltcStartAgeDateHint','spouseAge')">
+              <div id="ltcStartAgeDateHint" class="age-date-hint"></div>
+            </div>
             <div class="field"><label>Duration (years)</label><input type="number" id="ltcDuration" value="3" min="1" max="20"></div>
           </div>
           <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="75000" step="1000"></div>
-          <p style="font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
+          <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
         </div>
       </div>
     </div>
@@ -356,6 +453,8 @@
     <div class="page" data-page="income">
       <div class="page-header"><h2>Income &amp; Contributions</h2><p>What comes in, and how much of it goes toward retirement.</p></div>
       <div class="mini-chart-card"><canvas id="chart_income"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income &amp; contributions by year</div><canvas id="chart_income_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Brokerage contribution by portfolio</div><canvas id="chart_income_pies"></canvas></div>
 
       <div class="card">
         <h3>Income</h3>
@@ -370,7 +469,36 @@
           <div class="field"><label>Roth TSP (% of income)</label><input type="number" id="rothTSPPct" value="5" step="0.5"></div>
         </div>
         <div class="field"><label>Agency match (up to % of income)</label><input type="number" id="matchPct" value="5" step="0.5"></div>
-        <div class="field"><label>Brokerage annual contribution ($)</label><input type="number" id="brokerageContribution" value="6000" step="500"></div>
+      </div>
+
+      <div class="card">
+        <h3>Brokerage Contributions (M1 Finance)<span class="sub-label">Monthly amount going into each ETF pie — edit pie names/balances on the Investments page. Grows with your Expected annual raise (%) above, same as the paycheck it comes from.</span></h3>
+        <div class="row-header cols-contrib"><span>Pie name</span><span>Contribution ($/mo)</span></div>
+        <div class="row-list" id="pieContributionRows"></div>
+        <div class="total-row"><span>Total brokerage contribution</span><span id="pieContributionTotal">$0/mo</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Excess Income Savings<span class="sub-label">Automatically invest a share of whatever's left over each year, on top of the contributions above</span></h3>
+        <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="0" step="5" min="0" max="100"></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">"Leftover" income = your job income, minus TSP/Roth/agency-match/brokerage contributions above, minus recurring expenses, housing, and debt payments for that year. Only applies while you're still working, and the extra amount goes into your Brokerage pies.</p>
+      </div>
+
+      <div class="card">
+        <h3>Withdrawal Strategy<span class="sub-label">Which accounts fund retirement spending, and in what order</span></h3>
+        <div class="pill-row" style="margin-bottom:2px;">
+          <span class="pill active" id="withdrawModeTraditionalPill" onclick="setWithdrawalMode(false)">Traditional</span>
+          <span class="pill" id="withdrawModeCustomPill" onclick="setWithdrawalMode(true)">Customized</span>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 10px;line-height:1.5;">Edit the order of your accounts based on when you expect to make withdrawals from them. <b>Traditional</b> uses a conventional taxable → tax-deferred → tax-free sequence; switch to <b>Customized</b> to use the ▲▼ arrows and set your own order.</p>
+        <div class="mini-label">Account Order</div>
+        <div id="withdrawalOrderRows"></div>
+        <hr class="divider">
+        <div class="checkbox-row">
+          <input type="checkbox" id="withdrawSimultaneous" onchange="render()">
+          <label for="withdrawSimultaneous">Withdraw from multiple accounts at the same time (proportionally), instead of one at a time</label>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split proportionally across all the accounts above by their balance that year — the order numbers stop mattering, since every account participates at once.</p>
       </div>
     </div>
 
@@ -378,6 +506,9 @@
     <div class="page" data-page="investments">
       <div class="page-header"><h2>Investments</h2><p>Current balances across your retirement and brokerage accounts.</p></div>
       <div class="mini-chart-card"><canvas id="chart_investments"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Brokerage balance by portfolio</div><canvas id="chart_investments_pies"></canvas></div>
+
+      <div class="stat" style="margin-bottom:16px;"><div class="label">Total current assets (TSP + brokerage + cash)</div><div class="value" id="totalAssetsTile">$0</div></div>
 
       <div class="card">
         <h3>TSP — Thrift Savings Plan<span class="sub-label">Agency match always deposits into Traditional TSP</span></h3>
@@ -389,6 +520,7 @@
 
       <div class="card">
         <h3>Brokerage (M1 Finance)<span class="sub-label">Each pie tracked separately; they sum to one taxable balance for the projection</span></h3>
+        <div class="row-header cols-2"><span>Pie name</span><span>Balance ($)</span><span></span></div>
         <div class="row-list" id="brokeragePieRows"></div>
         <button class="add-btn" onclick="addBrokeragePie()">+ Add pie</button>
         <div class="total-row"><span>Total brokerage</span><span id="brokeragePieTotal">$0</span></div>
@@ -412,11 +544,12 @@
     <div class="page" data-page="housing">
       <div class="page-header"><h2>Housing</h2><p>Currently renting — optionally model a future purchase.</p></div>
       <div class="mini-chart-card"><canvas id="chart_housing"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Housing cost by year</div><canvas id="chart_housing_yearly"></canvas></div>
 
       <div class="card">
         <h3>Housing</h3>
         <div class="two-col">
-          <div class="field"><label>Monthly rent ($)</label><input type="number" id="rentMonthly" value="1800" step="50"></div>
+          <div class="field"><label>Monthly rent ($)</label><input type="number" id="rentMonthly" value="2564.93" step="10"></div>
           <div class="field"><label>Annual rent growth (%)</label><input type="number" id="rentGrowth" value="3" step="0.1"></div>
         </div>
         <div class="checkbox-row">
@@ -425,7 +558,10 @@
         </div>
         <div class="sub-fields" id="buyHomeFields" style="display:none;">
           <div class="two-col">
-            <div class="field"><label>Purchase age</label><input type="number" id="purchaseAge" value="60" min="18" max="95"></div>
+            <div class="field"><label>Purchase age</label><input type="number" id="purchaseAge" value="60" min="18" max="95">
+              <input type="month" id="purchaseAgeDate" class="age-date-input" oninput="syncAgeDate('purchaseAgeDate','purchaseAge','purchaseAgeDateHint','currentAge')">
+              <div id="purchaseAgeDateHint" class="age-date-hint"></div>
+            </div>
             <div class="field"><label>Home price ($)</label><input type="number" id="homePrice" value="350000" step="5000"></div>
           </div>
           <div class="two-col">
@@ -443,14 +579,26 @@
 
     <!-- ================= EXPENSES ================= -->
     <div class="page" data-page="expenses">
-      <div class="page-header"><h2>Expenses</h2><p>Retirement spending by category, in today's dollars. The Healthcare category grows using the Medical Inflation Rate (set on the Assumptions page); every other category uses General Inflation.</p></div>
+      <div class="page-header"><h2>Expenses</h2><p>Recurring monthly bills, in today's dollars. Amounts are entered monthly and annualized automatically for the projection. The Healthcare category grows using the Medical Inflation Rate (set on the Assumptions page); every other category uses General Inflation.</p></div>
       <div class="mini-chart-card"><canvas id="chart_expenses"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><canvas id="chart_expenses_yearly"></canvas></div>
+
+      <div class="note" style="margin-top:0;">Don't add rent/mortgage here — that's on the <b>Housing</b> page. Don't add TSP/brokerage contributions here either — those are on <b>Income &amp; Contributions</b>. This page is for everything else that isn't already covered elsewhere, so nothing gets double-counted.</div>
 
       <div class="card">
-        <h3>Expenses</h3>
+        <h3>Recurring Monthly Expenses</h3>
+        <div class="row-header cols-expense"><span>Name</span><span>Category</span><span>$/mo</span><span></span></div>
         <div class="row-list" id="expenseRows"></div>
         <button class="add-btn" onclick="addExpense()">+ Add expense</button>
         <div class="total-row"><span>Total (excl. housing)</span><span id="expenseTotal">$0</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Future / One-Time Expenses<span class="sub-label">Planned costs that hit at a specific age — new roof, a wedding, a 2nd pet, etc.</span></h3>
+        <div class="row-header cols-future"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Frequency</span><span></span></div>
+        <div class="row-list" id="futureExpenseRows"></div>
+        <button class="add-btn" onclick="addFutureExpense()">+ Add future expense</button>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">One-time items hit once at the age you set; "Yearly until" repeats every year from that age through the end age, both grown by General Inflation.</p>
       </div>
     </div>
 
@@ -461,9 +609,25 @@
 
       <div class="card">
         <h3>Debt</h3>
+        <div class="row-header cols-debt"><span>Category</span><span>Balance ($)</span><span>APR (%)</span><span>Payment ($/mo)</span><span></span></div>
         <div class="row-list" id="debtRows"></div>
         <button class="add-btn" onclick="addDebt()">+ Add debt</button>
         <div class="total-row"><span>Total balance</span><span id="debtTotal">$0</span></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Car Payment's $712/mo is your real number — its balance and APR are placeholders, update them to match your actual loan.</p>
+      </div>
+
+      <div class="card">
+        <h3>Debt Payoff Plan<span class="sub-label">Avalanche order (highest interest rate first), based on today's balances and payments</span></h3>
+        <div class="field"><label>Extra monthly payment (applied to the highest-APR debt)</label><input type="number" id="debtExtraPayment" value="0" step="25"></div>
+        <div class="table-scroll">
+          <table id="debtPayoffTable">
+            <thead><tr><th>Order</th><th>Debt</th><th>Balance</th><th>APR</th><th>Payment</th><th>Payoff Age</th><th>Total Interest</th><th>With Extra Payment</th></tr></thead>
+            <tbody id="debtPayoffRows"></tbody>
+          </table>
+        </div>
+        <div class="total-row"><span>Debt-free by</span><span id="debtFreeAge">—</span></div>
+        <div class="total-row" id="debtExtraSummaryRow" style="display:none;"><span>With the extra payment</span><span id="debtExtraSummary">—</span></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Each debt is paid off independently at its own current payment — this isn't a snowball/avalanche redirect strategy where freed-up payments roll onto the next debt. The extra payment column shows what happens if you add that amount on top of the highest-APR debt's payment only; the other debts stay on their normal schedule.</p>
       </div>
     </div>
 
@@ -484,43 +648,176 @@
 
     <!-- ================= GUARANTEED INCOME ================= -->
     <div class="page" data-page="guaranteed">
-      <div class="page-header"><h2>Guaranteed Income</h2><p>Social Security, spousal benefit, military pension, and VA disability. SS, spousal benefit, pension, and VA disability all grow using Social Security COLA (set on the Assumptions page) — pension and VA disability compensation are both COLA-adjusted in real life the same way Social Security is.</p></div>
+      <div class="page-header"><h2>Guaranteed Income</h2><p>Social Security, spousal benefit, military pension, VA disability, and annuity — each with its own yearly increase rate. SS and the spousal benefit grow using Social Security COLA (set on the Assumptions page); pension, VA disability, and the annuity each have their own editable yearly increase % below.</p></div>
       <div class="mini-chart-card"><canvas id="chart_guaranteed"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Guaranteed income by year</div><canvas id="chart_guaranteed_yearly"></canvas></div>
 
       <div class="card">
         <h3>Guaranteed Income</h3>
         <div class="two-col">
           <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2200" step="50"></div>
-          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70"></div>
+          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70">
+            <input type="month" id="ssAgeDate" class="age-date-input" oninput="syncAgeDate('ssAgeDate','ssAge','ssAgeDateHint','currentAge')">
+            <div id="ssAgeDateHint" class="age-date-hint"></div>
+          </div>
         </div>
         <div class="two-col" id="spousalBenefitFields">
           <div class="field"><label>Spousal benefit (% of your benefit)</label><input type="number" id="spousalPct" value="50" min="0" max="50" step="1"></div>
-          <div class="field"><label>Spousal benefit start age (spouse's age)</label><input type="number" id="spousalStartAge" value="67" min="62" max="70"></div>
+          <div class="field"><label>Spousal benefit start age (spouse's age)</label><input type="number" id="spousalStartAge" value="67" min="62" max="70">
+            <input type="month" id="spousalStartAgeDate" class="age-date-input" oninput="syncAgeDate('spousalStartAgeDate','spousalStartAge','spousalStartAgeDateHint','spouseAge')">
+            <div id="spousalStartAgeDateHint" class="age-date-hint"></div>
+          </div>
         </div>
         <hr class="divider">
-        <div class="two-col">
+        <div class="three-col">
           <div class="field"><label>Military Pension ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
-          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90"></div>
+          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90">
+            <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
+            <div id="pensionAgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>Pension yearly increase (%)</label><input type="number" id="pensionGrowth" value="2.5" step="0.1"></div>
         </div>
-        <div class="two-col">
+        <div class="three-col">
           <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
-          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90"></div>
+          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90">
+            <input type="month" id="vaDisabilityAgeDate" class="age-date-input" oninput="syncAgeDate('vaDisabilityAgeDate','vaDisabilityAge','vaDisabilityAgeDateHint','currentAge')">
+            <div id="vaDisabilityAgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>VA yearly increase (%)</label><input type="number" id="vaDisabilityGrowth" value="2.5" step="0.1"></div>
         </div>
-        <p style="font-size:14px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both the pension and VA disability are treated as already active today. Note: this simplified model doesn't apply income tax to any guaranteed income source, so the VA disability's tax-free status doesn't change the math yet — it's broken out separately for clarity and in case that changes later.</p>
+        <hr class="divider">
+        <div class="mini-label">Annuity</div>
+        <div class="three-col">
+          <div class="field"><label>Annuity payout ($/mo, today's $)</label><input type="number" id="annuityMonthly" value="0" step="50"></div>
+          <div class="field"><label>Annuity start age</label><input type="number" id="annuityStartAge" value="65" min="40" max="95">
+            <input type="month" id="annuityStartAgeDate" class="age-date-input" oninput="syncAgeDate('annuityStartAgeDate','annuityStartAge','annuityStartAgeDateHint','currentAge')">
+            <div id="annuityStartAgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>Annuity yearly increase (%)</label><input type="number" id="annuityGrowth" value="0" step="0.1"></div>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both the pension and VA disability are treated as already active today. Note: this simplified model doesn't apply income tax to any guaranteed income source, so the VA disability's tax-free status doesn't change the math yet — it's broken out separately for clarity and in case that changes later.</p>
+      </div>
+
+      <div class="card">
+        <h3>Windfalls<span class="sub-label">One-time inflows — inheritance, home sale proceeds, a bonus, etc.</span></h3>
+        <div class="row-header cols-windfall"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Goes to</span><span></span></div>
+        <div class="row-list" id="windfallRows"></div>
+        <button class="add-btn" onclick="addWindfall()">+ Add windfall</button>
+      </div>
+    </div>
+
+    <!-- ================= INCOME GAP & WITHDRAWALS ================= -->
+    <div class="page" data-page="gap">
+      <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, pension, VA disability, annuity — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_gap"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><canvas id="chart_gap_yearly"></canvas></div>
+
+      <div class="card">
+        <h3>Year-by-Year Gap &amp; Withdrawals</h3>
+        <div class="table-scroll">
+          <table id="gapTable">
+            <thead><tr><th>Age</th><th>Guaranteed Income</th><th>Total Spending</th><th>Surplus / (Gap)</th><th>Portfolio Withdrawal (gross)</th></tr></thead>
+            <tbody id="gapRows"></tbody>
+          </table>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">A positive surplus means guaranteed income covers that year's spending with room to spare; a gap (shown in red) is the shortfall pulled from Traditional TSP, Roth TSP, and Brokerage. Pre-retirement years aren't shown — spending and withdrawals aren't tracked against the portfolio until retirement.</p>
+      </div>
+    </div>
+
+    <!-- ================= MEDICAL ================= -->
+    <div class="page" data-page="medical">
+      <div class="page-header"><h2>Medical</h2><p>Healthcare premiums before and after Medicare eligibility — separate from the Healthcare category on the Expenses page, which is for extra out-of-pocket costs.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_medical"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums by year</div><canvas id="chart_medical_yearly"></canvas></div>
+
+      <div class="card">
+        <h3>Pre-Medicare — Tricare<span class="sub-label">Covers both of you until each of you reaches Medicare age</span></h3>
+        <div class="field"><label>Tricare premium ($/mo, today's $, covers both of you)</label><input type="number" id="tricareMonthly" value="0" step="10"></div>
+        <hr class="divider">
+        <div class="mini-label" style="margin-bottom:2px;">FEDVIP</div>
+        <div class="mini-label">Hearing, Vision &amp; Dental (Tricare)<span class="sub-label" style="display:inline; text-transform:none; font-weight:400;"> — covers both of you</span></div>
+        <div class="three-col">
+          <div class="field"><label>Hearing ($/mo, today's $)</label><input type="number" id="tricareHearingMonthly" value="0" step="5"></div>
+          <div class="field"><label>Vision/Eyes ($/mo, today's $)</label><input type="number" id="tricareVisionMonthly" value="0" step="5"></div>
+          <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="tricareDentalMonthly" value="0" step="5"></div>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Applies whenever at least one of you hasn't yet reached Medicare age — your spouse stays on your Tricare coverage even after you individually age into Medicare, until she reaches Medicare age herself. Same rule for the hearing/vision/dental add-ons above.</p>
+      </div>
+
+      <div class="card">
+        <h3>Post-Medicare — Part B<span class="sub-label">Each of you separately, starting at your own Medicare eligibility age. Neither of you needs Part D.</span></h3>
+        <div class="field"><label>Medicare eligibility age (both of you)</label><input type="number" id="medicareAge" value="65" min="60" max="75"></div>
+        <div class="two-col">
+          <div class="field"><label>Your Part B premium ($/mo, today's $)</label><input type="number" id="partBUserMonthly" value="185" step="5"></div>
+          <div class="field"><label>Spouse's Part B premium ($/mo, today's $)</label><input type="number" id="partBSpouseMonthly" value="185" step="5"></div>
+        </div>
+        <hr class="divider">
+        <div class="mini-label" style="margin-bottom:2px;">FEDVIP</div>
+        <div class="mini-label">Your Hearing, Vision &amp; Dental<span class="sub-label" style="display:inline; text-transform:none; font-weight:400;"> — Original Medicare Part B doesn't cover these, so they're broken out separately; your plan covers your spouse too, so there's no separate spouse cost</span></div>
+        <div class="three-col">
+          <div class="field"><label>Hearing ($/mo, today's $)</label><input type="number" id="hearingMonthly" value="0" step="5"></div>
+          <div class="field"><label>Vision/Eyes ($/mo, today's $)</label><input type="number" id="visionMonthly" value="0" step="5"></div>
+          <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="dentalMonthly" value="0" step="5"></div>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">All figures grow with Medical Inflation (Assumptions page) and are added on top of anything in the Healthcare category on the Expenses page. Since your ages differ, there's a stretch where one of you is on Part B while the other is still on Tricare — both costs apply during that gap. Hearing, vision, and dental start once you reach Medicare age and cover both of you.</p>
+      </div>
+    </div>
+
+    <!-- ================= ESTATE PLANNING ================= -->
+    <div class="page" data-page="estate">
+      <div class="page-header"><h2>Estate Planning</h2><p>A checklist — informational, doesn't feed the projection math.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_estate"></canvas></div>
+
+      <div class="card">
+        <h3>Estate Planning Checklist</h3>
+        <div class="checkbox-row"><input type="checkbox" id="estateWill"><label for="estateWill">Will in place</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="estatePOA"><label for="estatePOA">Power of Attorney (financial)</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="estateHealthcareDirective"><label for="estateHealthcareDirective">Healthcare Directive / Living Will</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="estateTrust"><label for="estateTrust">Trust established</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="estateBeneficiaries"><label for="estateBeneficiaries">Beneficiaries reviewed in the last 2 years</label></div>
+        <div class="field" style="margin-top:10px;"><label>Notes</label><input type="text" id="estateNotes" placeholder="e.g. attorney contact, document location"></div>
+      </div>
+    </div>
+
+    <!-- ================= INSURANCE ================= -->
+    <div class="page" data-page="insurance">
+      <div class="page-header"><h2>Insurance</h2><p>A policy tracker — informational, doesn't feed the projection math.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_insurance"></canvas></div>
+
+      <div class="card">
+        <h3>Insurance Policies</h3>
+        <div class="row-header cols-insurance"><span>Policy</span><span>Type</span><span>Premium ($/mo)</span><span>Coverage ($)</span><span></span></div>
+        <div class="row-list" id="insuranceRows"></div>
+        <button class="add-btn" onclick="addInsurancePolicy()">+ Add policy</button>
+        <div class="total-row"><span>Total premiums</span><span id="insuranceTotal">$0/mo</span></div>
       </div>
     </div>
 
     <!-- ================= TAXES ================= -->
     <div class="page" data-page="taxes">
-      <div class="page-header"><h2>Taxes</h2><p>Simplified flat-rate treatment of retirement withdrawals.</p></div>
+      <div class="page-header"><h2>Taxes</h2><p>Real 2026 federal marginal brackets (Married Filing Jointly) plus Idaho's flat state rate, applied to your guaranteed income and Traditional TSP withdrawals each year. Capital gains use federal long-term capital gains brackets; Idaho taxes gains as ordinary income at its flat rate.</p></div>
       <div class="mini-chart-card"><canvas id="chart_taxes"></canvas></div>
 
+      <div class="results-grid" id="taxStats"></div>
+
       <div class="card">
-        <h3>Taxes</h3>
-        <div class="two-col">
-          <div class="field"><label>Tax rate on Traditional TSP withdrawals (%)</label><input type="number" id="tradTaxRate" value="15" step="1"></div>
-          <div class="field"><label>Capital gains rate on brokerage (%)</label><input type="number" id="capGainsRate" value="15" step="1"></div>
+        <h3>Federal<span class="sub-label">2026 brackets, Married Filing Jointly (10/12/22/24/32/35/37%)</span></h3>
+        <div class="field"><label>Standard deduction ($/yr, MFJ)</label><input type="number" id="stdDeduction" value="32200" step="100"></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Social Security and spousal benefit are treated as 85% taxable (typical once other income is substantial); VA disability stays fully tax-free and isn't included. Pension and annuity income are fully taxable.</p>
+      </div>
+
+      <div class="card">
+        <h3>Idaho State Tax<span class="sub-label">Flat rate, applies to all taxable ordinary income and capital gains</span></h3>
+        <div class="field"><label>Idaho flat income tax rate (%)</label><input type="number" id="idahoRate" value="5.3" step="0.1"></div>
+      </div>
+
+      <div class="card">
+        <h3>Rule of 55</h3>
+        <div class="checkbox-row">
+          <input type="checkbox" id="ruleOf55Applies" checked>
+          <label for="ruleOf55Applies">Rule of 55 applies — no 10% early-withdrawal penalty on Traditional TSP</label>
         </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">You separate from federal service in the year you turn 55 or later, so Traditional TSP withdrawals avoid the usual 10% penalty before age 59½. Uncheck this to see what happens if that assumption doesn't hold (e.g. money later rolled into an IRA loses Rule of 55 protection).</p>
       </div>
     </div>
 
@@ -546,7 +843,7 @@
         <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="2.5" step="0.1"></div>
         <div class="field"><label>Medical Inflation Rate (%/yr)</label><input type="number" id="medicalInflation" value="5" step="0.1"></div>
         <div class="field"><label>Social Security COLA (%/yr)</label><input type="number" id="ssCola" value="2.5" step="0.1"></div>
-        <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (pension still uses General Inflation). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (pension still uses General Inflation). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
       </div>
 
       <div class="card">
@@ -564,7 +861,7 @@
 
     <!-- ================= EXPLORERS ================= -->
     <div class="page" data-page="explorers">
-      <div class="page-header"><h2>Explorers</h2><p>What-if and market-risk scenarios, each compared against your current plan.</p></div>
+      <div class="page-header"><h2>Explorers</h2><p>What-if and market-risk scenarios, each compared against your current plan. Dollar columns respect the Today's $ / Future $ toggle in the header.</p></div>
 
       <div class="card">
         <h3>What-If Scenarios<span class="sub-label">Single-lever changes to your plan</span></h3>
@@ -591,6 +888,62 @@
       <div class="note">Each scenario re-runs your full plan with one change applied (or, for market risk, a specific sequence of returns/inflation pinned in). "Confidence Score" is a 300-simulation Monte Carlo success rate for that scenario alone, so it's directly comparable to your baseline score on the Dashboard.</div>
     </div>
 
+    <!-- ================= COACH ================= -->
+    <div class="page" data-page="coach">
+      <div class="page-header"><h2>Coach</h2><p>Automated suggestions based on your current plan, plus an optional AI chat for open-ended questions.</p></div>
+
+      <div class="card">
+        <h3>Suggestions</h3>
+        <div id="coachTips"></div>
+      </div>
+
+      <div class="card">
+        <h3>Ask AI<span class="sub-label">Open-ended questions, answered with a snapshot of your plan as context</span></h3>
+        <p style="font-size:16px;color:var(--muted);margin:0 0 12px;line-height:1.55;">The <b>Ask AI</b> button in the bottom-right corner is available on every page, so you don't have to come back here to ask a question.</p>
+        <button class="add-btn" onclick="toggleFloatingAi(true)">Open Ask AI</button>
+      </div>
+    </div>
+
+    <!-- ================= SETTINGS ================= -->
+    <div class="page" data-page="settings">
+      <div class="page-header"><h2>Settings</h2><p>Backup, restore, and integrations.</p></div>
+
+      <div class="card">
+        <h3>Backup &amp; Restore</h3>
+        <p style="font-size:16px;color:var(--muted);margin:0 0 12px;line-height:1.55;">Your data is saved automatically in this browser, but it's tied to this browser/device. Download a backup to move it elsewhere or keep a copy.</p>
+        <button class="add-btn" onclick="downloadBackup()">Download backup (.json)</button>
+        <div class="field" style="margin-top:14px;">
+          <label>Restore from backup</label>
+          <input type="file" id="restoreFileInput" accept="application/json" onchange="restoreFromFile(this.files[0])">
+        </div>
+        <hr class="divider">
+        <button class="add-btn" style="background:#fdf3f1; color:var(--danger);" onclick="resetAllData()">Reset everything to defaults</button>
+      </div>
+
+      <div class="card">
+        <h3>Coach AI Chat<span class="sub-label">Optional — only used if you add a key</span></h3>
+        <div class="field"><label>Anthropic API key</label><input type="text" id="anthropicApiKey" placeholder="sk-ant-..." autocomplete="off"></div>
+        <p style="font-size:15px;color:var(--muted);margin:0;line-height:1.55;">This file has no backend — adding a key here lets the Coach page call the Anthropic API directly from your browser, using your own account and usage. The key is stored only in this browser's local storage; it is never sent anywhere except directly to Anthropic when you ask a question. Each question sends a snapshot of your plan numbers to Anthropic's servers. Leave this blank to keep the Coach fully offline.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Ask AI: global floating button + panel, available on every page regardless of which section is active -->
+<button class="ask-ai-fab" id="askAiFab" onclick="toggleFloatingAi()" aria-label="Ask AI">✦ Ask AI</button>
+<div class="floating-ai-panel" id="floatingAiPanel" style="display:none;">
+  <div class="floating-ai-header">
+    <span>Ask AI<span class="sub-label" style="display:block; text-transform:none; font-weight:400; font-size:13.5px; margin-top:2px;">Answered using a snapshot of your current plan as context</span></span>
+    <button class="floating-ai-close" onclick="toggleFloatingAi(false)" aria-label="Close">×</button>
+  </div>
+  <div id="coachAiGate"></div>
+  <div class="chat-box" id="coachChatBox" style="display:none;">
+    <div class="chat-log" id="coachChatLog"></div>
+    <div class="chat-input-row">
+      <textarea id="coachChatInput" placeholder="e.g. Should I pay off the car loan faster, or keep funding the brokerage pies?"></textarea>
+      <button class="chat-send-btn" id="coachChatSend" onclick="sendCoachChatMessage()">Ask</button>
+    </div>
   </div>
 </div>
 
@@ -606,14 +959,56 @@ const fmtMoneyK = n => {
 };
 const CHART_COLORS = ['#1f7a6c','#e08c2b','#5a4fcf','#c0392b','#3f9c7c','#8892a0','#c07a1f','#2b6ea3','#a15fc9','#5c8a3f'];
 
+// ---------- 2026 Federal tax brackets, Married Filing Jointly (Tax Foundation, Rev. Proc. 2025-32) ----------
+const FEDERAL_BRACKETS_MFJ = [
+  { upTo: 24800, rate: 0.10 },
+  { upTo: 100800, rate: 0.12 },
+  { upTo: 211400, rate: 0.22 },
+  { upTo: 403550, rate: 0.24 },
+  { upTo: 512450, rate: 0.32 },
+  { upTo: 768700, rate: 0.35 },
+  { upTo: Infinity, rate: 0.37 }
+];
+// 2026 long-term capital gains brackets, MFJ
+const LTCG_BRACKETS_MFJ = [
+  { upTo: 98900, rate: 0.00 },
+  { upTo: 613700, rate: 0.15 },
+  { upTo: Infinity, rate: 0.20 }
+];
+function marginalRateFromBrackets(taxableIncome, brackets) {
+  const income = Math.max(0, taxableIncome);
+  for (const b of brackets) { if (income <= b.upTo) return b.rate; }
+  return brackets[brackets.length-1].rate;
+}
+
 // ---------- Page navigation (hamburger drawer) ----------
 let charts = {};
 let lastSnapshot = null;
+let dollarView = 'nominal'; // 'nominal' (future $) | 'real' (today's $)
+const DOLLAR_VIEW_KEY = 'retirementPlannerDollarView_v1';
+
+// Deflates a value anchored at a given future age back to today's purchasing power, using General Inflation.
+// No-op when dollarView is 'nominal'.
+function dv(value, age, inputs) {
+  if (dollarView !== 'real' || value === null || value === undefined) return value;
+  const y = age - inputs.currentAge;
+  return value / Math.pow(1 + inputs.inflation, y);
+}
+
+function setDollarView(mode) {
+  dollarView = mode;
+  document.querySelectorAll('.dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  try { localStorage.setItem(DOLLAR_VIEW_KEY, mode); } catch (e) { /* storage unavailable, ignore */ }
+  render();
+  const activePage = document.querySelector('.page.active');
+  if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
+}
 const PAGE_LABELS = {
   dashboard:'Dashboard', personal:'Personal & Family', income:'Income & Contributions',
   investments:'Investments', housing:'Housing', expenses:'Expenses', debt:'Debt',
-  transactions:'Transactions', guaranteed:'Guaranteed Income', taxes:'Taxes', assumptions:'Assumptions & Guardrails',
-  explorers:'Explorers'
+  transactions:'Transactions', guaranteed:'Guaranteed Income', gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', insurance:'Insurance',
+  taxes:'Taxes', assumptions:'Assumptions & Guardrails',
+  explorers:'Explorers', coach:'Coach', settings:'Settings'
 };
 
 function toggleMenu() {
@@ -626,11 +1021,14 @@ function closeMenu() {
 }
 
 function showPage(pageId) {
+  if (!els('sidenav').querySelector(`[data-page="${pageId}"]`)) pageId = 'dashboard';
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.dataset.page === pageId));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === pageId));
   els('currentPageLabel').textContent = PAGE_LABELS[pageId] || pageId;
-  if (lastSnapshot) ensureOrUpdateChart(pageId, lastSnapshot);
+  if (lastSnapshot) refreshSectionCharts(pageId, lastSnapshot);
   if (pageId === 'explorers') renderExplorers();
+  if (pageId === 'coach') { renderCoachTips(); renderCoachAiGate(); }
+  try { localStorage.setItem(ACTIVE_PAGE_KEY, pageId); } catch (e) { /* storage unavailable, ignore */ }
   closeMenu();
 }
 
@@ -657,8 +1055,33 @@ function syncRetirementDate(force) {
   render();
 }
 
+// Generic month/year -> age sync, mirrors syncRetirementDate() for any age-based milestone field.
+// basisAgeFieldId is whichever person's current age the target date should be measured against
+// (currentAge for the user's own milestones, spouseAge for spouse-anchored ones like LTC start age).
+function syncAgeDate(dateFieldId, ageFieldId, hintFieldId, basisAgeFieldId) {
+  const dateEl = els(dateFieldId);
+  if (!dateEl) return;
+  const dateVal = dateEl.value;
+  const hintEl = els(hintFieldId);
+  if (!dateVal) { if (hintEl) hintEl.textContent = ''; return; }
+  const basisAge = +els(basisAgeFieldId).value;
+  const [y, m] = dateVal.split('-').map(Number);
+  const today = new Date();
+  const monthsAway = (y - today.getFullYear()) * 12 + (m - 1 - today.getMonth());
+  const impliedAge = Math.round(basisAge + monthsAway / 12);
+  els(ageFieldId).value = Math.max(1, impliedAge);
+  if (hintEl) {
+    const yrs = Math.floor(Math.abs(monthsAway) / 12), mo = Math.abs(monthsAway) % 12;
+    hintEl.textContent = monthsAway >= 0
+      ? `≈ ${yrs} yr${yrs !== 1 ? 's' : ''} ${mo} mo from today — sets age to ${Math.max(1, impliedAge)}`
+      : `That date is in the past`;
+  }
+  render();
+}
+
 // ---------- Persistence (localStorage) so values survive a page refresh ----------
 const STORAGE_KEY = 'retirementPlannerState_v1';
+const ACTIVE_PAGE_KEY = 'retirementPlannerActivePage_v1';
 
 function saveState() {
   const fields = {};
@@ -666,20 +1089,22 @@ function saveState() {
     if (!el.id) return;
     fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   });
-  const state = { fields, expenses, brokeragePies, debts, transactions };
+  const state = { fields, expenses, brokeragePies, debts, transactions, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, ignore */ }
+  return state;
 }
 
-function loadState() {
-  let raw;
-  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return false; }
-  if (!raw) return false;
-  let state;
-  try { state = JSON.parse(raw); } catch (e) { return false; }
+function applyState(state) {
+  if (!state) return false;
   if (Array.isArray(state.expenses)) expenses = state.expenses;
   if (Array.isArray(state.brokeragePies)) brokeragePies = state.brokeragePies;
   if (Array.isArray(state.debts)) debts = state.debts;
   if (Array.isArray(state.transactions)) transactions = state.transactions;
+  if (Array.isArray(state.futureExpenses)) futureExpenses = state.futureExpenses;
+  if (Array.isArray(state.windfalls)) windfalls = state.windfalls;
+  if (Array.isArray(state.insurancePolicies)) insurancePolicies = state.insurancePolicies;
+  if (Array.isArray(state.withdrawalOrderState)) withdrawalOrderState = state.withdrawalOrderState;
+  if (typeof state.withdrawalModeCustom === 'boolean') withdrawalModeCustom = state.withdrawalModeCustom;
   if (state.fields) {
     Object.keys(state.fields).forEach(id => {
       const el = els(id);
@@ -691,43 +1116,179 @@ function loadState() {
   return true;
 }
 
-// ---------- Expenses (dynamic rows) ----------
-const EXPENSE_CATEGORIES = ['Food & Groceries','Transportation','Healthcare','Insurance','Utilities','Entertainment & Travel','Personal Care','Shopping','Gifts & Donations','Other'];
+function loadState() {
+  let raw;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return false; }
+  if (!raw) return false;
+  let state;
+  try { state = JSON.parse(raw); } catch (e) { return false; }
+  return applyState(state);
+}
+
+// ---------- Expenses (dynamic rows, monthly $ amounts) ----------
+const EXPENSE_CATEGORIES = ['Food & Groceries','Transportation','Healthcare','Insurance','Utilities','Entertainment & Travel','Personal Care','Shopping','Gifts & Donations','Subscriptions','Pet Care','Personal Support','Other'];
 let expenses = [
-  { category:'Food & Groceries', amount:9000 },
-  { category:'Transportation', amount:6000 },
-  { category:'Healthcare', amount:8000 },
-  { category:'Insurance', amount:3000 },
-  { category:'Utilities', amount:4000 },
-  { category:'Entertainment & Travel', amount:6000 },
-  { category:'Other', amount:4000 }
+  { name:'State Farm Insurance', category:'Insurance', amount:127.71 },
+  { name:'Intermountain Gas', category:'Utilities', amount:50.00 },
+  { name:'Verizon', category:'Utilities', amount:154.72 },
+  { name:'Idaho Power', category:'Utilities', amount:90.00 },
+  { name:'Centurylink', category:'Utilities', amount:105.00 },
+  { name:'YouTube Premium', category:'Subscriptions', amount:26.99 },
+  { name:'Ring', category:'Subscriptions', amount:10.00 },
+  { name:'Sinking Funds', category:'Other', amount:130.00 },
+  { name:'Trupanion', category:'Pet Care', amount:41.42 },
+  { name:'Planet Fitness', category:'Personal Care', amount:21.23 },
+  { name:'To Cindy', category:'Personal Support', amount:3466.00 },
+  { name:'Groceries', category:'Food & Groceries', amount:750 }
 ];
 function renderExpenseRows() {
   const container = els('expenseRows');
   container.innerHTML = expenses.map((e,i) => `
-    <div class="row-item">
+    <div class="row-item expense-row">
+      <input type="text" value="${e.name||''}" placeholder="Name" oninput="updateExpense(${i},'name',this.value)">
       <select onchange="updateExpense(${i},'category',this.value)">
         ${EXPENSE_CATEGORIES.map(c => `<option value="${c}" ${c===e.category?'selected':''}>${c}</option>`).join('')}
       </select>
-      <input type="number" value="${e.amount}" step="500" oninput="updateExpense(${i},'amount',this.value)">
+      <input type="number" value="${e.amount}" step="10" oninput="updateExpense(${i},'amount',this.value)">
       <button class="remove-btn" onclick="removeExpense(${i})" title="Remove">×</button>
     </div>
   `).join('');
-  els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0));
+  els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0)) + '/mo';
 }
 function updateExpense(i, field, value) {
   expenses[i][field] = field==='amount' ? +value : value;
-  els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0));
+  els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0)) + '/mo';
   render();
 }
-function addExpense() { expenses.push({ category:'Other', amount:1000 }); renderExpenseRows(); render(); }
+function addExpense() { expenses.push({ name:'New expense', category:'Other', amount:50 }); renderExpenseRows(); render(); }
 function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render(); }
+
+// ---------- Future / one-time planned expenses (dynamic rows) ----------
+let futureExpenses = [
+  { name:'2nd Pet Fund (into HYSA)', age: 54, amount: 1500, recurring:false, endAge: null }
+];
+function renderFutureExpenseRows() {
+  const container = els('futureExpenseRows');
+  if (!container) return;
+  container.innerHTML = futureExpenses.map((f,i) => `
+    <div class="row-item future-row">
+      <input type="text" value="${f.name||''}" placeholder="Description" oninput="updateFutureExpense(${i},'name',this.value)">
+      <div class="age-cell">
+        <input type="number" value="${f.age}" step="1" title="Your age when it hits" oninput="updateFutureExpense(${i},'age',this.value)">
+        <input type="month" title="Or pick a month/year" onchange="setFutureExpenseAgeFromDate(${i}, this.value)">
+      </div>
+      <input type="number" value="${f.amount}" step="100" title="Amount ($, today's $)" oninput="updateFutureExpense(${i},'amount',this.value)">
+      <select onchange="updateFutureExpense(${i},'recurring',this.value)">
+        <option value="false" ${!f.recurring?'selected':''}>One-time</option>
+        <option value="true" ${f.recurring?'selected':''}>Yearly until...</option>
+      </select>
+      <button class="remove-btn" onclick="removeFutureExpense(${i})" title="Remove">×</button>
+    </div>
+    ${f.recurring ? `<div class="row-item future-row" style="margin-top:-4px;"><span></span><span></span><span></span><input type="number" value="${f.endAge||f.age}" step="1" placeholder="End age" oninput="updateFutureExpense(${i},'endAge',this.value)"><span></span></div>` : ''}
+  `).join('');
+}
+function updateFutureExpense(i, field, value) {
+  if (field === 'recurring') futureExpenses[i][field] = value === 'true';
+  else if (field === 'name') futureExpenses[i][field] = value;
+  else futureExpenses[i][field] = +value;
+  if (field === 'recurring') renderFutureExpenseRows();
+  render();
+}
+function addFutureExpense() { futureExpenses.push({ name:'New future expense', age:60, amount:1000, recurring:false, endAge:null }); renderFutureExpenseRows(); render(); }
+function removeFutureExpense(i) { futureExpenses.splice(i,1); renderFutureExpenseRows(); render(); }
+// Shared month/year -> age converter for dynamic-row date pickers (future expenses, windfalls).
+function monthToAge(monthVal, basisAge) {
+  if (!monthVal) return basisAge;
+  const [y, m] = monthVal.split('-').map(Number);
+  const today = new Date();
+  const monthsAway = (y - today.getFullYear()) * 12 + (m - 1 - today.getMonth());
+  return Math.max(1, Math.round(basisAge + monthsAway / 12));
+}
+// Inverse of monthToAge: given a whole-years-away target age (e.g. a debt payoff age from the
+// year-resolution amortization schedule), return a human "Mon YYYY" estimate of the calendar date.
+function ageToMonthYear(currentAge, targetAge) {
+  if (targetAge === null || targetAge === undefined || isNaN(targetAge)) return '';
+  const yearsAway = targetAge - currentAge;
+  const today = new Date();
+  const target = new Date(today.getFullYear() + yearsAway, today.getMonth(), 1);
+  return target.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+}
+function setFutureExpenseAgeFromDate(i, monthVal) {
+  if (!monthVal) return;
+  futureExpenses[i].age = monthToAge(monthVal, +els('currentAge').value);
+  renderFutureExpenseRows();
+  render();
+}
+
+// ---------- Windfalls (dynamic rows, one-time inflows: inheritance, home sale, bonus, etc.) ----------
+let windfalls = [];
+function renderWindfallRows() {
+  const container = els('windfallRows');
+  if (!container) return;
+  container.innerHTML = windfalls.map((w,i) => `
+    <div class="row-item windfall-row">
+      <input type="text" value="${w.name||''}" placeholder="Description" oninput="updateWindfall(${i},'name',this.value)">
+      <div class="age-cell">
+        <input type="number" value="${w.age}" step="1" title="Your age when received" oninput="updateWindfall(${i},'age',this.value)">
+        <input type="month" title="Or pick a month/year" onchange="setWindfallAgeFromDate(${i}, this.value)">
+      </div>
+      <input type="number" value="${w.amount}" step="1000" title="Amount ($)" oninput="updateWindfall(${i},'amount',this.value)">
+      <select onchange="updateWindfall(${i},'destination',this.value)">
+        <option value="Brokerage" ${w.destination==='Brokerage'?'selected':''}>Into Brokerage</option>
+        <option value="Cash" ${w.destination==='Cash'?'selected':''}>Into HYSA</option>
+      </select>
+      <button class="remove-btn" onclick="removeWindfall(${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+}
+function updateWindfall(i, field, value) {
+  windfalls[i][field] = (field==='age'||field==='amount') ? +value : value;
+  render();
+}
+function addWindfall() { windfalls.push({ name:'New windfall', age:60, amount:10000, destination:'Brokerage' }); renderWindfallRows(); render(); }
+function removeWindfall(i) { windfalls.splice(i,1); renderWindfallRows(); render(); }
+function setWindfallAgeFromDate(i, monthVal) {
+  if (!monthVal) return;
+  windfalls[i].age = monthToAge(monthVal, +els('currentAge').value);
+  renderWindfallRows();
+  render();
+}
+
+// ---------- Insurance policies (dynamic rows, informational — Estate & Insurance page) ----------
+const INSURANCE_TYPES = ['Life','Long-Term Care','Auto','Home/Renters','Umbrella','Disability','Other'];
+let insurancePolicies = [
+  { name:'State Farm', type:'Auto', premium:127.71, coverage:0 },
+  { name:'Trupanion', type:'Other', premium:41.42, coverage:0 }
+];
+function renderInsuranceRows() {
+  const container = els('insuranceRows');
+  if (!container) return;
+  container.innerHTML = insurancePolicies.map((p,i) => `
+    <div class="row-item insurance-row">
+      <input type="text" value="${p.name||''}" placeholder="Policy name" oninput="updateInsurancePolicy(${i},'name',this.value)">
+      <select onchange="updateInsurancePolicy(${i},'type',this.value)">
+        ${INSURANCE_TYPES.map(t => `<option value="${t}" ${t===p.type?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <input type="number" value="${p.premium}" step="1" oninput="updateInsurancePolicy(${i},'premium',this.value)">
+      <input type="number" value="${p.coverage}" step="1000" oninput="updateInsurancePolicy(${i},'coverage',this.value)">
+      <button class="remove-btn" onclick="removeInsurancePolicy(${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+  els('insuranceTotal').textContent = fmtMoney(insurancePolicies.reduce((s,p) => s + (+p.premium||0), 0)) + '/mo';
+}
+function updateInsurancePolicy(i, field, value) {
+  insurancePolicies[i][field] = (field==='premium'||field==='coverage') ? +value : value;
+  els('insuranceTotal').textContent = fmtMoney(insurancePolicies.reduce((s,p) => s + (+p.premium||0), 0)) + '/mo';
+  render();
+}
+function addInsurancePolicy() { insurancePolicies.push({ name:'New policy', type:'Other', premium:0, coverage:0 }); renderInsuranceRows(); render(); }
+function removeInsurancePolicy(i) { insurancePolicies.splice(i,1); renderInsuranceRows(); render(); }
 
 // ---------- Brokerage pies (dynamic rows, M1 Finance) ----------
 let brokeragePies = [
-  { name:'Secondary Bridge If Needed / Cash Refill', balance:646.26 },
-  { name:'Sequence of Returns Risk (T-Bills)', balance:349.51 },
-  { name:'Taxes Post Age 59.5', balance:11360.11 }
+  { name:'Secondary Bridge If Needed / Cash Refill', balance:646.26, contribution:150 },
+  { name:'Sequence of Returns Risk (T-Bills)', balance:349.51, contribution:150 },
+  { name:'Taxes Post Age 59.5', balance:11360.11, contribution:200 }
 ];
 function renderBrokeragePieRows() {
   const container = els('brokeragePieRows');
@@ -743,16 +1304,107 @@ function renderBrokeragePieRows() {
 function updateBrokeragePie(i, field, value) {
   brokeragePies[i][field] = field==='balance' ? +value : value;
   els('brokeragePieTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.balance||0), 0));
+  if (field === 'name') renderPieContributionRows();
   render();
 }
-function addBrokeragePie() { brokeragePies.push({ name:'New pie', balance:1000 }); renderBrokeragePieRows(); render(); }
-function removeBrokeragePie(i) { brokeragePies.splice(i,1); renderBrokeragePieRows(); render(); }
+function addBrokeragePie() { brokeragePies.push({ name:'New pie', balance:1000, contribution:0 }); renderBrokeragePieRows(); renderPieContributionRows(); render(); }
+function removeBrokeragePie(i) { brokeragePies.splice(i,1); renderBrokeragePieRows(); renderPieContributionRows(); render(); }
+
+// ---------- Per-pie monthly contributions (Income & Contributions page; shares brokeragePies array) ----------
+function renderPieContributionRows() {
+  const container = els('pieContributionRows');
+  if (!container) return;
+  container.innerHTML = brokeragePies.map((p,i) => `
+    <div class="row-item contrib-row">
+      <span class="pie-name-label">${p.name || 'Unnamed pie'}</span>
+      <input type="number" value="${p.contribution||0}" step="10" oninput="updatePieContribution(${i},this.value)">
+    </div>
+  `).join('');
+  els('pieContributionTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.contribution||0), 0)) + '/mo';
+}
+function updatePieContribution(i, value) {
+  brokeragePies[i].contribution = +value;
+  els('pieContributionTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.contribution||0), 0)) + '/mo';
+  render();
+}
+
+// ---------- Withdrawal Strategy: ordered list of every individual account money gets drawn from in retirement ----------
+// Order is a flat array of account keys: 'trad', 'roth', 'hysa', and 'pie_0'..'pie_N-1' (index into brokeragePies).
+let withdrawalOrderState = ['pie_0', 'pie_1', 'pie_2', 'trad', 'hysa', 'roth'];
+let withdrawalModeCustom = false;
+
+function getWithdrawalAccountKeys() {
+  return ['trad', ...brokeragePies.map((_, i) => 'pie_' + i), 'hysa', 'roth'];
+}
+
+// "Traditional" order: conventional withdrawal sequencing — taxable brokerage pies first, then the tax-deferred
+// TSP, then the HYSA cash reserve, with Roth TSP held back last since it grows tax-free.
+function defaultWithdrawalOrder() {
+  return [...brokeragePies.map((_, i) => 'pie_' + i), 'trad', 'hysa', 'roth'];
+}
+
+// Keeps withdrawalOrderState valid as pies are added/removed: drops stale keys, appends any new ones at the end.
+function normalizeWithdrawalOrder() {
+  const validKeys = getWithdrawalAccountKeys();
+  withdrawalOrderState = withdrawalOrderState.filter(k => validKeys.includes(k));
+  validKeys.forEach(k => { if (!withdrawalOrderState.includes(k)) withdrawalOrderState.push(k); });
+}
+
+function withdrawalAccountInfo(key) {
+  if (key === 'trad') return { label: 'Traditional TSP', badge: 'Tax-deferred · 401(k)', balance: +els('tradTSPBalance').value || 0 };
+  if (key === 'roth') return { label: 'Roth TSP', badge: 'Roth · Roth 401(k)', balance: +els('rothTSPBalance').value || 0 };
+  if (key === 'hysa') return { label: 'HYSA / Cash Reserve', badge: 'Taxable · Savings', balance: +els('hysaBalance').value || 0 };
+  const idx = +key.split('_')[1];
+  const pie = brokeragePies[idx];
+  return { label: pie ? (pie.name || `Pie ${idx + 1}`) : 'Removed pie', badge: 'Taxable · Investment', balance: pie ? (+pie.balance || 0) : 0 };
+}
+
+function setWithdrawalMode(isCustom) {
+  withdrawalModeCustom = isCustom;
+  if (!isCustom) withdrawalOrderState = defaultWithdrawalOrder();
+  renderWithdrawalOrderRows();
+  render();
+}
+
+function moveWithdrawalOrder(index, direction) {
+  const newIndex = index + direction;
+  if (newIndex < 0 || newIndex >= withdrawalOrderState.length) return;
+  const [item] = withdrawalOrderState.splice(index, 1);
+  withdrawalOrderState.splice(newIndex, 0, item);
+  renderWithdrawalOrderRows();
+  render();
+}
+
+function renderWithdrawalOrderRows() {
+  const container = els('withdrawalOrderRows');
+  if (!container) return;
+  normalizeWithdrawalOrder();
+  const tPill = els('withdrawModeTraditionalPill'), cPill = els('withdrawModeCustomPill');
+  if (tPill) tPill.classList.toggle('active', !withdrawalModeCustom);
+  if (cPill) cPill.classList.toggle('active', withdrawalModeCustom);
+  container.innerHTML = withdrawalOrderState.map((key, i) => {
+    const info = withdrawalAccountInfo(key);
+    const disabledAttr = withdrawalModeCustom ? '' : 'disabled';
+    return `
+    <div class="withdraw-order-row">
+      <span class="withdraw-order-num">${i + 1}</span>
+      <div class="withdraw-order-info">
+        <div class="withdraw-order-name">${info.label}</div>
+        <div class="withdraw-order-badge">${info.badge}</div>
+      </div>
+      <div class="withdraw-order-balance">${fmtMoney(info.balance)}</div>
+      <div class="withdraw-order-arrows">
+        <button type="button" ${disabledAttr} onclick="moveWithdrawalOrder(${i}, -1)" aria-label="Move up">▲</button>
+        <button type="button" ${disabledAttr} onclick="moveWithdrawalOrder(${i}, 1)" aria-label="Move down">▼</button>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ---------- Debt (dynamic rows) ----------
 const DEBT_CATEGORIES = ['Credit Card','Auto Loan','Student Loan','Personal Loan','Medical Debt','Other'];
 let debts = [
-  { name:'Auto Loan', category:'Auto Loan', balance:18000, apr:6, payment:380 },
-  { name:'Credit Card', category:'Credit Card', balance:4000, apr:22, payment:200 }
+  { name:'Car Payment', category:'Auto Loan', balance:18000, apr:6, payment:712 }
 ];
 function renderDebtRows() {
   const container = els('debtRows');
@@ -761,9 +1413,9 @@ function renderDebtRows() {
       <select onchange="updateDebt(${i},'category',this.value)">
         ${DEBT_CATEGORIES.map(c => `<option value="${c}" ${c===d.category?'selected':''}>${c}</option>`).join('')}
       </select>
-      <input type="number" value="${d.balance}" step="500" title="Balance ($)" oninput="updateDebt(${i},'balance',this.value)">
-      <input type="number" value="${d.apr}" step="0.5" title="APR (%)" oninput="updateDebt(${i},'apr',this.value)">
-      <input type="number" value="${d.payment}" step="25" title="Monthly payment ($)" oninput="updateDebt(${i},'payment',this.value)">
+      <input type="number" value="${d.balance}" step="500" oninput="updateDebt(${i},'balance',this.value)">
+      <input type="number" value="${d.apr}" step="0.5" oninput="updateDebt(${i},'apr',this.value)">
+      <input type="number" value="${d.payment}" step="25" oninput="updateDebt(${i},'payment',this.value)">
       <button class="remove-btn" onclick="removeDebt(${i})" title="Remove">×</button>
     </div>
   `).join('');
@@ -901,10 +1553,15 @@ function readInputs() {
     tradTSPBalance: +els('tradTSPBalance').value,
     rothTSPBalance: +els('rothTSPBalance').value,
     brokerageBalance: brokeragePies.reduce((s,p) => s + (+p.balance || 0), 0),
-    brokerageContribution: +els('brokerageContribution').value,
+    brokerageContribution: brokeragePies.reduce((s,p) => s + (+p.contribution || 0), 0) * 12,
     tradPct: +els('tradTSPPct').value/100,
     rothPct: +els('rothTSPPct').value/100,
     matchCapPct: +els('matchPct').value/100,
+    excessIncomeSavingsPct: +els('excessIncomeSavingsPct').value/100,
+    brokeragePieBalances: brokeragePies.map(p => +p.balance || 0),
+    brokeragePieContributionsMonthly: brokeragePies.map(p => +p.contribution || 0),
+    withdrawalOrder: withdrawalOrderState.slice(),
+    withdrawalSimultaneous: els('withdrawSimultaneous').checked,
     checkingBalance: +els('checkingBalance').value,
     savingsBalance: +els('savingsBalance').value,
     hysaBalance: +els('hysaBalance').value,
@@ -920,9 +1577,14 @@ function readInputs() {
     ssMonthly: +els('ssMonthly').value,
     ssAge: +els('ssAge').value,
     pensionAnnual: +els('pensionAnnual').value,
+    pensionGrowth: +els('pensionGrowth').value/100,
     vaDisabilityAnnual: +els('vaDisabilityAnnual').value,
+    vaDisabilityGrowth: +els('vaDisabilityGrowth').value/100,
     vaDisabilityAge: +els('vaDisabilityAge').value,
     pensionAge: +els('pensionAge').value,
+    annuityMonthly: +els('annuityMonthly').value,
+    annuityStartAge: +els('annuityStartAge').value,
+    annuityGrowth: +els('annuityGrowth').value/100,
     spouseCurrentAge: +els('spouseAge').value,
     spouseLifeExpectancy: +els('spouseLifeExpectancy').value,
     spouseWorks: els('spouseWorks').checked,
@@ -932,6 +1594,16 @@ function readInputs() {
     ltcStartAge: +els('ltcStartAge').value,
     ltcDuration: +els('ltcDuration').value,
     ltcAnnualCost: +els('ltcAnnualCost').value,
+    medicareAge: +els('medicareAge').value,
+    tricareMonthly: +els('tricareMonthly').value,
+    tricareHearingMonthly: +els('tricareHearingMonthly').value,
+    tricareVisionMonthly: +els('tricareVisionMonthly').value,
+    tricareDentalMonthly: +els('tricareDentalMonthly').value,
+    partBUserMonthly: +els('partBUserMonthly').value,
+    partBSpouseMonthly: +els('partBSpouseMonthly').value,
+    hearingMonthly: +els('hearingMonthly').value,
+    visionMonthly: +els('visionMonthly').value,
+    dentalMonthly: +els('dentalMonthly').value,
     rentMonthly: +els('rentMonthly').value,
     rentGrowth: +els('rentGrowth').value/100,
     buyHome: els('buyHome').checked,
@@ -942,8 +1614,9 @@ function readInputs() {
     mortgageTerm: +els('mortgageTerm').value,
     propTaxInsPct: +els('propTaxInsPct').value/100,
     homeAppreciation: +els('homeAppreciation').value/100,
-    tradTaxRate: +els('tradTaxRate').value/100,
-    capGainsRate: +els('capGainsRate').value/100,
+    stdDeduction: +els('stdDeduction').value,
+    idahoRate: +els('idahoRate').value/100,
+    ruleOf55Applies: els('ruleOf55Applies').checked,
     guardrailsEnabled: els('guardrailsEnabled').checked,
     guardBand: +els('guardBand').value/100,
     guardAdj: +els('guardAdj').value/100
@@ -951,9 +1624,39 @@ function readInputs() {
 }
 
 // ---------- Core projection engine (shared by deterministic run, Monte Carlo, and Explorer scenarios) ----------
+// ---------- Brokerage pie helpers: the pool is tracked as one balance per pie, not one lumped sum ----------
+function sumPies(arr) { return arr.reduce((s, b) => s + b, 0); }
+// Applies a pooled inflow/outflow across all pies proportionally to their current balance (a positive delta
+// deposits, a negative delta withdraws). Withdrawals "water-fill" over a few rounds so a pie that runs dry
+// hands its unmet share to the others, and every pie is floored at 0.
+function applyPooledDelta(pieBalances, delta) {
+  if (!pieBalances.length || Math.abs(delta) < 1e-9) return;
+  if (delta > 0) {
+    const total = sumPies(pieBalances);
+    if (total <= 0) { pieBalances[0] += delta; return; }
+    for (let i = 0; i < pieBalances.length; i++) pieBalances[i] += delta * (pieBalances[i] / total);
+  } else {
+    let remaining = -delta;
+    for (let round = 0; round < pieBalances.length && remaining > 0.01; round++) {
+      const activeIdx = pieBalances.map((b, i) => i).filter(i => pieBalances[i] > 0.01);
+      if (!activeIdx.length) break;
+      const total = activeIdx.reduce((s, i) => s + pieBalances[i], 0);
+      if (total <= 0) break;
+      const target = remaining;
+      activeIdx.forEach(i => {
+        const take = Math.min(target * (pieBalances[i] / total), pieBalances[i]);
+        pieBalances[i] -= take;
+        remaining -= take;
+      });
+    }
+    for (let i = 0; i < pieBalances.length; i++) if (pieBalances[i] < 0) pieBalances[i] = 0;
+  }
+}
+
 function projectRun(inputs, ctx, randomize, shocks) {
   shocks = shocks || {};
-  let balTrad = inputs.tradTSPBalance, balRoth = inputs.rothTSPBalance, balBrokerage = inputs.brokerageBalance;
+  let balTrad = inputs.tradTSPBalance, balRoth = inputs.rothTSPBalance;
+  let balBrokeragePies = inputs.brokeragePieBalances.slice();
   let balChecking = inputs.checkingBalance, balSavings = inputs.savingsBalance, balHYSA = inputs.hysaBalance;
   let income = inputs.currentIncome;
   let depletionAge = null, shortfallEver = false;
@@ -963,7 +1666,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
 
   for (let age = inputs.currentAge; age <= ctx.effectiveLifeExpectancy; age++) {
     const y = age - inputs.currentAge;
-    const startInvestable = balTrad + balRoth + balBrokerage;
+    const startInvestable = balTrad + balRoth + sumPies(balBrokeragePies);
     const spouseAgeThisYear = age - ctx.ageGap;
 
     if (ctx.mortgageSchedule && y === ctx.mortgageSchedule.purchaseYearIdx) {
@@ -971,7 +1674,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const t1 = Math.min(remaining, balChecking); balChecking -= t1; remaining -= t1;
       const t2 = Math.min(remaining, balSavings); balSavings -= t2; remaining -= t2;
       const t3 = Math.min(remaining, balHYSA); balHYSA -= t3; remaining -= t3;
-      if (remaining > 0) balBrokerage = Math.max(0, balBrokerage - remaining);
+      if (remaining > 0) applyPooledDelta(balBrokeragePies, -remaining);
     }
 
     // Long-term care for spouse: paid from Roth TSP first, tax-free; overflow falls back to Brokerage then Traditional TSP.
@@ -981,9 +1684,32 @@ function projectRun(inputs, ctx, randomize, shocks) {
       ltcCostThisYear = inputs.ltcAnnualCost * medicalInflatorNow;
       let ltcRemaining = ltcCostThisYear;
       const fromRoth = Math.min(ltcRemaining, balRoth); balRoth -= fromRoth; ltcRemaining -= fromRoth;
-      const fromBrokerage = Math.min(ltcRemaining, balBrokerage); balBrokerage -= fromBrokerage; ltcRemaining -= fromBrokerage;
+      const brokerageAvailable = sumPies(balBrokeragePies);
+      const fromBrokerage = Math.min(ltcRemaining, brokerageAvailable); applyPooledDelta(balBrokeragePies, -fromBrokerage); ltcRemaining -= fromBrokerage;
       const fromTrad = Math.min(ltcRemaining, balTrad); balTrad -= fromTrad; ltcRemaining -= fromTrad;
     }
+
+    // Future / one-time planned expenses: hit at a specific age (or a recurring range), drawn from cash first then brokerage.
+    let futureExpenseCostThisYear = 0;
+    futureExpenses.forEach(f => {
+      const hits = f.recurring ? (age >= f.age && age <= (f.endAge || f.age)) : (age === f.age);
+      if (hits) futureExpenseCostThisYear += (+f.amount || 0) * Math.pow(1+inputs.inflation, y);
+    });
+    if (futureExpenseCostThisYear > 0) {
+      let feRemaining = futureExpenseCostThisYear;
+      const f1 = Math.min(feRemaining, balHYSA); balHYSA -= f1; feRemaining -= f1;
+      const f2 = Math.min(feRemaining, balSavings); balSavings -= f2; feRemaining -= f2;
+      const f3 = Math.min(feRemaining, balChecking); balChecking -= f3; feRemaining -= f3;
+      if (feRemaining > 0) applyPooledDelta(balBrokeragePies, -feRemaining);
+    }
+
+    // Windfalls: one-time inflows at a specific age, deposited into the chosen account.
+    windfalls.forEach(w => {
+      if (age === w.age) {
+        if (w.destination === 'Cash') balHYSA += (+w.amount || 0);
+        else applyPooledDelta(balBrokeragePies, +w.amount || 0);
+      }
+    });
 
     const debtBalanceThisYear = ctx.debtSchedules.reduce((s,d) => s + (d.balanceAtYearEnd[y] ?? 0), 0);
     const debtPaymentThisYear = ctx.debtSchedules.reduce((s,d) => s + (d.paymentDuringYear[y] ?? 0), 0);
@@ -993,6 +1719,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
     const inflator = Math.pow(1+inputs.inflation, y);
     const medicalInflator = Math.pow(1+inputs.medicalInflation, y);
     const ssInflator = Math.pow(1+inputs.ssCola, y);
+    const pensionInflator = Math.pow(1+inputs.pensionGrowth, y);
+    const vaInflator = Math.pow(1+inputs.vaDisabilityGrowth, y);
+    const annuityInflator = Math.pow(1+inputs.annuityGrowth, y);
     let housingCost;
     if (ctx.mortgageSchedule && y >= ctx.mortgageSchedule.purchaseYearIdx) {
       housingCost = mortgagePmtThisYear + homeValueThisYear*inputs.propTaxInsPct;
@@ -1000,8 +1729,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
       housingCost = inputs.rentMonthly*12*Math.pow(1+inputs.rentGrowth, y);
     }
 
-    let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, vaDisabilityAmount=0;
+    let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, vaDisabilityAmount=0, annuityAmount=0;
+    let fedMarginal=null, ltcgMarginal=null;
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
+    let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0;
 
     if (age < inputs.retirementAge) {
       const preR = (shocks.pre && shocks.pre[y] !== undefined) ? shocks.pre[y]
@@ -1010,11 +1741,24 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const tradContrib = income*inputs.tradPct;
       const rothContrib = income*inputs.rothPct;
       const matchContrib = income*Math.min(inputs.tradPct+inputs.rothPct, inputs.matchCapPct);
+      // Brokerage pie contributions come from the same paycheck as the TSP %-based ones, so they grow with the same raise assumption.
+      const pieContribsMonthly = inputs.brokeragePieContributionsMonthly || [];
+      const brokerageContribThisYear = pieContribsMonthly.reduce((s,c) => s + (+c||0), 0) * 12 * Math.pow(1+inputs.incomeGrowth, y);
+      // Excess income savings: whatever's left of your paycheck after contributions and recurring living costs,
+      // times the chosen %, gets swept into Brokerage on top of the fixed contributions above.
+      const recurringLivingCostThisYear = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) + housingCost + debtPaymentThisYear;
+      const excessIncomeAvailable = Math.max(0, income - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
+      excessIncomeSaved = excessIncomeAvailable * (inputs.excessIncomeSavingsPct || 0);
       tradContribOut = tradContrib; rothContribOut = rothContrib; matchContribOut = matchContrib;
-      contributions = tradContrib+rothContrib+matchContrib+inputs.brokerageContribution;
+      contributions = tradContrib+rothContrib+matchContrib+brokerageContribThisYear+excessIncomeSaved;
       balTrad = balTrad*(1+preR) + tradContrib + matchContrib;
       balRoth = balRoth*(1+preR) + rothContrib;
-      balBrokerage = balBrokerage*(1+preR) + inputs.brokerageContribution;
+      // Each pie grows independently and receives its own monthly contribution (annualized + grown with income).
+      for (let i = 0; i < balBrokeragePies.length; i++) {
+        const pieContribThisYear = (+pieContribsMonthly[i] || 0) * 12 * Math.pow(1+inputs.incomeGrowth, y);
+        balBrokeragePies[i] = balBrokeragePies[i]*(1+preR) + pieContribThisYear;
+      }
+      applyPooledDelta(balBrokeragePies, excessIncomeSaved);
       balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate); balHYSA *= (1+inputs.hysaRate);
     } else {
       if (investableAtRetirement === null) {
@@ -1025,14 +1769,28 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const postR = (shocks.post && shocks.post[yearsSinceRetirement] !== undefined) ? shocks.post[yearsSinceRetirement]
         : (randomize ? randNormal(inputs.postReturn, inputs.postStdev) : inputs.postReturn);
       const spendMult = inputs.spendingMultiplier || 1;
-      const expensesInflated = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) * spendMult;
+      // Healthcare coverage: Tricare covers whichever of you hasn't yet reached Medicare age; each of you separately
+      // picks up a Part B premium once you individually reach Medicare age (no Part D for either of you).
+      const userOnMedicare = age >= inputs.medicareAge;
+      const spouseOnMedicare = spouseAgeThisYear >= inputs.medicareAge;
+      const onTricare = !userOnMedicare || !spouseOnMedicare;
+      const medicarePremiumBase = (
+        (onTricare ? inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly : 0) +
+        (userOnMedicare ? inputs.partBUserMonthly : 0) +
+        (spouseOnMedicare ? inputs.partBSpouseMonthly : 0) +
+        (userOnMedicare ? (inputs.hearingMonthly + inputs.visionMonthly + inputs.dentalMonthly) : 0)
+      ) * 12;
+      medicalCostAnnual = medicarePremiumBase * medicalInflator;
+      expensesCategoriesAnnual = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) * spendMult;
+      const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
       let totalSpending = expensesInflated + housingCost + debtPaymentThisYear;
 
       ssAmount = age >= inputs.ssAge ? inputs.ssMonthly*12*ssInflator : 0;
       spousalBenefit = (!inputs.spouseWorks && age >= ctx.effectiveSpousalStartAge) ? inputs.ssMonthly*inputs.spousalPct*12*ssInflator : 0;
-      pensionAmount = age >= inputs.pensionAge ? inputs.pensionAnnual*ssInflator : 0;
-      vaDisabilityAmount = age >= inputs.vaDisabilityAge ? inputs.vaDisabilityAnnual*ssInflator : 0;
-      guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + vaDisabilityAmount;
+      pensionAmount = age >= inputs.pensionAge ? inputs.pensionAnnual*pensionInflator : 0;
+      vaDisabilityAmount = age >= inputs.vaDisabilityAge ? inputs.vaDisabilityAnnual*vaInflator : 0;
+      annuityAmount = age >= inputs.annuityStartAge ? inputs.annuityMonthly*12*annuityInflator : 0;
+      guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + vaDisabilityAmount + annuityAmount;
 
       const need0 = Math.max(0, totalSpending - guaranteedIncome);
       if (initialWithdrawalRate === null && startInvestable > 0) initialWithdrawalRate = need0/startInvestable;
@@ -1045,31 +1803,69 @@ function projectRun(inputs, ctx, randomize, shocks) {
       spending = totalSpending;
       const need = Math.max(0, totalSpending - guaranteedIncome);
 
-      let brokGrown = balBrokerage*(1+postR), tradGrown = balTrad*(1+postR), rothGrown = balRoth*(1+postR);
+      let brokPiesGrown = balBrokeragePies.map(b => b*(1+postR));
+      let tradGrown = balTrad*(1+postR), rothGrown = balRoth*(1+postR);
+      // HYSA now participates in the withdrawal pool, so it's grown here (before withdrawal) instead of the blanket line below.
+      let hysaGrown = balHYSA*(1+inputs.hysaRate);
       let remaining = need;
-      const t1 = inputs.capGainsRate, t2 = inputs.tradTaxRate;
-      let netTake = Math.min(remaining, brokGrown*(1-t1));
-      let grossTake = t1 < 1 ? netTake/(1-t1) : 0;
-      brokGrown -= grossTake; remaining -= netTake; grossWithdrawal += grossTake;
+      // Traditional TSP withdrawals before 59.5 avoid the 10% early-withdrawal penalty under the Rule of 55
+      // (separating from federal service in the year you turn 55+). If that assumption is turned off, the
+      // penalty applies to any Traditional TSP withdrawal taken before 59.5.
+      const earlyPenalty = (!inputs.ruleOf55Applies && age < 59.5) ? 0.10 : 0;
+      // Real federal marginal brackets (2026 MFJ) + Idaho's flat state rate, stacked on top of guaranteed income.
+      // SS/spousal benefit treated as 85% taxable; VA disability excluded (tax-free); pension/annuity fully taxable.
+      const taxableGuaranteed = 0.85*(ssAmount+spousalBenefit) + pensionAmount + annuityAmount;
+      const taxableBeforeWithdrawal = Math.max(0, taxableGuaranteed - inputs.stdDeduction);
+      fedMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, FEDERAL_BRACKETS_MFJ);
+      ltcgMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, LTCG_BRACKETS_MFJ);
+      const t1 = ltcgMarginal + inputs.idahoRate, t2 = fedMarginal + inputs.idahoRate + earlyPenalty;
 
-      netTake = Math.min(remaining, tradGrown*(1-t2));
-      grossTake = t2 < 1 ? netTake/(1-t2) : 0;
-      tradGrown -= grossTake; remaining -= netTake; grossWithdrawal += grossTake;
+      // Withdrawal accounts: each has a current (post-growth) balance and an effective tax rate that converts
+      // a NET dollar taken out into the GROSS dollar removed from the balance (gross = net / (1 - taxRate)).
+      // Every individual brokerage pie, Traditional TSP, Roth TSP, and HYSA are each tracked separately here.
+      const taxRateByAccount = { trad: t2, roth: 0, hysa: 0 };
+      const bal = { trad: tradGrown, roth: rothGrown, hysa: hysaGrown };
+      brokPiesGrown.forEach((b, i) => { bal['pie_'+i] = b; taxRateByAccount['pie_'+i] = t1; });
+      const takeFrom = (key, desiredNet) => {
+        if (desiredNet <= 0 || bal[key] === undefined) return;
+        const rate = taxRateByAccount[key];
+        const maxNet = bal[key] * (1 - rate);
+        const netTaken = Math.min(desiredNet, Math.max(0, maxNet));
+        const grossTaken = rate < 1 ? netTaken / (1 - rate) : 0;
+        bal[key] -= grossTaken;
+        remaining -= netTaken;
+        grossWithdrawal += grossTaken;
+      };
 
-      netTake = Math.min(remaining, rothGrown);
-      rothGrown -= netTake; remaining -= netTake; grossWithdrawal += netTake;
+      if (inputs.withdrawalSimultaneous) {
+        // Split the need proportionally (by current balance) across the checked accounts, "water-filling"
+        // over a few rounds so accounts that run dry hand off their unmet share to the others still selected.
+        let selected = inputs.withdrawalOrder.filter(k => bal[k] !== undefined);
+        for (let round = 0; round < selected.length && remaining > 0.01; round++) {
+          const active = selected.filter(k => bal[k] > 0.01);
+          if (!active.length) break;
+          const totalBal = active.reduce((s, k) => s + bal[k], 0);
+          if (totalBal <= 0) break;
+          const roundTarget = remaining;
+          active.forEach(k => takeFrom(k, roundTarget * (bal[k] / totalBal)));
+        }
+      } else {
+        // Sequential waterfall: drain the 1st account fully before touching the 2nd, then the 3rd.
+        inputs.withdrawalOrder.forEach(key => { if (remaining > 0.01) takeFrom(key, remaining); });
+      }
 
       withdrawal = need - remaining;
       if (remaining > 1) shortfallEver = true;
 
-      balBrokerage = Math.max(0, brokGrown); balTrad = Math.max(0, tradGrown); balRoth = Math.max(0, rothGrown);
-      balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate); balHYSA *= (1+inputs.hysaRate);
+      balTrad = Math.max(0, bal.trad); balRoth = Math.max(0, bal.roth); balHYSA = Math.max(0, bal.hysa);
+      balBrokeragePies = balBrokeragePies.map((_, i) => Math.max(0, bal['pie_'+i]));
+      balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate);
 
-      const endInvestable = balTrad + balRoth + balBrokerage;
+      const endInvestable = balTrad + balRoth + sumPies(balBrokeragePies);
       if (endInvestable <= 0 && depletionAge === null && startInvestable > 0) depletionAge = age;
     }
 
-    const investable = balTrad + balRoth + balBrokerage;
+    const investable = balTrad + balRoth + sumPies(balBrokeragePies);
     const cash = balChecking + balSavings + balHYSA;
     const netWorth = investable + cash + homeEquityThisYear - debtBalanceThisYear;
 
@@ -1077,14 +1873,16 @@ function projectRun(inputs, ctx, randomize, shocks) {
       rows.push({
         age, spouseAge: age - ctx.ageGap, income: age < inputs.retirementAge ? income : null,
         contributions, tradContribOut, rothContribOut, matchContribOut,
-        guaranteedIncome, spousalBenefit, ssAmount, pensionAmount, vaDisabilityAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
-        investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost
+        guaranteedIncome, spousalBenefit, ssAmount, pensionAmount, vaDisabilityAmount, annuityAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
+        investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
+        medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved,
+        fedMarginalRate: age >= inputs.retirementAge ? fedMarginal : null, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null
       });
     }
   }
 
   if (investableAtRetirement === null) {
-    investableAtRetirement = balTrad + balRoth + balBrokerage;
+    investableAtRetirement = balTrad + balRoth + sumPies(balBrokeragePies);
     cashAtRetirement = balChecking + balSavings + balHYSA;
   }
 
@@ -1099,8 +1897,9 @@ function buildContext(inputs) {
   const effectiveSpousalStartAge = Math.max(inputs.ssAge, ageGap + inputs.spousalStartAge);
   const debtSchedules = debts.map(d => buildDebtSchedule(d, maxYears));
   const mortgageSchedule = inputs.buyHome ? buildMortgageSchedule(inputs, maxYears) : null;
-  const expensesTotal = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
-  const expensesMedical = expenses.filter(e => e.category === 'Healthcare').reduce((s,e) => s + (+e.amount || 0), 0);
+  // Expense amounts are entered monthly; annualize here so the rest of the engine works in annual $.
+  const expensesTotal = expenses.reduce((s,e) => s + (+e.amount || 0), 0) * 12;
+  const expensesMedical = expenses.filter(e => e.category === 'Healthcare').reduce((s,e) => s + (+e.amount || 0), 0) * 12;
   const expensesNonMedical = expensesTotal - expensesMedical;
   return { maxYears, ageGap, effectiveLifeExpectancy, effectiveSpousalStartAge, debtSchedules, mortgageSchedule, expensesTotal, expensesMedical, expensesNonMedical };
 }
@@ -1135,7 +1934,10 @@ function runExplorerScenario(scenario, baseInputs, baseCtx) {
   let inputs = baseInputs, ctx = baseCtx;
   if (scenario.special === 'payoffDebt') {
     const totalDebt = debts.reduce((s,d) => s + (+d.balance || 0), 0);
-    inputs = { ...baseInputs, brokerageBalance: Math.max(0, baseInputs.brokerageBalance - totalDebt) };
+    const reducedTotal = Math.max(0, baseInputs.brokerageBalance - totalDebt);
+    // Scale every pie down by the same % so the pooled total drops by totalDebt, keeping relative pie weights intact.
+    const scale = baseInputs.brokerageBalance > 0 ? reducedTotal / baseInputs.brokerageBalance : 0;
+    inputs = { ...baseInputs, brokerageBalance: reducedTotal, brokeragePieBalances: baseInputs.brokeragePieBalances.map(b => b * scale) };
     ctx = { ...baseCtx, debtSchedules: [] };
   } else if (scenario.apply) {
     inputs = scenario.apply(baseInputs);
@@ -1147,9 +1949,11 @@ function runExplorerScenario(scenario, baseInputs, baseCtx) {
   return {
     name: scenario.name,
     investableAtRetirement: det.investableAtRetirement,
+    retirementAge: inputs.retirementAge,
     depletionAge: det.depletionAge,
     endingBalance: lastRow ? lastRow.investable : det.investableAtRetirement,
     endingNetWorth: lastRow ? lastRow.netWorth : 0,
+    endAge: lastRow ? lastRow.age : inputs.retirementAge,
     score
   };
 }
@@ -1188,10 +1992,10 @@ function buildChartConfig(pageId, snap) {
     case 'personal':
       return barConfig(['Years to retirement','Years in retirement'], [snap.yearsToRetirement, snap.yearsInRetirement], { plain:true, suffix:' yrs' });
     case 'income':
-      return barConfig(['Traditional TSP','Roth TSP','Agency Match','Brokerage'],
+      return barConfig(['Traditional TSP','Roth TSP','Agency Match','Brokerage (all pies)'],
         [snap.tradContribFirstYear, snap.rothContribFirstYear, snap.matchContribFirstYear, snap.brokerageContribution]);
     case 'investments':
-      return barConfig(['Traditional TSP','Roth TSP','Brokerage','Cash (bank)'],
+      return barConfig(['Traditional TSP','Roth TSP','Brokerage (all pies)','Cash (bank)'],
         [snap.tradTSPBalance, snap.rothTSPBalance, snap.brokerageBalance, snap.cashTotal]);
     case 'housing':
       return barConfig(['Current annual rent','Housing cost at retirement'], [snap.currentRentAnnual, snap.housingCostAtRetirement]);
@@ -1210,6 +2014,24 @@ function buildChartConfig(pageId, snap) {
         [snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.vaDisabilityAtRetirement], { horizontal:true });
     case 'taxes':
       return barConfig(['Gross withdrawn from accounts','Net spending covered'], [snap.grossWithdrawalFirstYear, snap.netSpendingFirstYear]);
+    case 'gap':
+      return barConfig(['Guaranteed income','Total spending','Surplus / (Gap)','Portfolio withdrawal (gross)'],
+        [snap.guaranteedIncomeAtRetirement, snap.spendingAtRetirement, snap.surplusAtRetirement, snap.grossWithdrawalFirstYear]);
+    case 'medical':
+      return barConfig(['Tricare (annual)','Tricare HVD (annual)','Your Part B (annual)',"Spouse's Part B (annual)",'Medicare HVD (annual)'],
+        [(+els('tricareMonthly').value||0)*12,
+         ((+els('tricareHearingMonthly').value||0)+(+els('tricareVisionMonthly').value||0)+(+els('tricareDentalMonthly').value||0))*12,
+         (+els('partBUserMonthly').value||0)*12, (+els('partBSpouseMonthly').value||0)*12,
+         ((+els('hearingMonthly').value||0)+(+els('visionMonthly').value||0)+(+els('dentalMonthly').value||0))*12]);
+    case 'estate': {
+      const items = [
+        ['Will', 'estateWill'], ['POA', 'estatePOA'], ['Healthcare Directive', 'estateHealthcareDirective'],
+        ['Trust', 'estateTrust'], ['Beneficiaries reviewed', 'estateBeneficiaries']
+      ];
+      return barConfig(items.map(i=>i[0]), items.map(i => els(i[1]).checked ? 100 : 0), { percent:true, horizontal:true });
+    }
+    case 'insurance':
+      return barConfig(insurancePolicies.map(p=>p.name||'Policy'), insurancePolicies.map(p=>+p.premium||0), { horizontal:true });
     case 'assumptions': {
       const labels = ['Pre-retirement return','Post-retirement return','General Inflation','Medical Inflation','SS COLA'];
       const values = [snap.preReturnPct, snap.postReturnPct, snap.inflationPct, snap.medicalInflationPct, snap.ssColaPct];
@@ -1236,6 +2058,138 @@ function ensureOrUpdateChart(pageId, snap) {
   }
 }
 
+// ---------- Per-section "by year" charts, for sections with inflation-adjusted dollar items ----------
+// Each series pulls straight from the deterministic projection rows, so bars reflect that item's own
+// growth assumption (General/Medical Inflation, SS COLA, or its own yearly-increase %) compounding over time.
+const YEARLY_CHART_PAGES = ['personal', 'income', 'housing', 'expenses', 'guaranteed', 'medical', 'gap'];
+
+function yearlyBarConfig(ages, series, opts) {
+  opts = opts || {};
+  const datasets = series.map((s, i) => ({
+    label: s.label,
+    data: s.data,
+    backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+    borderRadius: 3
+  }));
+  return {
+    type: 'bar',
+    data: { labels: ages.map(a => 'Age ' + a), datasets },
+    options: {
+      responsive: true,
+      animation: false,
+      interaction: { mode: 'index', axis: 'x', intersect: false },
+      plugins: {
+        legend: { display: series.length > 1, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+        tooltip: { enabled: true, callbacks: { label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.y) } }
+      },
+      scales: {
+        x: { stacked: !!opts.stacked, ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: 10 } } },
+        y: { stacked: !!opts.stacked, ticks: { callback: v => fmtMoneyK(v) } }
+      }
+    }
+  };
+}
+
+function buildYearlyChartConfig(pageId, snap) {
+  const rows = snap.rows, inputs = snap.inputs;
+  if (!rows || !rows.length || !inputs) return null;
+  const ages = rows.map(r => r.age);
+  const d = (val, age) => dv(val || 0, age, inputs);
+  switch (pageId) {
+    case 'personal':
+      return yearlyBarConfig(ages, [
+        { label: 'LTC cost (spouse, Medical Inflation)', data: rows.map(r => d(r.ltcCost, r.age)) }
+      ]);
+    case 'income':
+      return yearlyBarConfig(ages, [
+        { label: 'Job income (annual raise %)', data: rows.map(r => d(r.income, r.age)) },
+        { label: 'Contributions (TSP + brokerage + excess)', data: rows.map(r => d(r.contributions, r.age)) },
+        { label: 'Of which, excess income saved', data: rows.map(r => d(r.excessIncomeSaved, r.age)) }
+      ]);
+    case 'housing':
+      return yearlyBarConfig(ages, [
+        { label: 'Housing cost (rent growth / home appreciation)', data: rows.map(r => d(r.housingCost, r.age)) }
+      ]);
+    case 'expenses':
+      return yearlyBarConfig(ages, [
+        { label: 'Recurring expenses (General/Medical Inflation)', data: rows.map(r => d(r.expensesCategoriesAnnual, r.age)) },
+        { label: 'Future / one-time expenses (General Inflation)', data: rows.map(r => d(r.futureExpenseCost, r.age)) }
+      ], { stacked: true });
+    case 'guaranteed':
+      return yearlyBarConfig(ages, [
+        { label: 'Social Security (SS COLA)', data: rows.map(r => d(r.ssAmount, r.age)) },
+        { label: 'Spousal Benefit (SS COLA)', data: rows.map(r => d(r.spousalBenefit, r.age)) },
+        { label: 'Pension (own yearly increase %)', data: rows.map(r => d(r.pensionAmount, r.age)) },
+        { label: 'VA Disability (own yearly increase %)', data: rows.map(r => d(r.vaDisabilityAmount, r.age)) },
+        { label: 'Annuity (own yearly increase %)', data: rows.map(r => d(r.annuityAmount, r.age)) }
+      ], { stacked: true });
+    case 'medical':
+      return yearlyBarConfig(ages, [
+        { label: 'Tricare + Part B + FEDVIP (Medical Inflation)', data: rows.map(r => d(r.medicalCostAnnual, r.age)) }
+      ]);
+    case 'gap':
+      return yearlyBarConfig(ages, [
+        { label: 'Surplus / (Gap)', data: rows.map(r => d((r.guaranteedIncome || 0) - (r.spending || 0), r.age)) },
+        { label: 'Portfolio withdrawal (gross)', data: rows.map(r => d(r.grossWithdrawal, r.age)) }
+      ]);
+    default:
+      return null;
+  }
+}
+
+function ensureOrUpdateYearlyChart(pageId, snap) {
+  if (!YEARLY_CHART_PAGES.includes(pageId)) return;
+  const config = buildYearlyChartConfig(pageId, snap);
+  if (!config) return;
+  const key = pageId + '_yearly';
+  if (charts[key]) {
+    charts[key].data = config.data;
+    charts[key].options = config.options;
+    charts[key].update();
+  } else {
+    const canvas = els('chart_' + pageId + '_yearly');
+    if (!canvas) return;
+    charts[key] = new Chart(canvas.getContext('2d'), config);
+  }
+}
+
+// ---------- Brokerage-by-portfolio breakdown charts (dedicated canvas so the 3 pies aren't dwarfed by TSP balances) ----------
+const PIE_CHART_PAGES = ['income', 'investments'];
+
+function buildPieChartConfig(pageId) {
+  if (!brokeragePies.length) return null;
+  const labels = brokeragePies.map(p => p.name || 'Pie');
+  if (pageId === 'income') {
+    return barConfig(labels, brokeragePies.map(p => (+p.contribution || 0) * 12), { horizontal: true });
+  }
+  if (pageId === 'investments') {
+    return barConfig(labels, brokeragePies.map(p => +p.balance || 0), { horizontal: true });
+  }
+  return null;
+}
+
+function ensureOrUpdatePieChart(pageId, snap) {
+  if (!PIE_CHART_PAGES.includes(pageId)) return;
+  const config = buildPieChartConfig(pageId);
+  if (!config) return;
+  const key = pageId + '_pies';
+  if (charts[key]) {
+    charts[key].data = config.data;
+    charts[key].options = config.options;
+    charts[key].update();
+  } else {
+    const canvas = els('chart_' + pageId + '_pies');
+    if (!canvas) return;
+    charts[key] = new Chart(canvas.getContext('2d'), config);
+  }
+}
+
+function refreshSectionCharts(pageId, snap) {
+  ensureOrUpdateChart(pageId, snap);
+  ensureOrUpdateYearlyChart(pageId, snap);
+  ensureOrUpdatePieChart(pageId, snap);
+}
+
 function renderExplorers() {
   const inputs = readInputs();
   const ctx = buildContext(inputs);
@@ -1245,9 +2199,9 @@ function renderExplorers() {
   const rowsHtml = list => list.map(r => `
     <tr>
       <td>${r.name}</td>
-      <td>${fmtMoney(r.investableAtRetirement)}</td>
-      <td>${fmtMoney(r.endingBalance)}</td>
-      <td>${fmtMoney(r.endingNetWorth)}</td>
+      <td>${fmtMoney(dv(r.investableAtRetirement, r.retirementAge, inputs))}</td>
+      <td>${fmtMoney(dv(r.endingBalance, r.endAge, inputs))}</td>
+      <td>${fmtMoney(dv(r.endingNetWorth, r.endAge, inputs))}</td>
       <td>${r.depletionAge ? 'Age ' + r.depletionAge : 'Never'}</td>
       <td>${Math.round(r.score)}%</td>
     </tr>`).join('');
@@ -1270,11 +2224,304 @@ function renderExplorers() {
   }
 }
 
+// ---------- Coach: rule-based suggestions ----------
+function generateCoachSuggestions(inputs, ctx, result, score) {
+  const tips = [];
+  const add = (severity, icon, text) => tips.push({ severity, icon, text });
+
+  if (score >= 80) add('good', '✓', `Your confidence score is ${Math.round(score)}% — strong. Small changes are more about optimizing than fixing a shortfall.`);
+  else if (score >= 60) add('medium', '!', `Your confidence score is ${Math.round(score)}% — good, but there's room to firm it up. Consider the guardrails, contribution rate, and expense items below.`);
+  else add('high', '⚠', `Your confidence score is ${Math.round(score)}% — worth attention. Consider retiring later, spending less, or contributing more before locking in your date (see the Explorers page for specific scenarios).`);
+
+  if (!inputs.guardrailsEnabled) add('medium', '!', 'Dynamic spending guardrails are off. Turning them on (Assumptions page) lets spending flex down slightly in bad markets, which typically raises your confidence score.');
+
+  const highInterestDebt = debts.filter(d => (+d.apr||0) > 15);
+  if (highInterestDebt.length) add('high', '⚠', `You're carrying ${highInterestDebt.length} debt${highInterestDebt.length>1?'s':''} above 15% APR (${highInterestDebt.map(d=>d.name).join(', ')}). Paying these down first usually beats any investment return.`);
+
+  const totalMonthlyExpenses = expenses.reduce((s,e)=>s+(+e.amount||0),0) + inputs.rentMonthly;
+  const cashOnHand = inputs.checkingBalance + inputs.savingsBalance;
+  if (cashOnHand < totalMonthlyExpenses*3) add('medium', '!', `Checking + savings (${fmtMoney(cashOnHand)}) covers less than 3 months of your recurring monthly bills (${fmtMoney(totalMonthlyExpenses)}/mo). Consider building a bigger cash cushion before retirement, separate from the HYSA.`);
+
+  const contribPct = inputs.tradPct + inputs.rothPct;
+  if (contribPct < inputs.matchCapPct) add('high', '⚠', `You're contributing ${(contribPct*100).toFixed(1)}% of income to TSP but the agency matches up to ${(inputs.matchCapPct*100).toFixed(1)}%. You're leaving free match money on the table.`);
+
+  if (inputs.ltcEnabled) {
+    const ltcTotalCost = inputs.ltcAnnualCost * inputs.ltcDuration;
+    if (inputs.rothTSPBalance < ltcTotalCost * 0.5) add('medium', '!', `Long-term care is modeled at ~${fmtMoney(ltcTotalCost)} total, funded from Roth TSP first. Your current Roth balance (${fmtMoney(inputs.rothTSPBalance)}) may not fully cover it by itself — the model falls back to Brokerage then Traditional TSP if needed.`);
+  }
+
+  const rothShare = inputs.rothTSPBalance / Math.max(1, inputs.tradTSPBalance + inputs.rothTSPBalance);
+  if (rothShare < 0.2) add('low', 'i', `Only ${(rothShare*100).toFixed(0)}% of your TSP is Roth. More Roth gives you tax-free withdrawal flexibility later — worth a look given your Traditional TSP withdrawals are taxed at your marginal rate.`);
+
+  if (!inputs.ruleOf55Applies) add('medium', '!', "Rule of 55 is turned off on the Taxes page, so Traditional TSP withdrawals before 59½ are modeled with a 10% penalty. If you're separating from federal service at 55+ and leaving the money in TSP, turn it back on.");
+
+  if (result.depletionAge) add('high', '⚠', `The deterministic projection runs out of investable money at age ${result.depletionAge}. Check the Explorers page for what-if scenarios (retire later, spend less, delay Social Security) that might close the gap.`);
+
+  const bigExpenses = expenses.filter(e => (+e.amount||0) > totalMonthlyExpenses*0.25);
+  if (bigExpenses.length) add('low', 'i', `${bigExpenses.map(e=>e.name).join(', ')} make up a large share of your monthly expenses. Worth double-checking these are modeled at the right amount since they move the plan a lot.`);
+
+  if (!tips.length) add('good', '✓', "Nothing stands out. Your plan looks internally consistent based on the checks this Coach runs.");
+
+  return tips;
+}
+
+function renderCoachTips() {
+  const container = els('coachTips');
+  if (!container) return;
+  const inputs = readInputs();
+  const ctx = buildContext(inputs);
+  const result = projectRun(inputs, ctx, false);
+  const score = runMonteCarlo(inputs, ctx, 300);
+  const tips = generateCoachSuggestions(inputs, ctx, result, score);
+  container.innerHTML = tips.map(t => `<div class="tip ${t.severity}"><span class="tip-icon">${t.icon}</span><span class="tip-text">${t.text}</span></div>`).join('');
+}
+
+// ---------- Coach: optional AI chat (direct browser call to Anthropic API, only if a key is set) ----------
+// Global "Ask AI" floating panel: available on every page via the fixed bottom-right button,
+// so the user doesn't have to navigate to the Coach page just to ask a question.
+function toggleFloatingAi(forceOpen) {
+  const panel = els('floatingAiPanel');
+  if (!panel) return;
+  const shouldOpen = forceOpen !== undefined ? forceOpen : (panel.style.display === 'none');
+  panel.style.display = shouldOpen ? 'flex' : 'none';
+  if (shouldOpen) {
+    renderCoachAiGate();
+    const log = els('coachChatLog');
+    if (log) log.scrollTop = log.scrollHeight;
+    const input = els('coachChatInput');
+    if (input) input.focus();
+  }
+}
+
+function renderCoachAiGate() {
+  const gate = els('coachAiGate');
+  const box = els('coachChatBox');
+  if (!gate || !box) return;
+  const key = (els('anthropicApiKey') && els('anthropicApiKey').value || '').trim();
+  if (key) {
+    gate.innerHTML = '';
+    box.style.display = 'block';
+  } else {
+    gate.innerHTML = '<p style="font-size:16px;color:var(--muted);line-height:1.55;margin:0;">Add your own Anthropic API key on the <b>Settings</b> page to turn this on. Nothing is sent anywhere until you do.</p>';
+    box.style.display = 'none';
+  }
+}
+
+function buildPlanSummaryForAI() {
+  const inputs = readInputs();
+  const ctx = buildContext(inputs);
+  const result = projectRun(inputs, ctx, false);
+  const score = runMonteCarlo(inputs, ctx, 300);
+  return `Household: user age ${inputs.currentAge}, retiring at ${inputs.retirementAge}, spouse age ${inputs.spouseCurrentAge}. Idaho resident.
+Investable balance at retirement: ${fmtMoney(result.investableAtRetirement)}. Confidence score: ${Math.round(score)}%. ${result.depletionAge ? 'Portfolio depletes at age '+result.depletionAge+'.' : 'Portfolio lasts through age '+ctx.effectiveLifeExpectancy+'.'}
+Traditional TSP: ${fmtMoney(inputs.tradTSPBalance)}, Roth TSP: ${fmtMoney(inputs.rothTSPBalance)}, Brokerage: ${fmtMoney(inputs.brokerageBalance)}, Cash: ${fmtMoney(inputs.checkingBalance+inputs.savingsBalance+inputs.hysaBalance)}.
+Guaranteed income: SS $${inputs.ssMonthly}/mo at ${inputs.ssAge}, pension $${inputs.pensionAnnual}/yr, VA disability $${inputs.vaDisabilityAnnual}/yr (tax-free), annuity $${inputs.annuityMonthly}/mo at ${inputs.annuityStartAge}.
+Monthly recurring expenses total: ${fmtMoney(expenses.reduce((s,e)=>s+(+e.amount||0),0))}. Rent: $${inputs.rentMonthly}/mo. Debt: ${debts.map(d=>`${d.name} $${d.balance} at ${d.apr}% APR, $${d.payment}/mo`).join('; ') || 'none'}.
+Rule of 55 assumption: ${inputs.ruleOf55Applies ? 'on (no early withdrawal penalty)' : 'off (10% penalty before 59.5)'}.`;
+}
+
+let coachChatHistory = [];
+async function sendCoachChatMessage() {
+  const input = els('coachChatInput');
+  const question = (input.value || '').trim();
+  if (!question) return;
+  const key = (els('anthropicApiKey').value || '').trim();
+  if (!key) { renderCoachAiGate(); return; }
+
+  const log = els('coachChatLog');
+  const sendBtn = els('coachChatSend');
+  coachChatHistory.push({ role: 'user', content: question });
+  log.innerHTML += `<div class="chat-msg user">${question}</div>`;
+  input.value = '';
+  sendBtn.disabled = true;
+  log.innerHTML += `<div class="chat-msg ai" id="coachChatPending">Thinking…</div>`;
+  log.scrollTop = log.scrollHeight;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 700,
+        system: `You are a helpful, candid financial planning coach embedded in a personal retirement planner web app. Answer the user's question using the plan snapshot below as context, and general financial knowledge for anything outside it. Be concise and specific. This is not licensed financial advice — you can say so briefly once, not every message.\n\nPLAN SNAPSHOT:\n${buildPlanSummaryForAI()}`,
+        messages: coachChatHistory
+      })
+    });
+    const data = await resp.json();
+    const pending = els('coachChatPending');
+    if (!resp.ok) {
+      const msg = (data && data.error && data.error.message) || `Request failed (${resp.status})`;
+      if (pending) pending.outerHTML = `<div class="chat-msg ai">Error: ${msg}</div>`;
+    } else {
+      const text = (data.content && data.content[0] && data.content[0].text) || '(no response)';
+      coachChatHistory.push({ role: 'assistant', content: text });
+      if (pending) pending.outerHTML = `<div class="chat-msg ai">${text.replace(/\n/g,'<br>')}</div>`;
+    }
+  } catch (e) {
+    const pending = els('coachChatPending');
+    if (pending) pending.outerHTML = `<div class="chat-msg ai">Couldn't reach the API from this browser (${e.message}). This may be blocked by CORS depending on your browser/extensions.</div>`;
+  } finally {
+    sendBtn.disabled = false;
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+// ---------- Settings: backup / restore / reset ----------
+function downloadBackup() {
+  const state = saveState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `retirement-planner-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function restoreFromFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const state = JSON.parse(e.target.result);
+      applyState(state);
+      renderExpenseRows(); renderBrokeragePieRows(); renderPieContributionRows(); renderDebtRows();
+      renderTransactionRows(); renderFutureExpenseRows(); renderWindfallRows(); renderInsuranceRows();
+      saveState();
+      render();
+      alert('Backup restored.');
+    } catch (err) {
+      alert('Could not read that file — is it a backup exported from this tool?');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetAllData() {
+  if (!confirm('This clears everything saved in this browser and reloads the page with defaults. Continue?')) return;
+  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); } catch (e) {}
+  location.reload();
+}
+
+// ---------- Debt Payoff Plan (avalanche order, using existing amortization schedules) ----------
+function payoffStatsFromSchedule(sched, currentAge, originalBalance) {
+  const payoffYearIdx = sched.balanceAtYearEnd.findIndex(b => b === 0);
+  const payoffAge = payoffYearIdx >= 0 ? currentAge + payoffYearIdx : null;
+  const totalPaid = sched.paymentDuringYear.slice(0, payoffYearIdx >= 0 ? payoffYearIdx + 1 : sched.paymentDuringYear.length)
+    .reduce((s, p) => s + p, 0);
+  const totalInterest = sched.neverPaysOff ? null : Math.max(0, totalPaid - originalBalance);
+  return { payoffAge, totalInterest, neverPaysOff: sched.neverPaysOff, payoffYearIdx };
+}
+
+function renderDebtPayoffPlan(inputs, ctx) {
+  const rowsEl = els('debtPayoffRows');
+  const freeAgeEl = els('debtFreeAge');
+  const extraSummaryRow = els('debtExtraSummaryRow');
+  const extraSummaryEl = els('debtExtraSummary');
+  if (!rowsEl || !freeAgeEl) return;
+
+  if (!debts.length) {
+    rowsEl.innerHTML = '<tr><td colspan="8">No debts — nothing to pay off.</td></tr>';
+    freeAgeEl.textContent = 'Already debt-free';
+    if (extraSummaryRow) extraSummaryRow.style.display = 'none';
+    return;
+  }
+
+  const extraPayment = Math.max(0, +els('debtExtraPayment').value || 0);
+
+  const items = debts.map((d, i) => {
+    const sched = ctx.debtSchedules[i];
+    const stats = payoffStatsFromSchedule(sched, inputs.currentAge, +d.balance || 0);
+    return { debt: d, debtIndex: i, name: d.name || d.category, apr: +d.apr || 0, balance: +d.balance || 0, payment: +d.payment || 0, ...stats };
+  }).sort((a, b) => b.apr - a.apr);
+
+  // Extra payment applies only to the top-priority (highest-APR) debt.
+  let topWithExtra = null;
+  if (extraPayment > 0 && items.length) {
+    const top = items[0];
+    const boostedDebt = { ...top.debt, payment: top.payment + extraPayment };
+    const boostedSched = buildDebtSchedule(boostedDebt, ctx.maxYears);
+    topWithExtra = payoffStatsFromSchedule(boostedSched, inputs.currentAge, top.balance);
+  }
+
+  const payoffLabel = age => `Age ${age} (${ageToMonthYear(inputs.currentAge, age)})`;
+
+  rowsEl.innerHTML = items.map((it, i) => {
+    const isTop = i === 0;
+    const extraCell = !isTop ? '—'
+      : extraPayment <= 0 ? 'Add an extra payment above'
+      : topWithExtra.neverPaysOff ? 'Still never pays off'
+      : payoffLabel(topWithExtra.payoffAge);
+    return `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${it.name}</td>
+      <td>${fmtMoney(it.balance)}</td>
+      <td>${it.apr.toFixed(1)}%</td>
+      <td>${fmtMoney(it.payment)}/mo</td>
+      <td>${it.neverPaysOff ? 'Never at this payment' : payoffLabel(it.payoffAge)}</td>
+      <td>${it.neverPaysOff ? '—' : fmtMoney(it.totalInterest)}</td>
+      <td>${extraCell}</td>
+    </tr>`;
+  }).join('');
+
+  const anyNeverPaysOff = items.some(it => it.neverPaysOff);
+  if (anyNeverPaysOff) {
+    freeAgeEl.textContent = 'Some debts never pay off at current payments';
+  } else {
+    const maxPayoffAge = Math.max(...items.map(it => it.payoffAge));
+    freeAgeEl.textContent = payoffLabel(maxPayoffAge);
+  }
+
+  if (extraSummaryRow) {
+    if (extraPayment > 0 && topWithExtra && !topWithExtra.neverPaysOff && !items[0].neverPaysOff) {
+      const monthsSaved = (items[0].payoffYearIdx - topWithExtra.payoffYearIdx) * 12;
+      const interestSaved = Math.max(0, items[0].totalInterest - topWithExtra.totalInterest);
+      extraSummaryRow.style.display = 'flex';
+      extraSummaryEl.textContent = `${items[0].name} paid off by ${payoffLabel(topWithExtra.payoffAge)} instead of ${payoffLabel(items[0].payoffAge)} — roughly ${Math.max(0,monthsSaved)} fewer months and ${fmtMoney(interestSaved)} less interest.`;
+    } else {
+      extraSummaryRow.style.display = 'none';
+    }
+  }
+}
+
+// ---------- Income Gap & Withdrawals table (retirement years only — spending/guaranteed income aren't tracked pre-retirement) ----------
+function renderGapTable(rows, inputs, retirementAge) {
+  const body = els('gapRows');
+  if (!body) return;
+  const retirementRows = rows.filter(r => r.age >= retirementAge);
+  if (!retirementRows.length) { body.innerHTML = '<tr><td colspan="5">No retirement years in the current projection.</td></tr>'; return; }
+  body.innerHTML = retirementRows.map(r => {
+    const guaranteed = r.guaranteedIncome || 0;
+    const spending = r.spending || 0;
+    const surplus = guaranteed - spending;
+    const surplusStyle = surplus < 0 ? ' style="color:var(--danger);"' : '';
+    const surplusLabel = surplus < 0 ? `(${fmtMoney(dv(-surplus, r.age, inputs))})` : fmtMoney(dv(surplus, r.age, inputs));
+    return `
+    <tr>
+      <td>${r.age}</td>
+      <td>${fmtMoney(dv(guaranteed, r.age, inputs))}</td>
+      <td>${fmtMoney(dv(spending, r.age, inputs))}</td>
+      <td${surplusStyle}>${surplusLabel}</td>
+      <td>${fmtMoney(dv(r.grossWithdrawal || 0, r.age, inputs))}</td>
+    </tr>`;
+  }).join('');
+}
+
 function render() {
   els('spousalBenefitFields').style.display = els('spouseWorks').checked ? 'none' : 'grid';
   els('buyHomeFields').style.display = els('buyHome').checked ? 'block' : 'none';
   els('ltcFields').style.display = els('ltcEnabled').checked ? 'block' : 'none';
   els('pill55').classList.toggle('active', +els('retirementAge').value === 55);
+  els('pill56').classList.toggle('active', +els('retirementAge').value === 56);
   els('pill57').classList.toggle('active', +els('retirementAge').value === 57);
 
   const inputs = readInputs();
@@ -1283,9 +2530,14 @@ function render() {
   const { rows, investableAtRetirement, cashAtRetirement, depletionAge } = result;
   const retirementAge = inputs.retirementAge, lifeExpectancy = ctx.effectiveLifeExpectancy;
 
-  const netWorthToday = inputs.tradTSPBalance + inputs.rothTSPBalance + inputs.brokerageBalance
-    + inputs.checkingBalance + inputs.savingsBalance + inputs.hysaBalance
-    - debts.reduce((s,d) => s + (+d.balance||0), 0);
+  renderDebtPayoffPlan(inputs, ctx);
+  renderGapTable(rows, inputs, retirementAge);
+  renderWithdrawalOrderRows();
+
+  const totalCurrentAssets = inputs.tradTSPBalance + inputs.rothTSPBalance + inputs.brokerageBalance
+    + inputs.checkingBalance + inputs.savingsBalance + inputs.hysaBalance;
+  if (els('totalAssetsTile')) els('totalAssetsTile').textContent = fmtMoney(totalCurrentAssets);
+  const netWorthToday = totalCurrentAssets - debts.reduce((s,d) => s + (+d.balance||0), 0);
   const rowAtRetirement = rows.find(r => r.age === retirementAge);
   const netWorthAtRetirement = rowAtRetirement ? rowAtRetirement.netWorth : (rows.length ? rows[rows.length-1].netWorth : netWorthToday);
 
@@ -1309,28 +2561,50 @@ function render() {
   const gapToday = Math.max(0, firstYearSpending - firstYearGuaranteed);
 
   els('statCards').innerHTML = `
-    <div class="stat"><div class="label">Investable balance at retirement (age ${retirementAge})</div><div class="value">${fmtMoneyK(investableAtRetirement)}</div></div>
+    <div class="stat"><div class="label">Investable balance at retirement (age ${retirementAge})</div><div class="value">${fmtMoneyK(dv(investableAtRetirement, retirementAge, inputs))}</div></div>
     <div class="stat ${longevityClass}"><div class="label">Portfolio longevity (deterministic)</div><div class="value">${longevityLabel}</div></div>
-    <div class="stat"><div class="label">Guaranteed income at retirement</div><div class="value">${fmtMoneyK(firstYearGuaranteed)}/yr</div></div>
-    <div class="stat"><div class="label">Portfolio must cover</div><div class="value">${fmtMoneyK(gapToday)}/yr</div></div>
-    <div class="stat"><div class="label">Cash reserves at retirement</div><div class="value">${fmtMoneyK(cashAtRetirement)}</div></div>
+    <div class="stat"><div class="label">Guaranteed income at retirement</div><div class="value">${fmtMoneyK(dv(firstYearGuaranteed, retirementAge, inputs))}/yr</div></div>
+    <div class="stat"><div class="label">Portfolio must cover</div><div class="value">${fmtMoneyK(dv(gapToday, retirementAge, inputs))}/yr</div></div>
+    <div class="stat"><div class="label">Cash reserves at retirement</div><div class="value">${fmtMoneyK(dv(cashAtRetirement, retirementAge, inputs))}</div></div>
     <div class="stat"><div class="label">Net worth today</div><div class="value">${fmtMoneyK(netWorthToday)}</div></div>
-    <div class="stat"><div class="label">Net worth at retirement</div><div class="value">${fmtMoneyK(netWorthAtRetirement)}</div></div>
+    <div class="stat"><div class="label">Net worth at retirement</div><div class="value">${fmtMoneyK(dv(netWorthAtRetirement, retirementAge, inputs))}</div></div>
   `;
 
-  const run55 = projectRun({...inputs, retirementAge:55}, ctx, false);
-  const run57 = projectRun({...inputs, retirementAge:57}, ctx, false);
-  const score55 = runMonteCarlo({...inputs, retirementAge:55}, ctx, 1000);
-  const score57 = runMonteCarlo({...inputs, retirementAge:57}, ctx, 1000);
-  els('compareBox').innerHTML = `<b>Retire at 55</b> vs <b>Retire at 57</b>: investable balance at retirement ${fmtMoneyK(run55.investableAtRetirement)} vs ${fmtMoneyK(run57.investableAtRetirement)}
-    &nbsp;•&nbsp; confidence score ${Math.round(score55)}% vs ${Math.round(score57)}%
-    &nbsp;•&nbsp; ${run55.depletionAge ? 'runs out at ' + run55.depletionAge : 'lasts to ' + lifeExpectancy} vs ${run57.depletionAge ? 'runs out at ' + run57.depletionAge : 'lasts to ' + lifeExpectancy}.`;
+  if (els('taxStats')) {
+    const taxRow = rows.find(r => r.fedMarginalRate !== null) || rows[rows.length-1];
+    const fedPct = taxRow && taxRow.fedMarginalRate !== null ? (taxRow.fedMarginalRate*100).toFixed(0) : '—';
+    const ltcgPct = taxRow && taxRow.ltcgMarginalRate !== null ? (taxRow.ltcgMarginalRate*100).toFixed(0) : '—';
+    const idahoPct = (inputs.idahoRate*100).toFixed(1);
+    els('taxStats').innerHTML = `
+      <div class="stat"><div class="label">Federal marginal rate (Traditional TSP)</div><div class="value">${fedPct}%</div></div>
+      <div class="stat"><div class="label">Federal LTCG rate (Brokerage)</div><div class="value">${ltcgPct}%</div></div>
+      <div class="stat"><div class="label">Idaho flat rate (both)</div><div class="value">${idahoPct}%</div></div>
+    `;
+  }
+
+  const ageOptions = [55, 56, 57];
+  const ageRuns = ageOptions.map(age => ({
+    age,
+    det: projectRun({...inputs, retirementAge:age}, ctx, false),
+    score: runMonteCarlo({...inputs, retirementAge:age}, ctx, 1000)
+  }));
+  els('compareBox').innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; text-align:center;">
+      ${ageRuns.map(r => `
+        <div>
+          <b style="font-size:17px;">Retire at ${r.age}</b>
+          <div style="margin-top:6px;">Investable: ${fmtMoneyK(dv(r.det.investableAtRetirement, r.age, inputs))}</div>
+          <div>Confidence: ${Math.round(r.score)}%</div>
+          <div>${r.det.depletionAge ? 'Runs out at ' + r.det.depletionAge : 'Lasts to ' + lifeExpectancy}</div>
+        </div>
+      `).join('')}
+    </div>`;
 
   // Dashboard chart
   const retirementIndex = rows.findIndex(r => r.age === retirementAge);
-  const investablePoints = rows.map(r => ({ x: r.age, y: r.investable }));
-  const cashPoints = rows.map(r => ({ x: r.age, y: r.cash }));
-  const netWorthPoints = rows.map(r => ({ x: r.age, y: r.netWorth }));
+  const investablePoints = rows.map(r => ({ x: r.age, y: dv(r.investable, r.age, inputs) }));
+  const cashPoints = rows.map(r => ({ x: r.age, y: dv(r.cash, r.age, inputs) }));
+  const netWorthPoints = rows.map(r => ({ x: r.age, y: dv(r.netWorth, r.age, inputs) }));
 
   const verticalLinePlugin = {
     id: 'verticalLine',
@@ -1368,19 +2642,20 @@ function render() {
   else { charts.dashboard = new Chart(els('balanceChart').getContext('2d'), { type:'line', data, options, plugins:[verticalLinePlugin] }); }
 
   // Table
+  if (els('dollarModeNote')) els('dollarModeNote').textContent = dollarView === 'real' ? " (today's dollars)" : ' (future/nominal dollars)';
   const tbody = document.querySelector('#yearTable tbody');
   tbody.innerHTML = rows.map(r => `
     <tr class="${r.age === retirementAge ? 'retire-row' : ''}">
       <td>${r.age}</td><td>${r.spouseAge}</td>
-      <td>${r.income ? fmtMoney(r.income) : '—'}</td>
-      <td>${r.contributions ? fmtMoney(r.contributions) : '—'}</td>
-      <td>${r.spousalBenefit ? fmtMoney(r.spousalBenefit) : '—'}</td>
-      <td>${r.guaranteedIncome ? fmtMoney(r.guaranteedIncome) : '—'}</td>
-      <td>${r.spending ? fmtMoney(r.spending) : '—'}</td>
-      <td>${r.withdrawal ? fmtMoney(r.withdrawal) : '—'}</td>
-      <td>${r.ltcCost ? fmtMoney(r.ltcCost) : '—'}</td>
-      <td>${fmtMoney(r.investable)}</td><td>${fmtMoney(r.cash)}</td>
-      <td>${fmtMoney(r.debtBalance)}</td><td>${fmtMoney(r.homeEquity)}</td><td>${fmtMoney(r.netWorth)}</td>
+      <td>${r.income ? fmtMoney(dv(r.income, r.age, inputs)) : '—'}</td>
+      <td>${r.contributions ? fmtMoney(dv(r.contributions, r.age, inputs)) : '—'}</td>
+      <td>${r.spousalBenefit ? fmtMoney(dv(r.spousalBenefit, r.age, inputs)) : '—'}</td>
+      <td>${r.guaranteedIncome ? fmtMoney(dv(r.guaranteedIncome, r.age, inputs)) : '—'}</td>
+      <td>${r.spending ? fmtMoney(dv(r.spending, r.age, inputs)) : '—'}</td>
+      <td>${r.withdrawal ? fmtMoney(dv(r.withdrawal, r.age, inputs)) : '—'}</td>
+      <td>${r.ltcCost ? fmtMoney(dv(r.ltcCost, r.age, inputs)) : '—'}</td>
+      <td>${fmtMoney(dv(r.investable, r.age, inputs))}</td><td>${fmtMoney(dv(r.cash, r.age, inputs))}</td>
+      <td>${fmtMoney(dv(r.debtBalance, r.age, inputs))}</td><td>${fmtMoney(dv(r.homeEquity, r.age, inputs))}</td><td>${fmtMoney(dv(r.netWorth, r.age, inputs))}</td>
     </tr>
   `).join('');
 
@@ -1404,34 +2679,59 @@ function render() {
     vaDisabilityAtRetirement: rowAtRetirement ? rowAtRetirement.vaDisabilityAmount : 0,
     grossWithdrawalFirstYear: rowAtRetirement ? rowAtRetirement.grossWithdrawal : 0,
     netSpendingFirstYear: rowAtRetirement ? rowAtRetirement.withdrawal : 0,
+    guaranteedIncomeAtRetirement: firstYearGuaranteed,
+    spendingAtRetirement: firstYearSpending,
+    surplusAtRetirement: firstYearGuaranteed - firstYearSpending,
     preReturnPct: +els('preReturn').value,
     postReturnPct: +els('postReturn').value,
     inflationPct: +els('inflation').value,
     medicalInflationPct: +els('medicalInflation').value,
     ssColaPct: +els('ssCola').value,
     buyHome: inputs.buyHome,
-    homeAppreciationPct: +els('homeAppreciation').value
+    homeAppreciationPct: +els('homeAppreciation').value,
+    rows, inputs
   };
 
   // Refresh chart for whichever page is currently visible (and any already-built ones)
   const activePage = document.querySelector('.page.active');
-  Object.keys(charts).forEach(pid => { if (pid !== 'dashboard' && pid !== 'explorers_whatif' && pid !== 'explorers_marketrisk') ensureOrUpdateChart(pid, lastSnapshot); });
-  if (activePage && activePage.dataset.page !== 'dashboard' && activePage.dataset.page !== 'explorers' && !charts[activePage.dataset.page]) {
-    ensureOrUpdateChart(activePage.dataset.page, lastSnapshot);
+  Object.keys(charts).forEach(pid => {
+    if (pid === 'dashboard' || pid === 'explorers_whatif' || pid === 'explorers_marketrisk') return;
+    if (pid.endsWith('_yearly')) ensureOrUpdateYearlyChart(pid.slice(0, -'_yearly'.length), lastSnapshot);
+    else if (pid.endsWith('_pies')) ensureOrUpdatePieChart(pid.slice(0, -'_pies'.length), lastSnapshot);
+    else ensureOrUpdateChart(pid, lastSnapshot);
+  });
+  if (activePage && activePage.dataset.page !== 'dashboard' && activePage.dataset.page !== 'explorers') {
+    refreshSectionCharts(activePage.dataset.page, lastSnapshot);
   }
   if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
+  if (activePage && activePage.dataset.page === 'coach') { renderCoachTips(); renderCoachAiGate(); }
 
   saveState();
 }
 
 const hadSavedState = loadState();
+try {
+  const savedDollarView = localStorage.getItem(DOLLAR_VIEW_KEY);
+  if (savedDollarView === 'real' || savedDollarView === 'nominal') {
+    dollarView = savedDollarView;
+    document.querySelectorAll('.dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === dollarView));
+  }
+} catch (e) { /* storage unavailable, ignore */ }
 renderExpenseRows();
 renderBrokeragePieRows();
+renderPieContributionRows();
 renderDebtRows();
 renderTransactionRows();
+renderFutureExpenseRows();
+renderWindfallRows();
+renderInsuranceRows();
 document.querySelectorAll('.page input, .page select').forEach(el => el.addEventListener('input', render));
+document.getElementById('anthropicApiKey').addEventListener('input', renderCoachAiGate);
 syncRetirementDate(!hadSavedState);
 render();
+let savedActivePage = null;
+try { savedActivePage = localStorage.getItem(ACTIVE_PAGE_KEY); } catch (e) {}
+if (savedActivePage) showPage(savedActivePage);
 </script>
 
 </body>
