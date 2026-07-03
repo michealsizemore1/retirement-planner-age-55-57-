@@ -790,7 +790,7 @@
         <div class="row-list" id="insuranceRows"></div>
         <button class="add-btn" onclick="addInsurancePolicy()">+ Add policy</button>
         <div class="total-row"><span>Total premiums</span><span id="insuranceTotal">$0/mo</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">If you already listed a premium under the "Insurance" category on the Expenses page, remove it from one place or the other so it isn't counted twice.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This is the only place insurance premiums are tracked — the Expenses page no longer has a separate Insurance category, so there's no risk of double-counting a policy in both places.</p>
       </div>
     </div>
 
@@ -1138,9 +1138,8 @@ function loadState() {
 }
 
 // ---------- Expenses (dynamic rows, monthly $ amounts) ----------
-const EXPENSE_CATEGORIES = ['Food & Groceries','Transportation','Healthcare','Insurance','Utilities','Entertainment & Travel','Personal Care','Shopping','Gifts & Donations','Subscriptions','Pet Care','Personal Support','Other'];
+const EXPENSE_CATEGORIES = ['Food & Groceries','Transportation','Healthcare','Utilities','Entertainment & Travel','Personal Care','Shopping','Gifts & Donations','Subscriptions','Pet Care','Personal Support','Other'];
 let expenses = [
-  { name:'State Farm Insurance', category:'Insurance', amount:127.71 },
   { name:'Intermountain Gas', category:'Utilities', amount:50.00 },
   { name:'Verizon', category:'Utilities', amount:154.72 },
   { name:'Idaho Power', category:'Utilities', amount:90.00 },
