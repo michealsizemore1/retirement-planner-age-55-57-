@@ -142,11 +142,27 @@
     color:var(--teal);
     margin:0 0 14px;
     font-weight:700;
+    cursor:pointer;
+    user-select:none;
+    position:relative;
+    padding-right:26px;
   }
   .card h3 .sub-label{
     text-transform:none; letter-spacing:0; color:var(--muted); font-weight:400;
     font-size:15.5px; display:block; margin-top:3px;
   }
+  .card h3::after{
+    content:'▾';
+    position:absolute;
+    right:0;
+    top:0;
+    font-size:15px;
+    color:var(--muted);
+    transition:transform 0.2s;
+  }
+  .card.collapsed h3{ margin-bottom:0; }
+  .card.collapsed h3::after{ transform:rotate(-90deg); }
+  .card.collapsed > *:not(h3){ display:none; }
   .field{margin-bottom:13px;}
   .field label{display:flex; justify-content:space-between; font-size:16.5px; color:var(--muted); margin-bottom:5px;}
   .field input[type="number"], .field input[type="date"], .field input[type="month"], .field input[type="text"], .field select{
@@ -384,7 +400,7 @@
         <div class="table-scroll">
         <table id="yearTable">
           <thead>
-            <tr><th>Age</th><th>Spouse Age</th><th>Income</th><th>Contributions</th><th>Spousal Benefit</th><th>Guaranteed Income</th><th>Spending</th><th>Withdrawal</th><th>LTC Cost</th><th>Investable</th><th>Cash</th><th>Debt Balance</th><th>Home Equity</th><th>Net Worth</th></tr>
+            <tr><th>Year</th><th>Age</th><th>Spouse Age</th><th>Income</th><th>Contributions</th><th>Spousal Benefit</th><th>Guaranteed Income</th><th>Spending</th><th>Withdrawal</th><th>LTC Cost</th><th>Investable</th><th>Cash</th><th>Debt Balance</th><th>Home Equity</th><th>Net Worth</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -402,7 +418,7 @@
       <div class="mini-chart-card"><canvas id="chart_personal"></canvas></div>
 
       <div class="card">
-        <h3>Personal</h3>
+        <h3 onclick="toggleCard(this)">Personal</h3>
         <div class="two-col">
           <div class="field"><label>Current age</label><input type="number" id="currentAge" value="52" min="18" max="90"></div>
           <div class="field">
@@ -424,7 +440,7 @@
       </div>
 
       <div class="card">
-        <h3>Spouse</h3>
+        <h3 onclick="toggleCard(this)">Spouse</h3>
         <div class="two-col">
           <div class="field"><label>Spouse's current age</label><input type="number" id="spouseAge" value="50" min="18" max="90"></div>
           <div class="field"><label>Spouse's life expectancy</label><input type="number" id="spouseLifeExpectancy" value="100" min="60" max="105"></div>
@@ -445,13 +461,13 @@
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income by year</div><canvas id="chart_income_yearly"></canvas></div>
 
       <div class="card">
-        <h3>Income</h3>
+        <h3 onclick="toggleCard(this)">Income</h3>
         <div class="field"><label>Current annual job income ($)</label><input type="number" id="currentIncome" value="77432" step="1"></div>
         <div class="field"><label>Expected annual raise (%)</label><input type="number" id="incomeGrowth" value="2.5" step="0.1"></div>
       </div>
 
       <div class="card">
-        <h3>Pensions &amp; VA Disability</h3>
+        <h3 onclick="toggleCard(this)">Pensions &amp; VA Disability</h3>
         <div class="mini-label">Pension 1 — Military</div>
         <div class="three-col">
           <div class="field"><label>Pension 1 ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
@@ -486,7 +502,7 @@
       <div class="note">Guaranteed Income — Social Security, spousal benefit, and annuity below, each with its own yearly increase rate (SS and the spousal benefit grow using Social Security COLA, set on the Assumptions page). Pensions and VA disability are in the Pensions &amp; VA Disability card near the top of this page.</div>
 
       <div class="card">
-        <h3>Guaranteed Income</h3>
+        <h3 onclick="toggleCard(this)">Guaranteed Income</h3>
         <div class="two-col">
           <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2200" step="50"></div>
           <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70">
@@ -515,7 +531,7 @@
       </div>
 
       <div class="card">
-        <h3>Windfalls<span class="sub-label">One-time inflows — inheritance, home sale proceeds, a bonus, etc.</span></h3>
+        <h3 onclick="toggleCard(this)">Windfalls<span class="sub-label">One-time inflows — inheritance, home sale proceeds, a bonus, etc.</span></h3>
         <div class="row-header cols-windfall"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Goes to</span><span></span></div>
         <div class="row-list" id="windfallRows"></div>
         <button class="add-btn" onclick="addWindfall()">+ Add windfall</button>
@@ -527,7 +543,7 @@
       <div class="page-header"><h2>Survivorship</h2><p>What-if only — this page never changes your main plan or Monte Carlo confidence score. It only feeds the dynamic survivorship scenario on the Explorers page.</p></div>
 
       <div class="card">
-        <h3>Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
+        <h3 onclick="toggleCard(this)">Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
         <p style="font-size:15.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
         <div class="three-col">
           <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="0" min="0" max="100"></div>
@@ -563,7 +579,7 @@
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Brokerage contribution by portfolio</div><canvas id="chart_moneyflows_pies"></canvas></div>
 
       <div class="card">
-        <h3>Investment Contributions<span class="sub-label">How much goes in each pay period</span></h3>
+        <h3 onclick="toggleCard(this)">Investment Contributions<span class="sub-label">How much goes in each pay period</span></h3>
         <div class="two-col">
           <div class="field"><label>Traditional TSP (% of income)</label><input type="number" id="tradTSPPct" value="11" step="0.5"></div>
           <div class="field"><label>Roth TSP (% of income)</label><input type="number" id="rothTSPPct" value="11" step="0.5"></div>
@@ -572,14 +588,14 @@
       </div>
 
       <div class="card">
-        <h3>Brokerage Contributions (M1 Finance)<span class="sub-label">Monthly amount going into each ETF pie — edit pie names/balances on the Investments page. Grows with your Expected annual raise (%) above, same as the paycheck it comes from.</span></h3>
+        <h3 onclick="toggleCard(this)">Brokerage Contributions (M1 Finance)<span class="sub-label">Monthly amount going into each ETF pie — edit pie names/balances on the Investments page. Grows with your Expected annual raise (%) above, same as the paycheck it comes from.</span></h3>
         <div class="row-header cols-contrib"><span>Pie name</span><span>Contribution ($/mo)</span></div>
         <div class="row-list" id="pieContributionRows"></div>
         <div class="total-row"><span>Total brokerage contribution</span><span id="pieContributionTotal">$0/mo</span></div>
       </div>
 
       <div class="card">
-        <h3>Excess Income Savings<span class="sub-label">Automatically invest a share of whatever's left over each year, on top of the contributions above</span></h3>
+        <h3 onclick="toggleCard(this)">Excess Income Savings<span class="sub-label">Automatically invest a share of whatever's left over each year, on top of the contributions above</span></h3>
         <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="35" step="5" min="0" max="100"></div>
         <div class="field"><label>Deposit into</label>
           <select id="excessIncomeDestinationPie" onchange="updateExcessIncomeDestination(this.value)"></select>
@@ -588,7 +604,7 @@
       </div>
 
       <div class="card">
-        <h3>Withdrawal Strategy<span class="sub-label">Which accounts fund retirement spending, and in what order</span></h3>
+        <h3 onclick="toggleCard(this)">Withdrawal Strategy<span class="sub-label">Which accounts fund retirement spending, and in what order</span></h3>
         <div class="pill-row" style="margin-bottom:2px;">
           <span class="pill active" id="withdrawModeTraditionalPill" onclick="setWithdrawalMode(false)">Traditional</span>
           <span class="pill" id="withdrawModeCustomPill" onclick="setWithdrawalMode(true)">Customized</span>
@@ -614,7 +630,7 @@
       <div class="stat" style="margin-bottom:16px;"><div class="label">Total current assets (TSP + brokerage + cash)</div><div class="value" id="totalAssetsTile">$0</div></div>
 
       <div class="card">
-        <h3>TSP — Thrift Savings Plan<span class="sub-label">Agency match always deposits into Traditional TSP</span></h3>
+        <h3 onclick="toggleCard(this)">TSP — Thrift Savings Plan<span class="sub-label">Agency match always deposits into Traditional TSP</span></h3>
         <div class="two-col">
           <div class="field"><label>Traditional TSP balance ($)</label><input type="number" id="tradTSPBalance" value="101613" step="1"></div>
           <div class="field"><label>Roth TSP balance ($)</label><input type="number" id="rothTSPBalance" value="81942" step="1"></div>
@@ -622,7 +638,7 @@
       </div>
 
       <div class="card">
-        <h3>Brokerage (M1 Finance)<span class="sub-label">Each pie tracked separately; they sum to one taxable balance for the projection</span></h3>
+        <h3 onclick="toggleCard(this)">Brokerage (M1 Finance)<span class="sub-label">Each pie tracked separately; they sum to one taxable balance for the projection</span></h3>
         <div class="row-header cols-pie"><span>Pie name</span><span>Balance ($)</span><span>Risk profile</span><span>Fixed rate</span><span></span></div>
         <div class="row-list" id="brokeragePieRows"></div>
         <button class="add-btn" onclick="addBrokeragePie()">+ Add pie</button>
@@ -631,7 +647,7 @@
       </div>
 
       <div class="card">
-        <h3>Bank Accounts<span class="sub-label">Liquidity — not spent down in this projection</span></h3>
+        <h3 onclick="toggleCard(this)">Bank Accounts<span class="sub-label">Liquidity — not spent down in this projection</span></h3>
         <div class="three-col">
           <div class="field"><label>Checking ($)</label><input type="number" id="checkingBalance" value="0" step="500"></div>
           <div class="field"><label>Savings ($)</label><input type="number" id="savingsBalance" value="0" step="500"></div>
@@ -651,7 +667,7 @@
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Housing cost by year</div><canvas id="chart_housing_yearly"></canvas></div>
 
       <div class="card">
-        <h3>Housing</h3>
+        <h3 onclick="toggleCard(this)">Housing</h3>
         <div class="two-col">
           <div class="field"><label>Monthly rent ($)</label><input type="number" id="rentMonthly" value="2600" step="10"></div>
           <div class="field"><label>Annual rent growth (%)</label><input type="number" id="rentGrowth" value="3" step="0.1"></div>
@@ -690,7 +706,7 @@
       <div class="note" style="margin-top:0;">Don't add rent/mortgage here — that's on the <b>Housing</b> page. Don't add TSP/brokerage contributions here either — those are on <b>Money Flows</b>. This page is for everything else that isn't already covered elsewhere, so nothing gets double-counted.</div>
 
       <div class="card">
-        <h3>All Household Expenses<span class="sub-label">Combined view only — each item is still entered and edited on its own page; this just lets you see them side by side</span></h3>
+        <h3 onclick="toggleCard(this)">All Household Expenses<span class="sub-label">Combined view only — each item is still entered and edited on its own page; this just lets you see them side by side</span></h3>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Recurring expenses (below)</span><span id="combinedExpenses">$0/mo</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Housing (Housing page)</span><span id="combinedHousing">$0/mo</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Debt payments (Debt page)</span><span id="combinedDebt">$0/mo</span></div>
@@ -700,7 +716,17 @@
       </div>
 
       <div class="card">
-        <h3>Recurring Monthly Expenses</h3>
+        <h3 onclick="toggleCard(this)">Survivorship<span class="sub-label">Tracking only — set on the Survivorship page; shown here for reference. Not part of this page's totals, and doesn't affect your main plan or Monte Carlo score.</span></h3>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Assumed age you predecease your spouse</span><span id="trackSurvivorshipAge">Not set</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Spouse's spending after (% of normal)</span><span id="trackSurvivorSpendingPct">100%</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP on Pension 1 (Military)</span><span id="trackSbp1">Not elected</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span id="trackSbp2">Not elected</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span id="trackDic">Not eligible</span></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Edit these on the <b>Survivorship</b> page. This is a what-if scenario that only shows up on the Explorers page — it never changes your baseline plan or confidence score.</p>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Recurring Monthly Expenses</h3>
         <div class="row-header cols-expense"><span>Name</span><span>Category</span><span>$/mo</span><span></span></div>
         <div class="row-list" id="expenseRows"></div>
         <button class="add-btn" onclick="addExpense()">+ Add expense</button>
@@ -708,7 +734,7 @@
       </div>
 
       <div class="card">
-        <h3>Future / One-Time Expenses<span class="sub-label">Planned costs that hit at a specific age — new roof, a wedding, a 2nd pet, etc.</span></h3>
+        <h3 onclick="toggleCard(this)">Future / One-Time Expenses<span class="sub-label">Planned costs that hit at a specific age — new roof, a wedding, a 2nd pet, etc.</span></h3>
         <div class="row-header cols-future"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Frequency</span><span></span></div>
         <div class="row-list" id="futureExpenseRows"></div>
         <button class="add-btn" onclick="addFutureExpense()">+ Add future expense</button>
@@ -722,7 +748,7 @@
       <div class="mini-chart-card"><canvas id="chart_debt"></canvas></div>
 
       <div class="card">
-        <h3>Debt</h3>
+        <h3 onclick="toggleCard(this)">Debt</h3>
         <div class="row-header cols-debt"><span>Category</span><span>Balance ($)</span><span>APR (%)</span><span>Payment ($/mo)</span><span></span></div>
         <div class="row-list" id="debtRows"></div>
         <button class="add-btn" onclick="addDebt()">+ Add debt</button>
@@ -731,7 +757,7 @@
       </div>
 
       <div class="card">
-        <h3>Debt Payoff Plan<span class="sub-label">Avalanche order (highest interest rate first), based on today's balances and payments</span></h3>
+        <h3 onclick="toggleCard(this)">Debt Payoff Plan<span class="sub-label">Avalanche order (highest interest rate first), based on today's balances and payments</span></h3>
         <div class="field"><label>Extra monthly payment (applied to the highest-APR debt)</label><input type="number" id="debtExtraPayment" value="0" step="25"></div>
         <div class="table-scroll">
           <table id="debtPayoffTable">
@@ -751,7 +777,7 @@
       <div class="mini-chart-card"><canvas id="chart_transactions"></canvas></div>
 
       <div class="card">
-        <h3>Recent Transactions</h3>
+        <h3 onclick="toggleCard(this)">Recent Transactions</h3>
         <div class="row-list" id="transactionRows"></div>
         <button class="add-btn" onclick="addTransaction()">+ Add transaction</button>
         <div class="total-row"><span>Income logged</span><span id="txIncomeTotal">$0</span></div>
@@ -767,7 +793,7 @@
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><canvas id="chart_gap_yearly"></canvas></div>
 
       <div class="card">
-        <h3>Year-by-Year Gap &amp; Withdrawals</h3>
+        <h3 onclick="toggleCard(this)">Year-by-Year Gap &amp; Withdrawals</h3>
         <div class="table-scroll">
           <table id="gapTable">
             <thead><tr><th>Age</th><th>Guaranteed Income (after tax)</th><th>Total Spending</th><th>Surplus / (Gap)</th><th>Portfolio Withdrawal (gross)</th></tr></thead>
@@ -785,7 +811,7 @@
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums &amp; LTC cost by year</div><canvas id="chart_medical_yearly"></canvas></div>
 
       <div class="card">
-        <h3>Pre-Medicare — Tricare<span class="sub-label">Covers both of you until each of you reaches Medicare age</span></h3>
+        <h3 onclick="toggleCard(this)">Pre-Medicare — Tricare<span class="sub-label">Covers both of you until each of you reaches Medicare age</span></h3>
         <div class="field"><label>Tricare premium ($/mo, today's $, covers both of you)</label><input type="number" id="tricareMonthly" value="63" step="10"></div>
         <hr class="divider">
         <div class="mini-label" style="margin-bottom:2px;">FEDVIP</div>
@@ -799,7 +825,7 @@
       </div>
 
       <div class="card">
-        <h3>Post-Medicare — Part B<span class="sub-label">Each of you separately, starting at your own Medicare eligibility age. Neither of you needs Part D.</span></h3>
+        <h3 onclick="toggleCard(this)">Post-Medicare — Part B<span class="sub-label">Each of you separately, starting at your own Medicare eligibility age. Neither of you needs Part D.</span></h3>
         <div class="field"><label>Medicare eligibility age (both of you)</label><input type="number" id="medicareAge" value="65" min="60" max="75"></div>
         <div class="two-col">
           <div class="field"><label>Your Part B premium ($/mo, today's $)</label><input type="number" id="partBUserMonthly" value="185" step="5"></div>
@@ -817,7 +843,7 @@
       </div>
 
       <div class="card">
-        <h3>Long-Term Care (spouse)<span class="sub-label">Modeled as a temporary cost spike, funded from Roth TSP first</span></h3>
+        <h3 onclick="toggleCard(this)">Long-Term Care (spouse)<span class="sub-label">Modeled as a temporary cost spike, funded from Roth TSP first</span></h3>
         <div class="checkbox-row">
           <input type="checkbox" id="ltcEnabled" checked>
           <label for="ltcEnabled">Model long-term care costs for spouse, funded from Roth TSP</label>
@@ -856,7 +882,7 @@
       <div class="mini-chart-card"><canvas id="chart_estate"></canvas></div>
 
       <div class="card">
-        <h3>Estate Planning Checklist</h3>
+        <h3 onclick="toggleCard(this)">Estate Planning Checklist</h3>
         <div class="checkbox-row"><input type="checkbox" id="estateWill"><label for="estateWill">Will in place</label></div>
         <div class="checkbox-row"><input type="checkbox" id="estatePOA"><label for="estatePOA">Power of Attorney (financial)</label></div>
         <div class="checkbox-row"><input type="checkbox" id="estateHealthcareDirective"><label for="estateHealthcareDirective">Healthcare Directive / Living Will</label></div>
@@ -872,7 +898,7 @@
       <div class="mini-chart-card"><canvas id="chart_insurance"></canvas></div>
 
       <div class="card">
-        <h3>Insurance Policies</h3>
+        <h3 onclick="toggleCard(this)">Insurance Policies</h3>
         <div class="row-header cols-insurance"><span>Policy</span><span>Type</span><span>Premium ($/mo)</span><span>Coverage ($)</span><span></span></div>
         <div class="row-list" id="insuranceRows"></div>
         <button class="add-btn" onclick="addInsurancePolicy()">+ Add policy</button>
@@ -889,18 +915,18 @@
       <div class="results-grid" id="taxStats"></div>
 
       <div class="card">
-        <h3>Federal<span class="sub-label">2026 brackets, Married Filing Jointly (10/12/22/24/32/35/37%)</span></h3>
+        <h3 onclick="toggleCard(this)">Federal<span class="sub-label">2026 brackets, Married Filing Jointly (10/12/22/24/32/35/37%)</span></h3>
         <div class="field"><label>Standard deduction ($/yr, MFJ)</label><input type="number" id="stdDeduction" value="32200" step="100"></div>
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Social Security and spousal benefit are treated as 85% taxable (typical once other income is substantial); VA disability stays fully tax-free and isn't included. Both pensions and annuity income are fully taxable.</p>
       </div>
 
       <div class="card">
-        <h3>Idaho State Tax<span class="sub-label">Flat rate, applies to all taxable ordinary income and capital gains</span></h3>
+        <h3 onclick="toggleCard(this)">Idaho State Tax<span class="sub-label">Flat rate, applies to all taxable ordinary income and capital gains</span></h3>
         <div class="field"><label>Idaho flat income tax rate (%)</label><input type="number" id="idahoRate" value="5.3" step="0.1"></div>
       </div>
 
       <div class="card">
-        <h3>Rule of 55</h3>
+        <h3 onclick="toggleCard(this)">Rule of 55</h3>
         <div class="checkbox-row">
           <input type="checkbox" id="ruleOf55Applies" checked>
           <label for="ruleOf55Applies">Rule of 55 applies — no 10% early-withdrawal penalty on Traditional TSP</label>
@@ -915,7 +941,7 @@
       <div class="mini-chart-card"><canvas id="chart_assumptions"></canvas></div>
 
       <div class="card">
-        <h3>Growth Assumptions<span class="sub-label">Applies to TSP and brokerage</span></h3>
+        <h3 onclick="toggleCard(this)">Growth Assumptions<span class="sub-label">Applies to TSP and brokerage</span></h3>
         <div class="two-col">
           <div class="field"><label>Return before retirement (%/yr)</label><input type="number" id="preReturn" value="7" step="0.1"></div>
           <div class="field"><label>Volatility, pre-retirement (%)</label><input type="number" id="preStdev" value="12" step="0.5"></div>
@@ -928,7 +954,7 @@
       </div>
 
       <div class="card">
-        <h3>Inflation &amp; COLA Rates<span class="sub-label">Each rate only drives the part of the plan it applies to</span></h3>
+        <h3 onclick="toggleCard(this)">Inflation &amp; COLA Rates<span class="sub-label">Each rate only drives the part of the plan it applies to</span></h3>
         <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="3" step="0.1"></div>
         <div class="field"><label>Medical Inflation Rate (%/yr)</label><input type="number" id="medicalInflation" value="5" step="0.1"></div>
         <div class="field"><label>Social Security COLA (%/yr)</label><input type="number" id="ssCola" value="2.5" step="0.1"></div>
@@ -936,7 +962,7 @@
       </div>
 
       <div class="card">
-        <h3>Monte Carlo &amp; Guardrails<span class="sub-label">Market-uncertainty testing &amp; adaptive spending</span></h3>
+        <h3 onclick="toggleCard(this)">Monte Carlo &amp; Guardrails<span class="sub-label">Market-uncertainty testing &amp; adaptive spending</span></h3>
         <div class="checkbox-row">
           <input type="checkbox" id="guardrailsEnabled">
           <label for="guardrailsEnabled">Enable dynamic spending guardrails</label>
@@ -953,7 +979,7 @@
       <div class="page-header"><h2>Explorers</h2><p>What-if and market-risk scenarios, each compared against your current plan. Dollar columns respect the Today's $ / Future $ toggle in the header.</p></div>
 
       <div class="card">
-        <h3>What-If Scenarios<span class="sub-label">Single-lever changes to your plan</span></h3>
+        <h3 onclick="toggleCard(this)">What-If Scenarios<span class="sub-label">Single-lever changes to your plan</span></h3>
         <div class="mini-chart-card"><canvas id="chart_whatif"></canvas></div>
         <div class="table-scroll">
           <table id="whatIfTable">
@@ -964,7 +990,7 @@
       </div>
 
       <div class="card">
-        <h3>Market Risk Scenarios<span class="sub-label">Stress-tests using return shocks, weak markets, or high inflation</span></h3>
+        <h3 onclick="toggleCard(this)">Market Risk Scenarios<span class="sub-label">Stress-tests using return shocks, weak markets, or high inflation</span></h3>
         <div class="mini-chart-card"><canvas id="chart_marketrisk"></canvas></div>
         <div class="table-scroll">
           <table id="marketRiskTable">
@@ -982,12 +1008,12 @@
       <div class="page-header"><h2>Coach</h2><p>Automated suggestions based on your current plan, plus an optional AI chat for open-ended questions.</p></div>
 
       <div class="card">
-        <h3>Suggestions</h3>
+        <h3 onclick="toggleCard(this)">Suggestions</h3>
         <div id="coachTips"></div>
       </div>
 
       <div class="card">
-        <h3>Ask AI<span class="sub-label">Open-ended questions, answered with a snapshot of your plan as context</span></h3>
+        <h3 onclick="toggleCard(this)">Ask AI<span class="sub-label">Open-ended questions, answered with a snapshot of your plan as context</span></h3>
         <p style="font-size:16px;color:var(--muted);margin:0 0 12px;line-height:1.55;">The <b>Ask AI</b> button in the bottom-right corner is available on every page, so you don't have to come back here to ask a question.</p>
         <button class="add-btn" onclick="toggleFloatingAi(true)">Open Ask AI</button>
       </div>
@@ -998,7 +1024,7 @@
       <div class="page-header"><h2>Settings</h2><p>Backup, restore, and integrations.</p></div>
 
       <div class="card">
-        <h3>Backup &amp; Restore</h3>
+        <h3 onclick="toggleCard(this)">Backup &amp; Restore</h3>
         <p style="font-size:16px;color:var(--muted);margin:0 0 12px;line-height:1.55;">Your data is saved automatically in this browser, but it's tied to this browser/device. Download a backup to move it elsewhere or keep a copy.</p>
         <button class="add-btn" onclick="downloadBackup()">Download backup (.json)</button>
         <div class="field" style="margin-top:14px;">
@@ -1010,7 +1036,7 @@
       </div>
 
       <div class="card">
-        <h3>Coach AI Chat<span class="sub-label">Optional — only used if you add a key</span></h3>
+        <h3 onclick="toggleCard(this)">Coach AI Chat<span class="sub-label">Optional — only used if you add a key</span></h3>
         <div class="field"><label>Anthropic API key</label><input type="text" id="anthropicApiKey" placeholder="sk-ant-..." autocomplete="off"></div>
         <p style="font-size:15px;color:var(--muted);margin:0;line-height:1.55;">This file has no backend — adding a key here lets the Coach page call the Anthropic API directly from your browser, using your own account and usage. The key is stored only in this browser's local storage; it is never sent anywhere except directly to Anthropic when you ask a question. Each question sends a snapshot of your plan numbers to Anthropic's servers. Leave this blank to keep the Coach fully offline.</p>
       </div>
@@ -1118,6 +1144,12 @@ function toggleMenu() {
 function closeMenu() {
   els('sidenav').classList.remove('open');
   els('navOverlay').classList.remove('open');
+}
+
+// Collapse/expand a card by clicking its title. Purely a display toggle —
+// doesn't touch any field values, so nothing here affects the plan or Monte Carlo score.
+function toggleCard(h3) {
+  h3.parentElement.classList.toggle('collapsed');
 }
 
 function showPage(pageId) {
@@ -1287,6 +1319,15 @@ function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render();
 // pages/arrays — it never writes back to them, so nothing here changes what the Monte Carlo
 // engine counts. Housing uses rows[0] (today) from the deterministic run, which already reflects
 // rent or an already-purchased mortgage + property tax/insurance, whichever applies right now.
+function renderSurvivorshipTrackingCard(inputs) {
+  if (!els('trackSurvivorshipAge')) return;
+  els('trackSurvivorshipAge').textContent = inputs.survivorshipDeathAge > 0 ? inputs.survivorshipDeathAge : 'Not set';
+  els('trackSurvivorSpendingPct').textContent = Math.round(inputs.survivorSpendingPct * 100) + '%';
+  els('trackSbp1').textContent = inputs.sbp1Enabled ? (fmtMoney(inputs.sbp1Annual/12) + '/mo') : 'Not elected';
+  els('trackSbp2').textContent = inputs.sbp2Enabled ? (fmtMoney(inputs.sbp2Annual/12) + '/mo') : 'Not elected';
+  els('trackDic').textContent = inputs.dicEligible ? (fmtMoney(inputs.dicMonthlyAmount) + '/mo') : 'Not eligible';
+}
+
 function renderCombinedExpensesCard(rows) {
   if (!els('combinedGrandTotal')) return;
   const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
@@ -2798,6 +2839,7 @@ function render() {
   renderGapTable(rows, inputs, retirementAge);
   renderWithdrawalOrderRows();
   renderCombinedExpensesCard(rows);
+  renderSurvivorshipTrackingCard(inputs);
 
   const totalCurrentAssets = inputs.tradTSPBalance + inputs.rothTSPBalance + inputs.brokerageBalance
     + inputs.checkingBalance + inputs.savingsBalance + inputs.hysaBalance;
@@ -2909,8 +2951,10 @@ function render() {
   // Table
   if (els('dollarModeNote')) els('dollarModeNote').textContent = dollarView === 'real' ? " (today's dollars)" : ' (future/nominal dollars)';
   const tbody = document.querySelector('#yearTable tbody');
+  const currentCalendarYear = new Date().getFullYear();
   tbody.innerHTML = rows.map(r => `
     <tr class="${r.age === retirementAge ? 'retire-row' : ''}">
+      <td>${currentCalendarYear + (r.age - inputs.currentAge)}</td>
       <td>${r.age}</td><td>${r.spouseAge}</td>
       <td>${r.income ? fmtMoney(dv(r.income, r.age, inputs)) : '—'}</td>
       <td>${r.contributions ? fmtMoney(dv(r.contributions, r.age, inputs)) : '—'}</td>
