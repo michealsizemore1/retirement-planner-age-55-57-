@@ -431,37 +431,6 @@
           <label for="spouseWorks">Spouse has their own earnings record / Social Security</label>
         </div>
         <p style="font-size:15.5px;color:var(--muted);margin:2px 0 0;">The plan runs through whichever of you two lives longer, so household spending doesn't stop early for the survivor.</p>
-        <hr class="divider">
-        <div class="mini-label">Long-Term Care (spouse)</div>
-        <div class="checkbox-row">
-          <input type="checkbox" id="ltcEnabled" checked>
-          <label for="ltcEnabled">Model long-term care costs for spouse, funded from Roth TSP</label>
-        </div>
-        <div class="sub-fields" id="ltcFields">
-          <div class="two-col">
-            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="97" min="60" max="105">
-              <input type="month" id="ltcStartAgeDate" class="age-date-input" oninput="syncAgeDate('ltcStartAgeDate','ltcStartAge','ltcStartAgeDateHint','spouseAge')">
-              <div id="ltcStartAgeDateHint" class="age-date-hint"></div>
-            </div>
-            <div class="field"><label>Duration (years)</label><input type="number" id="ltcDuration" value="3" min="1" max="20"></div>
-          </div>
-          <div class="field">
-            <label>Type of care (Boise, ID area estimates)</label>
-            <select id="ltcCareType" onchange="updateLtcCareType(this.value)">
-              <option value="custom" selected>Custom amount (enter below)</option>
-              <option value="inhome_parttime">In-home care — part-time (~20 hrs/wk)</option>
-              <option value="inhome_fulltime">In-home care — full-time (~50+ hrs/wk)</option>
-              <option value="assisted_living">Assisted living facility</option>
-              <option value="memory_care">Memory care</option>
-              <option value="nursing_home">Nursing home / skilled nursing (semi-private)</option>
-              <option value="family">Family member provides care (informal)</option>
-              <option value="none">Will not need long-term care</option>
-            </select>
-          </div>
-          <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="75000" step="1000"></div>
-          <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Picking a care type fills in a Boise-area cost estimate below, which you can still edit by hand — it doesn't lock the number. Estimates: in-home care ~$30/hr (Boise-area caregiver rates run roughly $21-$36/hr depending on agency vs. independent hire); assisted living ~$54,000/yr (Boise-area facilities run lower than Idaho's ~$60,000/yr statewide median); memory care ~$72,000/yr; nursing home (semi-private) ~$120,000/yr (Idaho runs above the national median here); family/informal care ~$12,000/yr for incidentals, supplies, and respite care rather than a wage. Source: Genworth/CareScout Cost of Care Survey and local caregiver rate data, today's dollars.</p>
-          <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
-        </div>
       </div>
     </div>
 
@@ -604,6 +573,16 @@
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><canvas id="chart_expenses_yearly"></canvas></div>
 
       <div class="note" style="margin-top:0;">Don't add rent/mortgage here — that's on the <b>Housing</b> page. Don't add TSP/brokerage contributions here either — those are on <b>Income &amp; Contributions</b>. This page is for everything else that isn't already covered elsewhere, so nothing gets double-counted.</div>
+
+      <div class="card">
+        <h3>All Household Expenses<span class="sub-label">Combined view only — each item is still entered and edited on its own page; this just lets you see them side by side</span></h3>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Recurring expenses (below)</span><span id="combinedExpenses">$0/mo</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Housing (Housing page)</span><span id="combinedHousing">$0/mo</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Debt payments (Debt page)</span><span id="combinedDebt">$0/mo</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Insurance premiums (Insurance page)</span><span id="combinedInsurance">$0/mo</span></div>
+        <div class="total-row"><span>Combined monthly total</span><span id="combinedGrandTotal">$0/mo</span></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This card only displays numbers already entered elsewhere — it doesn't add anything to the projection itself. Housing shows today's rent (or mortgage + property tax/insurance once you buy, if that's modeled); Debt shows today's monthly loan payments; Insurance shows today's premium total. Each is counted exactly once in the Monte Carlo engine, from its own page — not from this card.</p>
+      </div>
 
       <div class="card">
         <h3>Recurring Monthly Expenses</h3>
@@ -819,6 +798,39 @@
           <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="dentalMonthly" value="92" step="5"></div>
         </div>
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">All figures grow with Medical Inflation (Assumptions page) and are added on top of anything in the Healthcare category on the Expenses page. Since your ages differ, there's a stretch where one of you is on Part B while the other is still on Tricare — both costs apply during that gap. Hearing, vision, and dental start once you reach Medicare age and cover both of you.</p>
+      </div>
+
+      <div class="card">
+        <h3>Long-Term Care (spouse)<span class="sub-label">Modeled as a temporary cost spike, funded from Roth TSP first</span></h3>
+        <div class="checkbox-row">
+          <input type="checkbox" id="ltcEnabled" checked>
+          <label for="ltcEnabled">Model long-term care costs for spouse, funded from Roth TSP</label>
+        </div>
+        <div class="sub-fields" id="ltcFields">
+          <div class="two-col">
+            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="97" min="60" max="105">
+              <input type="month" id="ltcStartAgeDate" class="age-date-input" oninput="syncAgeDate('ltcStartAgeDate','ltcStartAge','ltcStartAgeDateHint','spouseAge')">
+              <div id="ltcStartAgeDateHint" class="age-date-hint"></div>
+            </div>
+            <div class="field"><label>Duration (years)</label><input type="number" id="ltcDuration" value="3" min="1" max="20"></div>
+          </div>
+          <div class="field">
+            <label>Type of care (Boise, ID area estimates)</label>
+            <select id="ltcCareType" onchange="updateLtcCareType(this.value)">
+              <option value="custom" selected>Custom amount (enter below)</option>
+              <option value="inhome_parttime">In-home care — part-time (~20 hrs/wk)</option>
+              <option value="inhome_fulltime">In-home care — full-time (~50+ hrs/wk)</option>
+              <option value="assisted_living">Assisted living facility</option>
+              <option value="memory_care">Memory care</option>
+              <option value="nursing_home">Nursing home / skilled nursing (semi-private)</option>
+              <option value="family">Family member provides care (informal)</option>
+              <option value="none">Will not need long-term care</option>
+            </select>
+          </div>
+          <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="75000" step="1000"></div>
+          <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Picking a care type fills in a Boise-area cost estimate below, which you can still edit by hand — it doesn't lock the number. Estimates: in-home care ~$30/hr (Boise-area caregiver rates run roughly $21-$36/hr depending on agency vs. independent hire); assisted living ~$54,000/yr (Boise-area facilities run lower than Idaho's ~$60,000/yr statewide median); memory care ~$72,000/yr; nursing home (semi-private) ~$120,000/yr (Idaho runs above the national median here); family/informal care ~$12,000/yr for incidentals, supplies, and respite care rather than a wage. Source: Genworth/CareScout Cost of Care Survey and local caregiver rate data, today's dollars.</p>
+          <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
+        </div>
       </div>
     </div>
 
@@ -1253,6 +1265,24 @@ function updateExpense(i, field, value) {
 }
 function addExpense() { expenses.push({ name:'New expense', category:'Other', amount:50 }); renderExpenseRows(); render(); }
 function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render(); }
+
+// Read-only combined view on the Expenses page: shows Housing/Debt/Insurance alongside the
+// Recurring Expenses list purely for visibility. It sums numbers already entered on their own
+// pages/arrays — it never writes back to them, so nothing here changes what the Monte Carlo
+// engine counts. Housing uses rows[0] (today) from the deterministic run, which already reflects
+// rent or an already-purchased mortgage + property tax/insurance, whichever applies right now.
+function renderCombinedExpensesCard(rows) {
+  if (!els('combinedGrandTotal')) return;
+  const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
+  const debtMonthly = debts.reduce((s,d) => s + (+d.payment || 0), 0);
+  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0);
+  const housingMonthly = (rows && rows.length ? rows[0].housingCost : 0) / 12;
+  els('combinedExpenses').textContent = fmtMoney(expensesMonthly) + '/mo';
+  els('combinedHousing').textContent = fmtMoney(housingMonthly) + '/mo';
+  els('combinedDebt').textContent = fmtMoney(debtMonthly) + '/mo';
+  els('combinedInsurance').textContent = fmtMoney(insuranceMonthly) + '/mo';
+  els('combinedGrandTotal').textContent = fmtMoney(expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly) + '/mo';
+}
 
 // ---------- Future / one-time planned expenses (dynamic rows) ----------
 let futureExpenses = [
@@ -2753,6 +2783,7 @@ function render() {
   renderDebtPayoffPlan(inputs, ctx);
   renderGapTable(rows, inputs, retirementAge);
   renderWithdrawalOrderRows();
+  renderCombinedExpensesCard(rows);
 
   const totalCurrentAssets = inputs.tradTSPBalance + inputs.rothTSPBalance + inputs.brokerageBalance
     + inputs.checkingBalance + inputs.savingsBalance + inputs.hysaBalance;
