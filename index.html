@@ -445,7 +445,21 @@
             </div>
             <div class="field"><label>Duration (years)</label><input type="number" id="ltcDuration" value="3" min="1" max="20"></div>
           </div>
+          <div class="field">
+            <label>Type of care (Boise, ID area estimates)</label>
+            <select id="ltcCareType" onchange="updateLtcCareType(this.value)">
+              <option value="custom" selected>Custom amount (enter below)</option>
+              <option value="inhome_parttime">In-home care — part-time (~20 hrs/wk)</option>
+              <option value="inhome_fulltime">In-home care — full-time (~50+ hrs/wk)</option>
+              <option value="assisted_living">Assisted living facility</option>
+              <option value="memory_care">Memory care</option>
+              <option value="nursing_home">Nursing home / skilled nursing (semi-private)</option>
+              <option value="family">Family member provides care (informal)</option>
+              <option value="none">Will not need long-term care</option>
+            </select>
+          </div>
           <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="75000" step="1000"></div>
+          <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Picking a care type fills in a Boise-area cost estimate below, which you can still edit by hand — it doesn't lock the number. Estimates: in-home care ~$30/hr (Boise-area caregiver rates run roughly $21-$36/hr depending on agency vs. independent hire); assisted living ~$54,000/yr (Boise-area facilities run lower than Idaho's ~$60,000/yr statewide median); memory care ~$72,000/yr; nursing home (semi-private) ~$120,000/yr (Idaho runs above the national median here); family/informal care ~$12,000/yr for incidentals, supplies, and respite care rather than a wage. Source: Genworth/CareScout Cost of Care Survey and local caregiver rate data, today's dollars.</p>
           <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
         </div>
       </div>
@@ -1137,6 +1151,26 @@ function syncAgeDate(dateFieldId, ageFieldId, hintFieldId, basisAgeFieldId) {
   render();
 }
 
+// ---------- Long-term care: type-of-care presets (Boise, ID area estimates, today's $) ----------
+// Sources: Genworth/CareScout Cost of Care Survey (state + Boise-area figures) and current local
+// caregiver rate listings. These are starting points, not locked numbers — the Annual cost field
+// stays freely editable after picking a type.
+const LTC_CARE_TYPE_COSTS = {
+  inhome_parttime: 31200,   // ~20 hrs/wk at ~$30/hr
+  inhome_fulltime: 78000,   // ~50 hrs/wk at ~$30/hr
+  assisted_living: 54000,   // Boise-area facilities run below Idaho's ~$60k/yr statewide median
+  memory_care: 72000,       // assisted living + typical memory-care add-on
+  nursing_home: 120000,     // semi-private skilled nursing, Idaho runs above the national median
+  family: 12000,            // incidentals/respite/supplies, not a full wage replacement
+  none: 0
+};
+function updateLtcCareType(type) {
+  if (type === 'custom') { render(); return; }
+  const cost = LTC_CARE_TYPE_COSTS[type];
+  if (cost !== undefined) els('ltcAnnualCost').value = cost;
+  render();
+}
+
 // ---------- Persistence (localStorage) so values survive a page refresh ----------
 const STORAGE_KEY = 'retirementPlannerState_v1';
 const ACTIVE_PAGE_KEY = 'retirementPlannerActivePage_v1';
@@ -1716,6 +1750,7 @@ function readInputs() {
     ltcStartAge: +els('ltcStartAge').value,
     ltcDuration: +els('ltcDuration').value,
     ltcAnnualCost: +els('ltcAnnualCost').value,
+    ltcCareType: els('ltcCareType') ? els('ltcCareType').value : 'custom',
     medicareAge: +els('medicareAge').value,
     tricareMonthly: +els('tricareMonthly').value,
     tricareHearingMonthly: +els('tricareHearingMonthly').value,
