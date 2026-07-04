@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Retirement Planner</title>
+<title>Michael's and Cynthia's Retirement Planner</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root{
@@ -302,7 +302,7 @@
   <div class="header-bar">
     <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Open menu">☰</button>
     <div class="header-titles">
-      <h1>Retirement Planner</h1>
+      <h1>Michael's and Cynthia's Retirement Planner</h1>
       <p>Tap the menu to jump to a section. <span class="current-page-label" id="currentPageLabel">Dashboard</span></p>
     </div>
     <div class="dollar-toggle" id="dollarToggle">
@@ -321,7 +321,8 @@
   </div>
   <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">Dashboard</div>
   <div class="nav-item" data-page="personal" onclick="showPage('personal')">Personal &amp; Family</div>
-  <div class="nav-item" data-page="income" onclick="showPage('income')">Income &amp; Contributions</div>
+  <div class="nav-item" data-page="income" onclick="showPage('income')">Income</div>
+  <div class="nav-item" data-page="survivorship" onclick="showPage('survivorship')">Survivorship</div>
   <div class="nav-item" data-page="moneyflows" onclick="showPage('moneyflows')">Money Flows</div>
   <div class="nav-item" data-page="investments" onclick="showPage('investments')">Investments</div>
   <div class="nav-item" data-page="housing" onclick="showPage('housing')">Housing</div>
@@ -364,7 +365,7 @@
 
       <div class="chart-wrap">
         <h2>Projected Balances<span id="dollarModeNote" style="font-size:15px; font-weight:400; color:var(--muted);"></span></h2>
-        <p class="sub">Investable accounts (TSP + brokerage) grow, then draw down in retirement using your chosen Withdrawal Strategy (Income &amp; Contributions page). Net worth adds cash, home equity, and subtracts debt.</p>
+        <p class="sub">Investable accounts (TSP + brokerage) grow, then draw down in retirement using your chosen Withdrawal Strategy (Money Flows page). Net worth adds cash, home equity, and subtracts debt.</p>
         <canvas id="balanceChart"></canvas>
         <div class="legend-note">
           <span><span class="dot" style="background:#1f7a6c"></span>Investable (accumulation)</span>
@@ -435,7 +436,10 @@
 
     <!-- ================= INCOME & CONTRIBUTIONS ================= -->
     <div class="page" data-page="income">
-      <div class="page-header"><h2>Income &amp; Contributions</h2><p>What comes in — job income, pensions, VA disability, Social Security, and annuity. How it's invested and withdrawn lives on the <b>Money Flows</b> page.</p></div>
+      <div class="page-header"><h2>Income</h2><p>What comes in — job income, pensions, VA disability, Social Security, and annuity. How it's invested and withdrawn lives on the <b>Money Flows</b> page.</p></div>
+
+      <div class="mini-chart-card"><canvas id="chart_income"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income by year</div><canvas id="chart_income_yearly"></canvas></div>
 
       <div class="card">
         <h3>Income</h3>
@@ -477,8 +481,6 @@
       </div>
 
       <div class="note">Guaranteed Income — Social Security, spousal benefit, and annuity below, each with its own yearly increase rate (SS and the spousal benefit grow using Social Security COLA, set on the Assumptions page). Pensions and VA disability are in the Pensions &amp; VA Disability card near the top of this page.</div>
-      <div class="mini-chart-card"><canvas id="chart_guaranteed"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Guaranteed income by year</div><canvas id="chart_guaranteed_yearly"></canvas></div>
 
       <div class="card">
         <h3>Guaranteed Income</h3>
@@ -510,6 +512,18 @@
       </div>
 
       <div class="card">
+        <h3>Windfalls<span class="sub-label">One-time inflows — inheritance, home sale proceeds, a bonus, etc.</span></h3>
+        <div class="row-header cols-windfall"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Goes to</span><span></span></div>
+        <div class="row-list" id="windfallRows"></div>
+        <button class="add-btn" onclick="addWindfall()">+ Add windfall</button>
+      </div>
+    </div>
+
+    <!-- ================= SURVIVORSHIP ================= -->
+    <div class="page" data-page="survivorship">
+      <div class="page-header"><h2>Survivorship</h2><p>What-if only — this page never changes your main plan or Monte Carlo confidence score. It only feeds the dynamic survivorship scenario on the Explorers page.</p></div>
+
+      <div class="card">
         <h3>Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
         <p style="font-size:15.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
         <div class="three-col">
@@ -535,13 +549,6 @@
         <div class="checkbox-row"><input type="checkbox" id="dicEligible"><label for="dicEligible">Spouse likely DIC-eligible</label></div>
         <div class="field"><label>DIC amount ($/mo, tax-free — 2026 base rate is $1,699.36)</label><input type="number" id="dicMonthlyAmount" value="1699" step="1"></div>
         <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Military SBP pays 55% of your pension and is taxable income to your spouse; Government Civil Service survivor annuities max out at 50%. Both auto-calculate from your entered pension amounts above and grow at that pension's own yearly increase rate. The premium (paid while you're alive) stops once the survivor annuity starts. DIC is tax-free and, since Jan. 2023, no longer offsets SBP — your spouse can receive both in full at the same time. DIC eligibility depends on cause/duration of a service-connected disability rating, not just having one — worth confirming with the VA.</p>
-      </div>
-
-      <div class="card">
-        <h3>Windfalls<span class="sub-label">One-time inflows — inheritance, home sale proceeds, a bonus, etc.</span></h3>
-        <div class="row-header cols-windfall"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Goes to</span><span></span></div>
-        <div class="row-list" id="windfallRows"></div>
-        <button class="add-btn" onclick="addWindfall()">+ Add windfall</button>
       </div>
     </div>
 
@@ -677,7 +684,7 @@
       <div class="mini-chart-card"><canvas id="chart_expenses"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><canvas id="chart_expenses_yearly"></canvas></div>
 
-      <div class="note" style="margin-top:0;">Don't add rent/mortgage here — that's on the <b>Housing</b> page. Don't add TSP/brokerage contributions here either — those are on <b>Income &amp; Contributions</b>. This page is for everything else that isn't already covered elsewhere, so nothing gets double-counted.</div>
+      <div class="note" style="margin-top:0;">Don't add rent/mortgage here — that's on the <b>Housing</b> page. Don't add TSP/brokerage contributions here either — those are on <b>Money Flows</b>. This page is for everything else that isn't already covered elsewhere, so nothing gets double-counted.</div>
 
       <div class="card">
         <h3>All Household Expenses<span class="sub-label">Combined view only — each item is still entered and edited on its own page; this just lets you see them side by side</span></h3>
@@ -764,7 +771,7 @@
             <tbody id="gapRows"></tbody>
           </table>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Guaranteed income here is shown after federal + Idaho income tax (progressive, using your standard deduction) — VA disability stays untaxed, but Social Security (85%), pension, and annuity income all have real tax owed on them before they're available to spend. A positive surplus means guaranteed income covers that year's spending with room to spare; a gap (shown in red) is the shortfall pulled from your accounts in the order set on the Income & Contributions page. Pre-retirement years aren't shown — spending and withdrawals aren't tracked against the portfolio until retirement.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Guaranteed income here is shown after federal + Idaho income tax (progressive, using your standard deduction) — VA disability stays untaxed, but Social Security (85%), pension, and annuity income all have real tax owed on them before they're available to spend. A positive surplus means guaranteed income covers that year's spending with room to spare; a gap (shown in red) is the shortfall pulled from your accounts in the order set on the Money Flows page. Pre-retirement years aren't shown — spending and withdrawals aren't tracked against the portfolio until retirement.</p>
       </div>
     </div>
 
@@ -922,7 +929,7 @@
         <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="3" step="0.1"></div>
         <div class="field"><label>Medical Inflation Rate (%/yr)</label><input type="number" id="medicalInflation" value="5" step="0.1"></div>
         <div class="field"><label>Social Security COLA (%/yr)</label><input type="number" id="ssCola" value="2.5" step="0.1"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (each pension has its own yearly increase % instead, set in the Guaranteed Income section of the Income &amp; Contributions page). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (each pension has its own yearly increase % instead, set in the Pensions &amp; VA Disability section of the Income page). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
       </div>
 
       <div class="card">
@@ -1094,7 +1101,7 @@ function setDollarView(mode) {
   if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
 }
 const PAGE_LABELS = {
-  dashboard:'Dashboard', personal:'Personal & Family', income:'Income & Contributions', moneyflows:'Money Flows',
+  dashboard:'Dashboard', personal:'Personal & Family', income:'Income', survivorship:'Survivorship', moneyflows:'Money Flows',
   investments:'Investments', housing:'Housing', expenses:'Expenses', debt:'Debt',
   transactions:'Transactions', gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', insurance:'Insurance',
   taxes:'Taxes', assumptions:'Assumptions & Guardrails',
@@ -1466,7 +1473,7 @@ function updateExcessIncomeDestination(name) {
   render();
 }
 
-// ---------- Per-pie monthly contributions (Income & Contributions page; shares brokeragePies array) ----------
+// ---------- Per-pie monthly contributions (Money Flows page; shares brokeragePies array) ----------
 function renderPieContributionRows() {
   const container = els('pieContributionRows');
   if (!container) return;
@@ -2255,9 +2262,9 @@ function buildChartConfig(pageId, snap) {
       const labels = Object.keys(byCat);
       return barConfig(labels.length?labels:['No expenses logged'], labels.length?labels.map(l=>byCat[l]):[0], { horizontal:true });
     }
-    case 'guaranteed':
-      return barConfig(['Your Social Security','Spousal Benefit','Pension 1','Govt Civil Service','VA Disability'],
-        [snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.pension2AtRetirement, snap.vaDisabilityAtRetirement], { horizontal:true });
+    case 'income':
+      return barConfig(["Job income (today's $)",'Your Social Security','Spousal Benefit','Pension 1','Govt Civil Service','VA Disability','Annuity'],
+        [snap.inputs.currentIncome, snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.pension2AtRetirement, snap.vaDisabilityAtRetirement, snap.annuityAtRetirement], { horizontal:true });
     case 'taxes':
       return barConfig(['Gross withdrawn from accounts','Net spending covered'], [snap.grossWithdrawalFirstYear, snap.netSpendingFirstYear]);
     case 'gap':
@@ -2307,7 +2314,7 @@ function ensureOrUpdateChart(pageId, snap) {
 // ---------- Per-section "by year" charts, for sections with inflation-adjusted dollar items ----------
 // Each series pulls straight from the deterministic projection rows, so bars reflect that item's own
 // growth assumption (General/Medical Inflation, SS COLA, or its own yearly-increase %) compounding over time.
-const YEARLY_CHART_PAGES = ['moneyflows', 'housing', 'expenses', 'guaranteed', 'medical', 'gap'];
+const YEARLY_CHART_PAGES = ['income', 'moneyflows', 'housing', 'expenses', 'medical', 'gap'];
 
 function yearlyBarConfig(ages, series, opts) {
   opts = opts || {};
@@ -2357,8 +2364,9 @@ function buildYearlyChartConfig(pageId, snap) {
         { label: 'Recurring expenses (General/Medical Inflation)', data: rows.map(r => d(r.expensesCategoriesAnnual, r.age)) },
         { label: 'Future / one-time expenses (General Inflation)', data: rows.map(r => d(r.futureExpenseCost, r.age)) }
       ], { stacked: true });
-    case 'guaranteed':
+    case 'income':
       return yearlyBarConfig(ages, [
+        { label: 'Job income (annual raise %)', data: rows.map(r => d(r.income, r.age)) },
         { label: 'Social Security (SS COLA)', data: rows.map(r => d(r.ssAmount, r.age)) },
         { label: 'Spousal Benefit (SS COLA)', data: rows.map(r => d(r.spousalBenefit, r.age)) },
         { label: 'Pension 1 (own yearly increase %)', data: rows.map(r => d(r.pensionAmount, r.age)) },
@@ -2432,12 +2440,6 @@ function refreshSectionCharts(pageId, snap) {
   ensureOrUpdateChart(pageId, snap);
   ensureOrUpdateYearlyChart(pageId, snap);
   ensureOrUpdatePieChart(pageId, snap);
-  // Guaranteed Income lives inside the Income & Contributions page now (merged, no longer its own
-  // nav item), but its charts still use the original 'guaranteed' key/canvas ids, so refresh those too.
-  if (pageId === 'income') {
-    ensureOrUpdateChart('guaranteed', snap);
-    ensureOrUpdateYearlyChart('guaranteed', snap);
-  }
 }
 
 function renderExplorers() {
@@ -2445,7 +2447,7 @@ function renderExplorers() {
   const ctx = buildContext(inputs);
   const whatIf = WHAT_IF_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
   // Survivorship (SBP/DIC) is a dynamically-named what-if, shown only once an assumed death age is set on the
-  // Guaranteed Income page. It's never enabled in the baseline plan or the Monte Carlo confidence score.
+  // Survivorship page. It's never enabled in the baseline plan or the Monte Carlo confidence score.
   if (inputs.survivorshipDeathAge > 0) {
     const survivorshipScenario = { name: `You predecease your spouse at age ${inputs.survivorshipDeathAge} (SBP + DIC)`, apply: inp => ({ ...inp, survivorshipEnabled: true }) };
     whatIf.push(runExplorerScenario(survivorshipScenario, inputs, ctx));
@@ -2938,6 +2940,7 @@ function render() {
     pensionAtRetirement: rowAtRetirement ? rowAtRetirement.pensionAmount : 0,
     pension2AtRetirement: rowAtRetirement ? rowAtRetirement.pension2Amount : 0,
     vaDisabilityAtRetirement: rowAtRetirement ? rowAtRetirement.vaDisabilityAmount : 0,
+    annuityAtRetirement: rowAtRetirement ? rowAtRetirement.annuityAmount : 0,
     grossWithdrawalFirstYear: rowAtRetirement ? rowAtRetirement.grossWithdrawal : 0,
     netSpendingFirstYear: rowAtRetirement ? rowAtRetirement.withdrawal : 0,
     guaranteedIncomeAtRetirement: firstYearGuaranteed,
