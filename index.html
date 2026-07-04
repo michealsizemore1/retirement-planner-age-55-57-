@@ -199,6 +199,8 @@
   .withdraw-order-arrows button:not(:disabled):hover{background:var(--teal-light); color:var(--teal);}
   .row-header{display:grid; gap:8px; margin-bottom:6px; font-size:13.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
   .row-header.cols-2{grid-template-columns:1.3fr 0.9fr 26px;}
+  .row-header.cols-pie{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
+  .row-item.pie-row{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
   .row-header.cols-debt{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
   .row-header.cols-tx{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
   .row-header.cols-contrib{grid-template-columns:1.6fr 0.9fr;}
@@ -437,7 +439,7 @@
         </div>
         <div class="sub-fields" id="ltcFields">
           <div class="two-col">
-            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="85" min="60" max="105">
+            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="97" min="60" max="105">
               <input type="month" id="ltcStartAgeDate" class="age-date-input" oninput="syncAgeDate('ltcStartAgeDate','ltcStartAge','ltcStartAgeDateHint','spouseAge')">
               <div id="ltcStartAgeDateHint" class="age-date-hint"></div>
             </div>
@@ -465,8 +467,8 @@
       <div class="card">
         <h3>Investment Contributions<span class="sub-label">How much goes in each pay period</span></h3>
         <div class="two-col">
-          <div class="field"><label>Traditional TSP (% of income)</label><input type="number" id="tradTSPPct" value="10" step="0.5"></div>
-          <div class="field"><label>Roth TSP (% of income)</label><input type="number" id="rothTSPPct" value="5" step="0.5"></div>
+          <div class="field"><label>Traditional TSP (% of income)</label><input type="number" id="tradTSPPct" value="11" step="0.5"></div>
+          <div class="field"><label>Roth TSP (% of income)</label><input type="number" id="rothTSPPct" value="11" step="0.5"></div>
         </div>
         <div class="field"><label>Agency match (up to % of income)</label><input type="number" id="matchPct" value="5" step="0.5"></div>
       </div>
@@ -480,7 +482,7 @@
 
       <div class="card">
         <h3>Excess Income Savings<span class="sub-label">Automatically invest a share of whatever's left over each year, on top of the contributions above</span></h3>
-        <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="0" step="5" min="0" max="100"></div>
+        <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="35" step="5" min="0" max="100"></div>
         <div class="field"><label>Deposit into</label>
           <select id="excessIncomeDestinationPie" onchange="updateExcessIncomeDestination(this.value)"></select>
         </div>
@@ -523,22 +525,23 @@
 
       <div class="card">
         <h3>Brokerage (M1 Finance)<span class="sub-label">Each pie tracked separately; they sum to one taxable balance for the projection</span></h3>
-        <div class="row-header cols-2"><span>Pie name</span><span>Balance ($)</span><span></span></div>
+        <div class="row-header cols-pie"><span>Pie name</span><span>Balance ($)</span><span>Risk profile</span><span>Fixed rate</span><span></span></div>
         <div class="row-list" id="brokeragePieRows"></div>
         <button class="add-btn" onclick="addBrokeragePie()">+ Add pie</button>
         <div class="total-row"><span>Total brokerage</span><span id="brokeragePieTotal">$0</span></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">"Market-linked" pies grow using the return/volatility assumptions on the Assumptions page (same risk as your TSP). "Cash-like" pies (e.g. a T-bills/SGOV bucket) instead grow at their own fixed rate every year, with no simulated volatility — matching how HYSA is already treated. Use this for a de-risked bridge fund so it doesn't get shaken around by the same stock-market swings as your equity holdings in the Monte Carlo.</p>
       </div>
 
       <div class="card">
         <h3>Bank Accounts<span class="sub-label">Liquidity — not spent down in this projection</span></h3>
         <div class="three-col">
-          <div class="field"><label>Checking ($)</label><input type="number" id="checkingBalance" value="8000" step="500"></div>
-          <div class="field"><label>Savings ($)</label><input type="number" id="savingsBalance" value="15000" step="500"></div>
+          <div class="field"><label>Checking ($)</label><input type="number" id="checkingBalance" value="0" step="500"></div>
+          <div class="field"><label>Savings ($)</label><input type="number" id="savingsBalance" value="0" step="500"></div>
           <div class="field"><label>HYSA ($)</label><input type="number" id="hysaBalance" value="10000" step="500"></div>
         </div>
         <div class="two-col">
-          <div class="field"><label>Checking/Savings APY (%)</label><input type="number" id="cashRate" value="0.5" step="0.1"></div>
-          <div class="field"><label>HYSA APY (%)</label><input type="number" id="hysaRate" value="4.5" step="0.1"></div>
+          <div class="field"><label>Checking/Savings APY (%)</label><input type="number" id="cashRate" value="0" step="0.1"></div>
+          <div class="field"><label>HYSA APY (%)</label><input type="number" id="hysaRate" value="3.2" step="0.1"></div>
         </div>
       </div>
     </div>
@@ -552,7 +555,7 @@
       <div class="card">
         <h3>Housing</h3>
         <div class="two-col">
-          <div class="field"><label>Monthly rent ($)</label><input type="number" id="rentMonthly" value="2564.93" step="10"></div>
+          <div class="field"><label>Monthly rent ($)</label><input type="number" id="rentMonthly" value="2600" step="10"></div>
           <div class="field"><label>Annual rent growth (%)</label><input type="number" id="rentGrowth" value="3" step="0.1"></div>
         </div>
         <div class="checkbox-row">
@@ -683,9 +686,9 @@
         </div>
         <div class="mini-label">Government Civil Service</div>
         <div class="three-col">
-          <div class="field"><label>Government Civil Service Pension ($/yr, today's $)</label><input type="number" id="pension2Annual" value="0" step="1"></div>
-          <div class="field"><label>Government Civil Service Pension start age</label><input type="number" id="pension2Age" value="60" min="40" max="90">
-            <input type="month" id="pension2AgeDate" class="age-date-input" oninput="syncAgeDate('pension2AgeDate','pension2Age','pension2AgeDateHint','currentAge')">
+          <div class="field"><label>Government Civil Service Pension ($/yr, today's $)</label><input type="number" id="pension2Annual" value="11148" step="1"></div>
+          <div class="field"><label>Government Civil Service Pension start age</label><input type="number" id="pension2Age" value="62" min="40" max="90">
+            <input type="month" id="pension2AgeDate" class="age-date-input" value="2035-11" oninput="syncAgeDate('pension2AgeDate','pension2Age','pension2AgeDateHint','currentAge')">
             <div id="pension2AgeDateHint" class="age-date-hint"></div>
           </div>
           <div class="field"><label>Government Civil Service Pension yearly increase (%)</label><input type="number" id="pension2Growth" value="2.5" step="0.1"></div>
@@ -724,7 +727,7 @@
         <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled" onchange="render()"><label for="sbp1Enabled">SBP elected on Pension 1</label></div>
         <div class="two-col">
           <div class="field"><label>SBP coverage (% of pension)</label><input type="number" id="sbp1Pct" value="55" min="0" max="55" step="1"></div>
-          <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="0" step="5"></div>
+          <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="116" step="5"></div>
         </div>
         <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp1Computed">$0</span>/mo to spouse, taxable, based on your current Pension 1 amount</p>
         <div class="mini-label">Survivor Annuity on Government Civil Service Pension</div>
@@ -774,14 +777,14 @@
 
       <div class="card">
         <h3>Pre-Medicare — Tricare<span class="sub-label">Covers both of you until each of you reaches Medicare age</span></h3>
-        <div class="field"><label>Tricare premium ($/mo, today's $, covers both of you)</label><input type="number" id="tricareMonthly" value="0" step="10"></div>
+        <div class="field"><label>Tricare premium ($/mo, today's $, covers both of you)</label><input type="number" id="tricareMonthly" value="63" step="10"></div>
         <hr class="divider">
         <div class="mini-label" style="margin-bottom:2px;">FEDVIP</div>
         <div class="mini-label">Hearing, Vision &amp; Dental (Tricare)<span class="sub-label" style="display:inline; text-transform:none; font-weight:400;"> — covers both of you</span></div>
         <div class="three-col">
           <div class="field"><label>Hearing ($/mo, today's $)</label><input type="number" id="tricareHearingMonthly" value="0" step="5"></div>
-          <div class="field"><label>Vision/Eyes ($/mo, today's $)</label><input type="number" id="tricareVisionMonthly" value="0" step="5"></div>
-          <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="tricareDentalMonthly" value="0" step="5"></div>
+          <div class="field"><label>Vision/Eyes ($/mo, today's $)</label><input type="number" id="tricareVisionMonthly" value="24" step="5"></div>
+          <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="tricareDentalMonthly" value="92" step="5"></div>
         </div>
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Applies whenever at least one of you hasn't yet reached Medicare age — your spouse stays on your Tricare coverage even after you individually age into Medicare, until she reaches Medicare age herself. Same rule for the hearing/vision/dental add-ons above.</p>
       </div>
@@ -798,8 +801,8 @@
         <div class="mini-label">Your Hearing, Vision &amp; Dental<span class="sub-label" style="display:inline; text-transform:none; font-weight:400;"> — Original Medicare Part B doesn't cover these, so they're broken out separately; your plan covers your spouse too, so there's no separate spouse cost</span></div>
         <div class="three-col">
           <div class="field"><label>Hearing ($/mo, today's $)</label><input type="number" id="hearingMonthly" value="0" step="5"></div>
-          <div class="field"><label>Vision/Eyes ($/mo, today's $)</label><input type="number" id="visionMonthly" value="0" step="5"></div>
-          <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="dentalMonthly" value="0" step="5"></div>
+          <div class="field"><label>Vision/Eyes ($/mo, today's $)</label><input type="number" id="visionMonthly" value="24" step="5"></div>
+          <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="dentalMonthly" value="92" step="5"></div>
         </div>
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">All figures grow with Medical Inflation (Assumptions page) and are added on top of anything in the Healthcare category on the Expenses page. Since your ages differ, there's a stretch where one of you is on Part B while the other is still on Tricare — both costs apply during that gap. Hearing, vision, and dental start once you reach Medicare age and cover both of you.</p>
       </div>
@@ -876,14 +879,15 @@
           <div class="field"><label>Volatility, pre-retirement (%)</label><input type="number" id="preStdev" value="12" step="0.5"></div>
         </div>
         <div class="two-col">
-          <div class="field"><label>Return during retirement (%/yr)</label><input type="number" id="postReturn" value="5" step="0.1"></div>
-          <div class="field"><label>Volatility, in retirement (%)</label><input type="number" id="postStdev" value="8" step="0.5"></div>
+          <div class="field"><label>Return during retirement (%/yr)</label><input type="number" id="postReturn" value="7" step="0.1"></div>
+          <div class="field"><label>Volatility, in retirement (%)</label><input type="number" id="postStdev" value="12" step="0.5"></div>
         </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">These volatility figures apply to your TSP and any "Market-linked" brokerage pies (100% C/S/I funds, no bonds, historically runs roughly 17-19% annual standard deviation). Any pie you mark "Cash-like" on the Investments page (e.g. a T-bills/SGOV bridge) ignores this and grows at its own fixed rate instead — it won't get shaken around by this volatility.</p>
       </div>
 
       <div class="card">
         <h3>Inflation &amp; COLA Rates<span class="sub-label">Each rate only drives the part of the plan it applies to</span></h3>
-        <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="2.5" step="0.1"></div>
+        <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="3" step="0.1"></div>
         <div class="field"><label>Medical Inflation Rate (%/yr)</label><input type="number" id="medicalInflation" value="5" step="0.1"></div>
         <div class="field"><label>Social Security COLA (%/yr)</label><input type="number" id="ssCola" value="2.5" step="0.1"></div>
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (each pension has its own yearly increase % instead, set on the Guaranteed Income page). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
@@ -1184,16 +1188,15 @@ function loadState() {
 const EXPENSE_CATEGORIES = ['Food & Groceries','Transportation','Healthcare','Utilities','Entertainment & Travel','Personal Care','Shopping','Gifts & Donations','Subscriptions','Pet Care','Personal Support','Other'];
 let expenses = [
   { name:'Intermountain Gas', category:'Utilities', amount:50.00 },
-  { name:'Verizon', category:'Utilities', amount:154.72 },
+  { name:'Verizon', category:'Utilities', amount:154.00 },
   { name:'Idaho Power', category:'Utilities', amount:90.00 },
   { name:'Centurylink', category:'Utilities', amount:105.00 },
-  { name:'YouTube Premium', category:'Subscriptions', amount:26.99 },
+  { name:'YouTube Premium', category:'Subscriptions', amount:27.00 },
   { name:'Ring', category:'Subscriptions', amount:10.00 },
-  { name:'Sinking Funds', category:'Other', amount:130.00 },
-  { name:'Trupanion', category:'Pet Care', amount:41.42 },
-  { name:'Planet Fitness', category:'Personal Care', amount:21.23 },
+  { name:'Sinking Funds', category:'Subscriptions', amount:130.00 },
+  { name:'Planet Fitness', category:'Personal Care', amount:21.00 },
   { name:'To Cindy', category:'Personal Support', amount:3466.00 },
-  { name:'Groceries', category:'Food & Groceries', amount:750 }
+  { name:'Fun money / Backup', category:'Personal Support', amount:450.00 }
 ];
 function renderExpenseRows() {
   const container = els('expenseRows');
@@ -1219,7 +1222,8 @@ function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render();
 
 // ---------- Future / one-time planned expenses (dynamic rows) ----------
 let futureExpenses = [
-  { name:'2nd Pet Fund (into HYSA)', age: 54, amount: 1500, recurring:false, endAge: null }
+  { name:'Vehicle Purchase #1', age: 62, amount: 1000, recurring:true, endAge: 67, dateValue:'2036-01' },
+  { name:'Vehicle Purchase #2', age: 77, amount: 1200, recurring:true, endAge: 82, dateValue:'2051-01' }
 ];
 function renderFutureExpenseRows() {
   const container = els('futureExpenseRows');
@@ -1316,8 +1320,9 @@ function setWindfallAgeFromDate(i, monthVal) {
 // ---------- Insurance policies (dynamic rows, informational — Estate & Insurance page) ----------
 const INSURANCE_TYPES = ['Life','Long-Term Care','Auto','Home/Renters','Umbrella','Disability','Other'];
 let insurancePolicies = [
-  { name:'State Farm', type:'Auto', premium:127.71, coverage:0 },
-  { name:'Trupanion', type:'Other', premium:41.42, coverage:0 }
+  { name:'State Farm: Car, Renters and Life', type:'Other', premium:127, coverage:250000 },
+  { name:'Trupanion (Buddy)', type:'Other', premium:41, coverage:0 },
+  { name:'VGLI', type:'Life', premium:116, coverage:400000 }
 ];
 function renderInsuranceRows() {
   const container = els('insuranceRows');
@@ -1345,16 +1350,21 @@ function removeInsurancePolicy(i) { insurancePolicies.splice(i,1); renderInsuran
 
 // ---------- Brokerage pies (dynamic rows, M1 Finance) ----------
 let brokeragePies = [
-  { name:'Secondary Bridge If Needed / Cash Refill', balance:646.26, contribution:150 },
-  { name:'Sequence of Returns Risk (T-Bills)', balance:349.51, contribution:150 },
-  { name:'Taxes Post Age 59.5', balance:11360.11, contribution:200 }
+  { name:'Secondary Bridge If Needed / Cash Refill', balance:640, contribution:550, riskType:'equity', cashRate:4.5 },
+  { name:'Sequence of Returns Risk (T-Bills)', balance:340, contribution:300, riskType:'cash', cashRate:4.5 },
+  { name:'Taxes Post Age 59.5', balance:11360, contribution:716, riskType:'equity', cashRate:4.5 }
 ];
 function renderBrokeragePieRows() {
   const container = els('brokeragePieRows');
   container.innerHTML = brokeragePies.map((p,i) => `
-    <div class="row-item">
+    <div class="row-item pie-row">
       <input type="text" value="${p.name}" placeholder="Pie name" oninput="updateBrokeragePie(${i},'name',this.value)">
       <input type="number" value="${p.balance}" step="0.01" oninput="updateBrokeragePie(${i},'balance',this.value)">
+      <select onchange="updateBrokeragePie(${i},'riskType',this.value)">
+        <option value="equity" ${(p.riskType||'equity')==='equity'?'selected':''}>Market-linked</option>
+        <option value="cash" ${p.riskType==='cash'?'selected':''}>Cash-like (fixed)</option>
+      </select>
+      <input type="number" value="${p.cashRate!=null?p.cashRate:4.5}" step="0.1" placeholder="Rate %" title="Fixed annual rate (%) used only when Risk profile = Cash-like" style="display:${p.riskType==='cash'?'block':'none'}" oninput="updateBrokeragePie(${i},'cashRate',this.value)">
       <button class="remove-btn" onclick="removeBrokeragePie(${i})" title="Remove">×</button>
     </div>
   `).join('');
@@ -1362,12 +1372,13 @@ function renderBrokeragePieRows() {
   renderExcessIncomeDestinationOptions();
 }
 function updateBrokeragePie(i, field, value) {
-  brokeragePies[i][field] = field==='balance' ? +value : value;
+  brokeragePies[i][field] = (field==='balance' || field==='cashRate') ? +value : value;
   els('brokeragePieTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.balance||0), 0));
   if (field === 'name') { renderPieContributionRows(); renderExcessIncomeDestinationOptions(); }
+  if (field === 'riskType') { renderBrokeragePieRows(); }
   render();
 }
-function addBrokeragePie() { brokeragePies.push({ name:'New pie', balance:1000, contribution:0 }); renderBrokeragePieRows(); renderPieContributionRows(); render(); }
+function addBrokeragePie() { brokeragePies.push({ name:'New pie', balance:1000, contribution:0, riskType:'equity', cashRate:4.5 }); renderBrokeragePieRows(); renderPieContributionRows(); render(); }
 function removeBrokeragePie(i) { brokeragePies.splice(i,1); renderBrokeragePieRows(); renderPieContributionRows(); render(); }
 
 // ---------- Excess income savings destination: a single named pie (e.g. a cash-like SGOV pie), not spread across all pies ----------
@@ -1405,8 +1416,8 @@ function updatePieContribution(i, value) {
 
 // ---------- Withdrawal Strategy: ordered list of every individual account money gets drawn from in retirement ----------
 // Order is a flat array of account keys: 'trad', 'roth', 'hysa', and 'pie_0'..'pie_N-1' (index into brokeragePies).
-let withdrawalOrderState = ['pie_0', 'pie_1', 'pie_2', 'trad', 'hysa', 'roth'];
-let withdrawalModeCustom = false;
+let withdrawalOrderState = ['trad', 'pie_0', 'pie_1', 'hysa', 'pie_2', 'roth'];
+let withdrawalModeCustom = true;
 
 function getWithdrawalAccountKeys() {
   return ['trad', ...brokeragePies.map((_, i) => 'pie_' + i), 'hysa', 'roth'];
@@ -1479,7 +1490,7 @@ function renderWithdrawalOrderRows() {
 // ---------- Debt (dynamic rows) ----------
 const DEBT_CATEGORIES = ['Credit Card','Auto Loan','Student Loan','Personal Loan','Medical Debt','Other'];
 let debts = [
-  { name:'Car Payment', category:'Auto Loan', balance:18000, apr:6, payment:712 }
+  { name:'Car Payment', category:'Auto Loan', balance:14028, apr:5.1, payment:712 }
 ];
 function renderDebtRows() {
   const container = els('debtRows');
@@ -1654,6 +1665,8 @@ function readInputs() {
     insurancePremiumMonthly: insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0),
     brokeragePieBalances: brokeragePies.map(p => +p.balance || 0),
     brokeragePieContributionsMonthly: brokeragePies.map(p => +p.contribution || 0),
+    brokeragePieRiskTypes: brokeragePies.map(p => p.riskType || 'equity'),
+    brokeragePieCashRates: brokeragePies.map(p => (+p.cashRate || 4.5)/100),
     withdrawalOrder: withdrawalOrderState.slice(),
     withdrawalSimultaneous: els('withdrawSimultaneous').checked,
     checkingBalance: +els('checkingBalance').value,
@@ -1873,9 +1886,13 @@ function projectRun(inputs, ctx, randomize, shocks) {
       balTrad = balTrad*(1+preR) + tradContrib + matchContrib;
       balRoth = balRoth*(1+preR) + rothContrib;
       // Each pie grows independently and receives its own monthly contribution (annualized + grown with income).
+      // Cash-like pies (e.g. a T-bills/SGOV bridge) grow at their own fixed rate instead of the market return —
+      // they're meant to be de-risked ballast, not exposed to the same volatility as equity holdings.
       for (let i = 0; i < balBrokeragePies.length; i++) {
         const pieContribThisYear = (+pieContribsMonthly[i] || 0) * 12 * Math.pow(1+inputs.incomeGrowth, y);
-        balBrokeragePies[i] = balBrokeragePies[i]*(1+preR) + pieContribThisYear;
+        const pieRate = (inputs.brokeragePieRiskTypes && inputs.brokeragePieRiskTypes[i] === 'cash')
+          ? (inputs.brokeragePieCashRates ? inputs.brokeragePieCashRates[i] : 0.045) : preR;
+        balBrokeragePies[i] = balBrokeragePies[i]*(1+pieRate) + pieContribThisYear;
       }
       // Excess income goes entirely into the single chosen pie (e.g. a cash-like SGOV pie), not spread across all pies.
       const excessDestIdx = brokeragePies.findIndex(p => p.name === inputs.excessIncomeDestinationPieName);
@@ -1953,7 +1970,13 @@ function projectRun(inputs, ctx, randomize, shocks) {
       spending = totalSpending;
       const need = Math.max(0, totalSpending - guaranteedIncomeAfterTax);
 
-      let brokPiesGrown = balBrokeragePies.map(b => b*(1+postR));
+      // Same cash-vs-equity split applies post-retirement: a cash-like pie keeps growing at its own fixed
+      // rate instead of getting swept up in the same market volatility as the rest of the portfolio.
+      let brokPiesGrown = balBrokeragePies.map((b, i) => {
+        const pieRate = (inputs.brokeragePieRiskTypes && inputs.brokeragePieRiskTypes[i] === 'cash')
+          ? (inputs.brokeragePieCashRates ? inputs.brokeragePieCashRates[i] : 0.045) : postR;
+        return b*(1+pieRate);
+      });
       let tradGrown = balTrad*(1+postR), rothGrown = balRoth*(1+postR);
       // HYSA now participates in the withdrawal pool, so it's grown here (before withdrawal) instead of the blanket line below.
       let hysaGrown = balHYSA*(1+inputs.hysaRate);
