@@ -470,9 +470,9 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Pensions &amp; VA Disability</h3>
-        <div class="mini-label">Pension 1 — Military</div>
+        <div class="mini-label">Military Pension</div>
         <div class="three-col">
-          <div class="field"><label>Pension 1 ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
+          <div class="field"><label>Military Pension ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
           <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90">
             <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
             <div id="pensionAgeDateHint" class="age-date-hint"></div>
@@ -552,13 +552,13 @@
           <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="100" min="10" max="150" step="5"></div>
         </div>
         <hr class="divider">
-        <div class="mini-label">SBP on Pension 1 (Military)</div>
-        <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled" onchange="render()"><label for="sbp1Enabled">SBP elected on Pension 1</label></div>
+        <div class="mini-label">SBP on Military Pension</div>
+        <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled" onchange="render()"><label for="sbp1Enabled">SBP elected on Military Pension</label></div>
         <div class="two-col">
           <div class="field"><label>SBP coverage (% of pension)</label><input type="number" id="sbp1Pct" value="55" min="0" max="55" step="1"></div>
           <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="116" step="5"></div>
         </div>
-        <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp1Computed">$0</span>/mo to spouse, taxable, based on your current Pension 1 amount</p>
+        <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp1Computed">$0</span>/mo to spouse, taxable, based on your current Military Pension amount</p>
         <div class="mini-label">Survivor Annuity on Government Civil Service Pension</div>
         <div class="checkbox-row"><input type="checkbox" id="sbp2Enabled" onchange="render()"><label for="sbp2Enabled">Survivor annuity elected on Government Civil Service pension</label></div>
         <div class="two-col">
@@ -740,7 +740,7 @@
         <h3 onclick="toggleCard(this)">Survivorship<span class="sub-label">Tracking only — set on the Survivorship page; shown here for reference. Not part of this page's totals, and doesn't affect your main plan or Monte Carlo score.</span></h3>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Assumed age you predecease your spouse</span><span id="trackSurvivorshipAge">Not set</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Spouse's spending after (% of normal)</span><span id="trackSurvivorSpendingPct">100%</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP on Pension 1 (Military)</span><span id="trackSbp1">Not elected</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP on Military Pension</span><span id="trackSbp1">Not elected</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span id="trackSbp2">Not elected</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span id="trackDic">Not eligible</span></div>
         <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Edit these on the <b>Survivorship</b> page. This is a what-if scenario that only shows up on the Explorers page — it never changes your baseline plan or confidence score.</p>
@@ -2324,7 +2324,7 @@ function buildChartConfig(pageId, snap) {
       return barConfig(labels.length?labels:['No expenses logged'], labels.length?labels.map(l=>byCat[l]):[0], { horizontal:true });
     }
     case 'income':
-      return barConfig(["Job income (today's $)",'Your Social Security','Spousal Benefit','Pension 1','Govt Civil Service','VA Disability','Annuity'],
+      return barConfig(["Job income (today's $)",'Your Social Security','Spousal Benefit','Military Pension','Govt Civil Service','VA Disability','Annuity'],
         [snap.inputs.currentIncome, snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.pension2AtRetirement, snap.vaDisabilityAtRetirement, snap.annuityAtRetirement], { horizontal:true });
     case 'taxes':
       return barConfig(['Gross withdrawn from accounts','Net spending covered'], [snap.grossWithdrawalFirstYear, snap.netSpendingFirstYear]);
@@ -2430,7 +2430,7 @@ function buildYearlyChartConfig(pageId, snap) {
         { label: 'Job income (annual raise %)', data: rows.map(r => d(r.income, r.age)) },
         { label: 'Social Security (SS COLA)', data: rows.map(r => d(r.ssAmount, r.age)) },
         { label: 'Spousal Benefit (SS COLA)', data: rows.map(r => d(r.spousalBenefit, r.age)) },
-        { label: 'Pension 1 (own yearly increase %)', data: rows.map(r => d(r.pensionAmount, r.age)) },
+        { label: 'Military Pension (own yearly increase %)', data: rows.map(r => d(r.pensionAmount, r.age)) },
         { label: 'Govt Civil Service (own yearly increase %)', data: rows.map(r => d(r.pension2Amount, r.age)) },
         { label: 'VA Disability (own yearly increase %)', data: rows.map(r => d(r.vaDisabilityAmount, r.age)) },
         { label: 'Annuity (own yearly increase %)', data: rows.map(r => d(r.annuityAmount, r.age)) }
@@ -2634,7 +2634,7 @@ function buildPlanSummaryForAI() {
   return `Household: user age ${inputs.currentAge}, retiring at ${inputs.retirementAge}, spouse age ${inputs.spouseCurrentAge}. Idaho resident.
 Investable balance at retirement: ${fmtMoney(result.investableAtRetirement)}. Confidence score: ${Math.round(score)}%. ${result.depletionAge ? 'Portfolio depletes at age '+result.depletionAge+'.' : 'Portfolio lasts through age '+ctx.effectiveLifeExpectancy+'.'}
 Traditional TSP: ${fmtMoney(inputs.tradTSPBalance)}, Roth TSP: ${fmtMoney(inputs.rothTSPBalance)}, Brokerage: ${fmtMoney(inputs.brokerageBalance)}, Cash: ${fmtMoney(inputs.checkingBalance+inputs.savingsBalance+inputs.hysaBalance)}.
-Guaranteed income: SS $${inputs.ssMonthly}/mo at ${inputs.ssAge}, pension 1 (military) $${inputs.pensionAnnual}/yr, Government Civil Service pension $${inputs.pension2Annual}/yr, VA disability $${inputs.vaDisabilityAnnual}/yr (tax-free), annuity $${inputs.annuityMonthly}/mo at ${inputs.annuityStartAge}.
+Guaranteed income: SS $${inputs.ssMonthly}/mo at ${inputs.ssAge}, military pension $${inputs.pensionAnnual}/yr, Government Civil Service pension $${inputs.pension2Annual}/yr, VA disability $${inputs.vaDisabilityAnnual}/yr (tax-free), annuity $${inputs.annuityMonthly}/mo at ${inputs.annuityStartAge}.
 Monthly recurring expenses total: ${fmtMoney(expenses.reduce((s,e)=>s+(+e.amount||0),0))}. Rent: $${inputs.rentMonthly}/mo. Debt: ${debts.map(d=>`${d.name} $${d.balance} at ${d.apr}% APR, $${d.payment}/mo`).join('; ') || 'none'}.
 Rule of 55 assumption: ${inputs.ruleOf55Applies ? 'on (no early withdrawal penalty)' : 'off (10% penalty before 59.5)'}.`;
 }
