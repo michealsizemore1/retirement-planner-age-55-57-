@@ -327,7 +327,6 @@
   <div class="nav-item" data-page="expenses" onclick="showPage('expenses')">Expenses</div>
   <div class="nav-item" data-page="debt" onclick="showPage('debt')">Debt</div>
   <div class="nav-item" data-page="transactions" onclick="showPage('transactions')">Transactions</div>
-  <div class="nav-item" data-page="guaranteed" onclick="showPage('guaranteed')">Guaranteed Income</div>
   <div class="nav-item" data-page="gap" onclick="showPage('gap')">Income Gap &amp; Withdrawals</div>
   <div class="nav-item" data-page="medical" onclick="showPage('medical')">Medical</div>
   <div class="nav-item" data-page="estate" onclick="showPage('estate')">Estate Planning</div>
@@ -396,7 +395,6 @@
     <div class="page" data-page="personal">
       <div class="page-header"><h2>Personal &amp; Family</h2><p>Ages and household details that drive every other section.</p></div>
       <div class="mini-chart-card"><canvas id="chart_personal"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">LTC cost by year</div><canvas id="chart_personal_yearly"></canvas></div>
 
       <div class="card">
         <h3>Personal</h3>
@@ -487,6 +485,102 @@
           <label for="withdrawSimultaneous">Withdraw from multiple accounts at the same time (proportionally), instead of one at a time</label>
         </div>
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split proportionally across all the accounts above by their balance that year — the order numbers stop mattering, since every account participates at once.</p>
+      </div>
+
+      <div class="note">Guaranteed Income — Social Security, spousal benefit, up to two pensions, VA disability, and annuity — each with its own yearly increase rate. SS and the spousal benefit grow using Social Security COLA (set on the Assumptions page); each pension, VA disability, and the annuity each have their own editable yearly increase % below.</div>
+      <div class="mini-chart-card"><canvas id="chart_guaranteed"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Guaranteed income by year</div><canvas id="chart_guaranteed_yearly"></canvas></div>
+
+      <div class="card">
+        <h3>Guaranteed Income</h3>
+        <div class="two-col">
+          <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2200" step="50"></div>
+          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70">
+            <input type="month" id="ssAgeDate" class="age-date-input" oninput="syncAgeDate('ssAgeDate','ssAge','ssAgeDateHint','currentAge')">
+            <div id="ssAgeDateHint" class="age-date-hint"></div>
+          </div>
+        </div>
+        <div class="two-col" id="spousalBenefitFields">
+          <div class="field"><label>Spousal benefit (% of your benefit)</label><input type="number" id="spousalPct" value="50" min="0" max="50" step="1"></div>
+          <div class="field"><label>Spousal benefit start age (spouse's age)</label><input type="number" id="spousalStartAge" value="67" min="62" max="70">
+            <input type="month" id="spousalStartAgeDate" class="age-date-input" oninput="syncAgeDate('spousalStartAgeDate','spousalStartAge','spousalStartAgeDateHint','spouseAge')">
+            <div id="spousalStartAgeDateHint" class="age-date-hint"></div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="mini-label">Pension 1 — Military</div>
+        <div class="three-col">
+          <div class="field"><label>Pension 1 ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
+          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90">
+            <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
+            <div id="pensionAgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>Pension yearly increase (%)</label><input type="number" id="pensionGrowth" value="2.5" step="0.1"></div>
+        </div>
+        <div class="mini-label">Government Civil Service</div>
+        <div class="three-col">
+          <div class="field"><label>Government Civil Service Pension ($/yr, today's $)</label><input type="number" id="pension2Annual" value="11148" step="1"></div>
+          <div class="field"><label>Government Civil Service Pension start age</label><input type="number" id="pension2Age" value="62" min="40" max="90">
+            <input type="month" id="pension2AgeDate" class="age-date-input" value="2035-11" oninput="syncAgeDate('pension2AgeDate','pension2Age','pension2AgeDateHint','currentAge')">
+            <div id="pension2AgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>Government Civil Service Pension yearly increase (%)</label><input type="number" id="pension2Growth" value="2.5" step="0.1"></div>
+        </div>
+        <hr class="divider">
+        <div class="three-col">
+          <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
+          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90">
+            <input type="month" id="vaDisabilityAgeDate" class="age-date-input" oninput="syncAgeDate('vaDisabilityAgeDate','vaDisabilityAge','vaDisabilityAgeDateHint','currentAge')">
+            <div id="vaDisabilityAgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>VA yearly increase (%)</label><input type="number" id="vaDisabilityGrowth" value="2.5" step="0.1"></div>
+        </div>
+        <hr class="divider">
+        <div class="mini-label">Annuity</div>
+        <div class="three-col">
+          <div class="field"><label>Annuity payout ($/mo, today's $)</label><input type="number" id="annuityMonthly" value="0" step="50"></div>
+          <div class="field"><label>Annuity start age</label><input type="number" id="annuityStartAge" value="65" min="40" max="95">
+            <input type="month" id="annuityStartAgeDate" class="age-date-input" oninput="syncAgeDate('annuityStartAgeDate','annuityStartAge','annuityStartAgeDateHint','currentAge')">
+            <div id="annuityStartAgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>Annuity yearly increase (%)</label><input type="number" id="annuityGrowth" value="0" step="0.1"></div>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both pensions and VA disability are treated as already active today if their start age is at or before your current age. Federal + Idaho income tax is applied to Social Security (85%), both pensions, and the annuity before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page) — VA disability stays fully tax-free.</p>
+      </div>
+
+      <div class="card">
+        <h3>Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
+        <p style="font-size:15.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
+        <div class="three-col">
+          <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="0" min="0" max="100"></div>
+          <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="100" min="10" max="150" step="5"></div>
+        </div>
+        <hr class="divider">
+        <div class="mini-label">SBP on Pension 1 (Military)</div>
+        <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled" onchange="render()"><label for="sbp1Enabled">SBP elected on Pension 1</label></div>
+        <div class="two-col">
+          <div class="field"><label>SBP coverage (% of pension)</label><input type="number" id="sbp1Pct" value="55" min="0" max="55" step="1"></div>
+          <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="116" step="5"></div>
+        </div>
+        <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp1Computed">$0</span>/mo to spouse, taxable, based on your current Pension 1 amount</p>
+        <div class="mini-label">Survivor Annuity on Government Civil Service Pension</div>
+        <div class="checkbox-row"><input type="checkbox" id="sbp2Enabled" onchange="render()"><label for="sbp2Enabled">Survivor annuity elected on Government Civil Service pension</label></div>
+        <div class="two-col">
+          <div class="field"><label>Survivor annuity coverage (% of pension)</label><input type="number" id="sbp2Pct" value="50" min="0" max="50" step="1"></div>
+          <div class="field"><label>Premium you pay now ($/mo)</label><input type="number" id="sbp2PremiumMonthly" value="0" step="5"></div>
+        </div>
+        <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp2Computed">$0</span>/mo to spouse, taxable, based on your current Government Civil Service pension amount</p>
+        <div class="mini-label">VA Dependency &amp; Indemnity Compensation (DIC)</div>
+        <div class="checkbox-row"><input type="checkbox" id="dicEligible"><label for="dicEligible">Spouse likely DIC-eligible</label></div>
+        <div class="field"><label>DIC amount ($/mo, tax-free — 2026 base rate is $1,699.36)</label><input type="number" id="dicMonthlyAmount" value="1699" step="1"></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Military SBP pays 55% of your pension and is taxable income to your spouse; Government Civil Service survivor annuities max out at 50%. Both auto-calculate from your entered pension amounts above and grow at that pension's own yearly increase rate. The premium (paid while you're alive) stops once the survivor annuity starts. DIC is tax-free and, since Jan. 2023, no longer offsets SBP — your spouse can receive both in full at the same time. DIC eligibility depends on cause/duration of a service-connected disability rating, not just having one — worth confirming with the VA.</p>
+      </div>
+
+      <div class="card">
+        <h3>Windfalls<span class="sub-label">One-time inflows — inheritance, home sale proceeds, a bonus, etc.</span></h3>
+        <div class="row-header cols-windfall"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Goes to</span><span></span></div>
+        <div class="row-list" id="windfallRows"></div>
+        <button class="add-btn" onclick="addWindfall()">+ Add windfall</button>
       </div>
     </div>
 
@@ -645,105 +739,6 @@
       </div>
     </div>
 
-    <!-- ================= GUARANTEED INCOME ================= -->
-    <div class="page" data-page="guaranteed">
-      <div class="page-header"><h2>Guaranteed Income</h2><p>Social Security, spousal benefit, up to two pensions, VA disability, and annuity — each with its own yearly increase rate. SS and the spousal benefit grow using Social Security COLA (set on the Assumptions page); each pension, VA disability, and the annuity each have their own editable yearly increase % below.</p></div>
-      <div class="mini-chart-card"><canvas id="chart_guaranteed"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Guaranteed income by year</div><canvas id="chart_guaranteed_yearly"></canvas></div>
-
-      <div class="card">
-        <h3>Guaranteed Income</h3>
-        <div class="two-col">
-          <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2200" step="50"></div>
-          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70">
-            <input type="month" id="ssAgeDate" class="age-date-input" oninput="syncAgeDate('ssAgeDate','ssAge','ssAgeDateHint','currentAge')">
-            <div id="ssAgeDateHint" class="age-date-hint"></div>
-          </div>
-        </div>
-        <div class="two-col" id="spousalBenefitFields">
-          <div class="field"><label>Spousal benefit (% of your benefit)</label><input type="number" id="spousalPct" value="50" min="0" max="50" step="1"></div>
-          <div class="field"><label>Spousal benefit start age (spouse's age)</label><input type="number" id="spousalStartAge" value="67" min="62" max="70">
-            <input type="month" id="spousalStartAgeDate" class="age-date-input" oninput="syncAgeDate('spousalStartAgeDate','spousalStartAge','spousalStartAgeDateHint','spouseAge')">
-            <div id="spousalStartAgeDateHint" class="age-date-hint"></div>
-          </div>
-        </div>
-        <hr class="divider">
-        <div class="mini-label">Pension 1 — Military</div>
-        <div class="three-col">
-          <div class="field"><label>Pension 1 ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
-          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90">
-            <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
-            <div id="pensionAgeDateHint" class="age-date-hint"></div>
-          </div>
-          <div class="field"><label>Pension yearly increase (%)</label><input type="number" id="pensionGrowth" value="2.5" step="0.1"></div>
-        </div>
-        <div class="mini-label">Government Civil Service</div>
-        <div class="three-col">
-          <div class="field"><label>Government Civil Service Pension ($/yr, today's $)</label><input type="number" id="pension2Annual" value="11148" step="1"></div>
-          <div class="field"><label>Government Civil Service Pension start age</label><input type="number" id="pension2Age" value="62" min="40" max="90">
-            <input type="month" id="pension2AgeDate" class="age-date-input" value="2035-11" oninput="syncAgeDate('pension2AgeDate','pension2Age','pension2AgeDateHint','currentAge')">
-            <div id="pension2AgeDateHint" class="age-date-hint"></div>
-          </div>
-          <div class="field"><label>Government Civil Service Pension yearly increase (%)</label><input type="number" id="pension2Growth" value="2.5" step="0.1"></div>
-        </div>
-        <hr class="divider">
-        <div class="three-col">
-          <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
-          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90">
-            <input type="month" id="vaDisabilityAgeDate" class="age-date-input" oninput="syncAgeDate('vaDisabilityAgeDate','vaDisabilityAge','vaDisabilityAgeDateHint','currentAge')">
-            <div id="vaDisabilityAgeDateHint" class="age-date-hint"></div>
-          </div>
-          <div class="field"><label>VA yearly increase (%)</label><input type="number" id="vaDisabilityGrowth" value="2.5" step="0.1"></div>
-        </div>
-        <hr class="divider">
-        <div class="mini-label">Annuity</div>
-        <div class="three-col">
-          <div class="field"><label>Annuity payout ($/mo, today's $)</label><input type="number" id="annuityMonthly" value="0" step="50"></div>
-          <div class="field"><label>Annuity start age</label><input type="number" id="annuityStartAge" value="65" min="40" max="95">
-            <input type="month" id="annuityStartAgeDate" class="age-date-input" oninput="syncAgeDate('annuityStartAgeDate','annuityStartAge','annuityStartAgeDateHint','currentAge')">
-            <div id="annuityStartAgeDateHint" class="age-date-hint"></div>
-          </div>
-          <div class="field"><label>Annuity yearly increase (%)</label><input type="number" id="annuityGrowth" value="0" step="0.1"></div>
-        </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both pensions and VA disability are treated as already active today if their start age is at or before your current age. Federal + Idaho income tax is applied to Social Security (85%), both pensions, and the annuity before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page) — VA disability stays fully tax-free.</p>
-      </div>
-
-      <div class="card">
-        <h3>Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
-        <p style="font-size:15.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
-        <div class="three-col">
-          <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="0" min="0" max="100"></div>
-          <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="100" min="10" max="150" step="5"></div>
-        </div>
-        <hr class="divider">
-        <div class="mini-label">SBP on Pension 1 (Military)</div>
-        <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled" onchange="render()"><label for="sbp1Enabled">SBP elected on Pension 1</label></div>
-        <div class="two-col">
-          <div class="field"><label>SBP coverage (% of pension)</label><input type="number" id="sbp1Pct" value="55" min="0" max="55" step="1"></div>
-          <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="116" step="5"></div>
-        </div>
-        <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp1Computed">$0</span>/mo to spouse, taxable, based on your current Pension 1 amount</p>
-        <div class="mini-label">Survivor Annuity on Government Civil Service Pension</div>
-        <div class="checkbox-row"><input type="checkbox" id="sbp2Enabled" onchange="render()"><label for="sbp2Enabled">Survivor annuity elected on Government Civil Service pension</label></div>
-        <div class="two-col">
-          <div class="field"><label>Survivor annuity coverage (% of pension)</label><input type="number" id="sbp2Pct" value="50" min="0" max="50" step="1"></div>
-          <div class="field"><label>Premium you pay now ($/mo)</label><input type="number" id="sbp2PremiumMonthly" value="0" step="5"></div>
-        </div>
-        <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp2Computed">$0</span>/mo to spouse, taxable, based on your current Government Civil Service pension amount</p>
-        <div class="mini-label">VA Dependency &amp; Indemnity Compensation (DIC)</div>
-        <div class="checkbox-row"><input type="checkbox" id="dicEligible"><label for="dicEligible">Spouse likely DIC-eligible</label></div>
-        <div class="field"><label>DIC amount ($/mo, tax-free — 2026 base rate is $1,699.36)</label><input type="number" id="dicMonthlyAmount" value="1699" step="1"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Military SBP pays 55% of your pension and is taxable income to your spouse; Government Civil Service survivor annuities max out at 50%. Both auto-calculate from your entered pension amounts above and grow at that pension's own yearly increase rate. The premium (paid while you're alive) stops once the survivor annuity starts. DIC is tax-free and, since Jan. 2023, no longer offsets SBP — your spouse can receive both in full at the same time. DIC eligibility depends on cause/duration of a service-connected disability rating, not just having one — worth confirming with the VA.</p>
-      </div>
-
-      <div class="card">
-        <h3>Windfalls<span class="sub-label">One-time inflows — inheritance, home sale proceeds, a bonus, etc.</span></h3>
-        <div class="row-header cols-windfall"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Goes to</span><span></span></div>
-        <div class="row-list" id="windfallRows"></div>
-        <button class="add-btn" onclick="addWindfall()">+ Add windfall</button>
-      </div>
-    </div>
-
     <!-- ================= INCOME GAP & WITHDRAWALS ================= -->
     <div class="page" data-page="gap">
       <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, both pensions, VA disability, annuity, after income tax — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
@@ -766,7 +761,7 @@
     <div class="page" data-page="medical">
       <div class="page-header"><h2>Medical</h2><p>Healthcare premiums before and after Medicare eligibility — separate from the Healthcare category on the Expenses page, which is for extra out-of-pocket costs.</p></div>
       <div class="mini-chart-card"><canvas id="chart_medical"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums by year</div><canvas id="chart_medical_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums &amp; LTC cost by year</div><canvas id="chart_medical_yearly"></canvas></div>
 
       <div class="card">
         <h3>Pre-Medicare — Tricare<span class="sub-label">Covers both of you until each of you reaches Medicare age</span></h3>
@@ -916,7 +911,7 @@
         <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="3" step="0.1"></div>
         <div class="field"><label>Medical Inflation Rate (%/yr)</label><input type="number" id="medicalInflation" value="5" step="0.1"></div>
         <div class="field"><label>Social Security COLA (%/yr)</label><input type="number" id="ssCola" value="2.5" step="0.1"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (each pension has its own yearly increase % instead, set on the Guaranteed Income page). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (each pension has its own yearly increase % instead, set in the Guaranteed Income section of the Income &amp; Contributions page). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
       </div>
 
       <div class="card">
@@ -1090,7 +1085,7 @@ function setDollarView(mode) {
 const PAGE_LABELS = {
   dashboard:'Dashboard', personal:'Personal & Family', income:'Income & Contributions',
   investments:'Investments', housing:'Housing', expenses:'Expenses', debt:'Debt',
-  transactions:'Transactions', guaranteed:'Guaranteed Income', gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', insurance:'Insurance',
+  transactions:'Transactions', gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', insurance:'Insurance',
   taxes:'Taxes', assumptions:'Assumptions & Guardrails',
   explorers:'Explorers', coach:'Coach', settings:'Settings'
 };
@@ -2301,7 +2296,7 @@ function ensureOrUpdateChart(pageId, snap) {
 // ---------- Per-section "by year" charts, for sections with inflation-adjusted dollar items ----------
 // Each series pulls straight from the deterministic projection rows, so bars reflect that item's own
 // growth assumption (General/Medical Inflation, SS COLA, or its own yearly-increase %) compounding over time.
-const YEARLY_CHART_PAGES = ['personal', 'income', 'housing', 'expenses', 'guaranteed', 'medical', 'gap'];
+const YEARLY_CHART_PAGES = ['income', 'housing', 'expenses', 'guaranteed', 'medical', 'gap'];
 
 function yearlyBarConfig(ages, series, opts) {
   opts = opts || {};
@@ -2336,10 +2331,6 @@ function buildYearlyChartConfig(pageId, snap) {
   const ages = rows.map(r => r.age);
   const d = (val, age) => dv(val || 0, age, inputs);
   switch (pageId) {
-    case 'personal':
-      return yearlyBarConfig(ages, [
-        { label: 'LTC cost (spouse, Medical Inflation)', data: rows.map(r => d(r.ltcCost, r.age)) }
-      ]);
     case 'income':
       return yearlyBarConfig(ages, [
         { label: 'Job income (annual raise %)', data: rows.map(r => d(r.income, r.age)) },
@@ -2366,7 +2357,8 @@ function buildYearlyChartConfig(pageId, snap) {
       ], { stacked: true });
     case 'medical':
       return yearlyBarConfig(ages, [
-        { label: 'Tricare + Part B + FEDVIP (Medical Inflation)', data: rows.map(r => d(r.medicalCostAnnual, r.age)) }
+        { label: 'Tricare + Part B + FEDVIP (Medical Inflation)', data: rows.map(r => d(r.medicalCostAnnual, r.age)) },
+        { label: 'LTC cost (spouse, Medical Inflation)', data: rows.map(r => d(r.ltcCost, r.age)) }
       ]);
     case 'gap':
       return yearlyBarConfig(ages, [
@@ -2429,6 +2421,12 @@ function refreshSectionCharts(pageId, snap) {
   ensureOrUpdateChart(pageId, snap);
   ensureOrUpdateYearlyChart(pageId, snap);
   ensureOrUpdatePieChart(pageId, snap);
+  // Guaranteed Income lives inside the Income & Contributions page now (merged, no longer its own
+  // nav item), but its charts still use the original 'guaranteed' key/canvas ids, so refresh those too.
+  if (pageId === 'income') {
+    ensureOrUpdateChart('guaranteed', snap);
+    ensureOrUpdateYearlyChart('guaranteed', snap);
+  }
 }
 
 function renderExplorers() {
