@@ -2157,7 +2157,7 @@ function buildYearlyChartConfig(pageId, snap) {
       ]);
     case 'gap':
       return yearlyBarConfig(ages, [
-        { label: 'Surplus / (Gap)', data: rows.map(r => d((r.guaranteedIncome || 0) - (r.spending || 0), r.age)) },
+        { label: 'Surplus / (Gap), after tax', data: rows.map(r => d((r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0)) - (r.spending || 0), r.age)) },
         { label: 'Portfolio withdrawal (gross)', data: rows.map(r => d(r.grossWithdrawal, r.age)) }
       ]);
     default:
