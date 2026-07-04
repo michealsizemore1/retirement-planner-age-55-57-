@@ -322,6 +322,7 @@
   <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">Dashboard</div>
   <div class="nav-item" data-page="personal" onclick="showPage('personal')">Personal &amp; Family</div>
   <div class="nav-item" data-page="income" onclick="showPage('income')">Income &amp; Contributions</div>
+  <div class="nav-item" data-page="moneyflows" onclick="showPage('moneyflows')">Money Flows</div>
   <div class="nav-item" data-page="investments" onclick="showPage('investments')">Investments</div>
   <div class="nav-item" data-page="housing" onclick="showPage('housing')">Housing</div>
   <div class="nav-item" data-page="expenses" onclick="showPage('expenses')">Expenses</div>
@@ -434,10 +435,7 @@
 
     <!-- ================= INCOME & CONTRIBUTIONS ================= -->
     <div class="page" data-page="income">
-      <div class="page-header"><h2>Income &amp; Contributions</h2><p>What comes in, and how much of it goes toward retirement.</p></div>
-      <div class="mini-chart-card"><canvas id="chart_income"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income &amp; contributions by year</div><canvas id="chart_income_yearly"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Brokerage contribution by portfolio</div><canvas id="chart_income_pies"></canvas></div>
+      <div class="page-header"><h2>Income &amp; Contributions</h2><p>What comes in — job income, pensions, VA disability, Social Security, and annuity. How it's invested and withdrawn lives on the <b>Money Flows</b> page.</p></div>
 
       <div class="card">
         <h3>Income</h3>
@@ -476,48 +474,6 @@
           <div class="field"><label>VA yearly increase (%)</label><input type="number" id="vaDisabilityGrowth" value="2.5" step="0.1"></div>
         </div>
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both pensions and VA disability are treated as already active today if their start age is at or before your current age. Federal + Idaho income tax applies to both pensions before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page) — VA disability stays fully tax-free.</p>
-      </div>
-
-      <div class="card">
-        <h3>Investment Contributions<span class="sub-label">How much goes in each pay period</span></h3>
-        <div class="two-col">
-          <div class="field"><label>Traditional TSP (% of income)</label><input type="number" id="tradTSPPct" value="11" step="0.5"></div>
-          <div class="field"><label>Roth TSP (% of income)</label><input type="number" id="rothTSPPct" value="11" step="0.5"></div>
-        </div>
-        <div class="field"><label>Agency match (up to % of income)</label><input type="number" id="matchPct" value="5" step="0.5"></div>
-      </div>
-
-      <div class="card">
-        <h3>Brokerage Contributions (M1 Finance)<span class="sub-label">Monthly amount going into each ETF pie — edit pie names/balances on the Investments page. Grows with your Expected annual raise (%) above, same as the paycheck it comes from.</span></h3>
-        <div class="row-header cols-contrib"><span>Pie name</span><span>Contribution ($/mo)</span></div>
-        <div class="row-list" id="pieContributionRows"></div>
-        <div class="total-row"><span>Total brokerage contribution</span><span id="pieContributionTotal">$0/mo</span></div>
-      </div>
-
-      <div class="card">
-        <h3>Excess Income Savings<span class="sub-label">Automatically invest a share of whatever's left over each year, on top of the contributions above</span></h3>
-        <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="35" step="5" min="0" max="100"></div>
-        <div class="field"><label>Deposit into</label>
-          <select id="excessIncomeDestinationPie" onchange="updateExcessIncomeDestination(this.value)"></select>
-        </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">"Leftover" income = your job income, minus TSP/Roth/agency-match/brokerage contributions above, minus recurring expenses, housing, and debt payments for that year. Only applies while you're still working, and goes entirely into the single pie you pick above (edit pie names on the Investments page).</p>
-      </div>
-
-      <div class="card">
-        <h3>Withdrawal Strategy<span class="sub-label">Which accounts fund retirement spending, and in what order</span></h3>
-        <div class="pill-row" style="margin-bottom:2px;">
-          <span class="pill active" id="withdrawModeTraditionalPill" onclick="setWithdrawalMode(false)">Traditional</span>
-          <span class="pill" id="withdrawModeCustomPill" onclick="setWithdrawalMode(true)">Customized</span>
-        </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 10px;line-height:1.5;">Edit the order of your accounts based on when you expect to make withdrawals from them. <b>Traditional</b> uses a conventional taxable → tax-deferred → tax-free sequence; switch to <b>Customized</b> to use the ▲▼ arrows and set your own order.</p>
-        <div class="mini-label">Account Order</div>
-        <div id="withdrawalOrderRows"></div>
-        <hr class="divider">
-        <div class="checkbox-row">
-          <input type="checkbox" id="withdrawSimultaneous" onchange="render()">
-          <label for="withdrawSimultaneous">Withdraw from multiple accounts at the same time (proportionally), instead of one at a time</label>
-        </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split proportionally across all the accounts above by their balance that year — the order numbers stop mattering, since every account participates at once.</p>
       </div>
 
       <div class="note">Guaranteed Income — Social Security, spousal benefit, and annuity below, each with its own yearly increase rate (SS and the spousal benefit grow using Social Security COLA, set on the Assumptions page). Pensions and VA disability are in the Pensions &amp; VA Disability card near the top of this page.</div>
@@ -586,6 +542,56 @@
         <div class="row-header cols-windfall"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Goes to</span><span></span></div>
         <div class="row-list" id="windfallRows"></div>
         <button class="add-btn" onclick="addWindfall()">+ Add windfall</button>
+      </div>
+    </div>
+
+    <!-- ================= MONEY FLOWS ================= -->
+    <div class="page" data-page="moneyflows">
+      <div class="page-header"><h2>Money Flows</h2><p>How your paycheck gets invested each pay period, and how accounts get drawn down in retirement.</p></div>
+      <div class="mini-chart-card"><canvas id="chart_moneyflows"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income &amp; contributions by year</div><canvas id="chart_moneyflows_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Brokerage contribution by portfolio</div><canvas id="chart_moneyflows_pies"></canvas></div>
+
+      <div class="card">
+        <h3>Investment Contributions<span class="sub-label">How much goes in each pay period</span></h3>
+        <div class="two-col">
+          <div class="field"><label>Traditional TSP (% of income)</label><input type="number" id="tradTSPPct" value="11" step="0.5"></div>
+          <div class="field"><label>Roth TSP (% of income)</label><input type="number" id="rothTSPPct" value="11" step="0.5"></div>
+        </div>
+        <div class="field"><label>Agency match (up to % of income)</label><input type="number" id="matchPct" value="5" step="0.5"></div>
+      </div>
+
+      <div class="card">
+        <h3>Brokerage Contributions (M1 Finance)<span class="sub-label">Monthly amount going into each ETF pie — edit pie names/balances on the Investments page. Grows with your Expected annual raise (%) above, same as the paycheck it comes from.</span></h3>
+        <div class="row-header cols-contrib"><span>Pie name</span><span>Contribution ($/mo)</span></div>
+        <div class="row-list" id="pieContributionRows"></div>
+        <div class="total-row"><span>Total brokerage contribution</span><span id="pieContributionTotal">$0/mo</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Excess Income Savings<span class="sub-label">Automatically invest a share of whatever's left over each year, on top of the contributions above</span></h3>
+        <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="35" step="5" min="0" max="100"></div>
+        <div class="field"><label>Deposit into</label>
+          <select id="excessIncomeDestinationPie" onchange="updateExcessIncomeDestination(this.value)"></select>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">"Leftover" income = your job income, minus TSP/Roth/agency-match/brokerage contributions above, minus recurring expenses, housing, and debt payments for that year. Only applies while you're still working, and goes entirely into the single pie you pick above (edit pie names on the Investments page).</p>
+      </div>
+
+      <div class="card">
+        <h3>Withdrawal Strategy<span class="sub-label">Which accounts fund retirement spending, and in what order</span></h3>
+        <div class="pill-row" style="margin-bottom:2px;">
+          <span class="pill active" id="withdrawModeTraditionalPill" onclick="setWithdrawalMode(false)">Traditional</span>
+          <span class="pill" id="withdrawModeCustomPill" onclick="setWithdrawalMode(true)">Customized</span>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 10px;line-height:1.5;">Edit the order of your accounts based on when you expect to make withdrawals from them. <b>Traditional</b> uses a conventional taxable → tax-deferred → tax-free sequence; switch to <b>Customized</b> to use the ▲▼ arrows and set your own order.</p>
+        <div class="mini-label">Account Order</div>
+        <div id="withdrawalOrderRows"></div>
+        <hr class="divider">
+        <div class="checkbox-row">
+          <input type="checkbox" id="withdrawSimultaneous" onchange="render()">
+          <label for="withdrawSimultaneous">Withdraw from multiple accounts at the same time (proportionally), instead of one at a time</label>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split proportionally across all the accounts above by their balance that year — the order numbers stop mattering, since every account participates at once.</p>
       </div>
     </div>
 
@@ -1088,7 +1094,7 @@ function setDollarView(mode) {
   if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
 }
 const PAGE_LABELS = {
-  dashboard:'Dashboard', personal:'Personal & Family', income:'Income & Contributions',
+  dashboard:'Dashboard', personal:'Personal & Family', income:'Income & Contributions', moneyflows:'Money Flows',
   investments:'Investments', housing:'Housing', expenses:'Expenses', debt:'Debt',
   transactions:'Transactions', gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', insurance:'Insurance',
   taxes:'Taxes', assumptions:'Assumptions & Guardrails',
@@ -2231,7 +2237,7 @@ function buildChartConfig(pageId, snap) {
   switch (pageId) {
     case 'personal':
       return barConfig(['Years to retirement','Years in retirement'], [snap.yearsToRetirement, snap.yearsInRetirement], { plain:true, suffix:' yrs' });
-    case 'income':
+    case 'moneyflows':
       return barConfig(['Traditional TSP','Roth TSP','Agency Match','Brokerage (all pies)'],
         [snap.tradContribFirstYear, snap.rothContribFirstYear, snap.matchContribFirstYear, snap.brokerageContribution]);
     case 'investments':
@@ -2301,7 +2307,7 @@ function ensureOrUpdateChart(pageId, snap) {
 // ---------- Per-section "by year" charts, for sections with inflation-adjusted dollar items ----------
 // Each series pulls straight from the deterministic projection rows, so bars reflect that item's own
 // growth assumption (General/Medical Inflation, SS COLA, or its own yearly-increase %) compounding over time.
-const YEARLY_CHART_PAGES = ['income', 'housing', 'expenses', 'guaranteed', 'medical', 'gap'];
+const YEARLY_CHART_PAGES = ['moneyflows', 'housing', 'expenses', 'guaranteed', 'medical', 'gap'];
 
 function yearlyBarConfig(ages, series, opts) {
   opts = opts || {};
@@ -2336,7 +2342,7 @@ function buildYearlyChartConfig(pageId, snap) {
   const ages = rows.map(r => r.age);
   const d = (val, age) => dv(val || 0, age, inputs);
   switch (pageId) {
-    case 'income':
+    case 'moneyflows':
       return yearlyBarConfig(ages, [
         { label: 'Job income (annual raise %)', data: rows.map(r => d(r.income, r.age)) },
         { label: 'Contributions (TSP + brokerage + excess)', data: rows.map(r => d(r.contributions, r.age)) },
@@ -2392,12 +2398,12 @@ function ensureOrUpdateYearlyChart(pageId, snap) {
 }
 
 // ---------- Brokerage-by-portfolio breakdown charts (dedicated canvas so the 3 pies aren't dwarfed by TSP balances) ----------
-const PIE_CHART_PAGES = ['income', 'investments'];
+const PIE_CHART_PAGES = ['moneyflows', 'investments'];
 
 function buildPieChartConfig(pageId) {
   if (!brokeragePies.length) return null;
   const labels = brokeragePies.map(p => p.name || 'Pie');
-  if (pageId === 'income') {
+  if (pageId === 'moneyflows') {
     return barConfig(labels, brokeragePies.map(p => (+p.contribution || 0) * 12), { horizontal: true });
   }
   if (pageId === 'investments') {
