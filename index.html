@@ -1162,6 +1162,8 @@ function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.dataset.page === pageId));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === pageId));
   els('currentPageLabel').textContent = PAGE_LABELS[pageId] || pageId;
+  // Every card collapses each time its section is visited, so you always land on a clean, scannable list of titles.
+  document.querySelectorAll(`.page[data-page="${pageId}"] .card`).forEach(c => c.classList.add('collapsed'));
   if (lastSnapshot) refreshSectionCharts(pageId, lastSnapshot);
   if (pageId === 'explorers') renderExplorers();
   if (pageId === 'coach') { renderCoachTips(); renderCoachAiGate(); }
@@ -3065,7 +3067,7 @@ syncRetirementDate(!hadSavedState);
 render();
 let savedActivePage = null;
 try { savedActivePage = localStorage.getItem(ACTIVE_PAGE_KEY); } catch (e) {}
-if (savedActivePage) showPage(savedActivePage);
+showPage(savedActivePage || 'dashboard');
 </script>
 
 </body>
