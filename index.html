@@ -481,7 +481,10 @@
       <div class="card">
         <h3>Excess Income Savings<span class="sub-label">Automatically invest a share of whatever's left over each year, on top of the contributions above</span></h3>
         <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="0" step="5" min="0" max="100"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">"Leftover" income = your job income, minus TSP/Roth/agency-match/brokerage contributions above, minus recurring expenses, housing, and debt payments for that year. Only applies while you're still working, and the extra amount goes into your Brokerage pies.</p>
+        <div class="field"><label>Deposit into</label>
+          <select id="excessIncomeDestinationPie" onchange="updateExcessIncomeDestination(this.value)"></select>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">"Leftover" income = your job income, minus TSP/Roth/agency-match/brokerage contributions above, minus recurring expenses, housing, and debt payments for that year. Only applies while you're still working, and goes entirely into the single pie you pick above (edit pie names on the Investments page).</p>
       </div>
 
       <div class="card">
@@ -648,7 +651,7 @@
 
     <!-- ================= GUARANTEED INCOME ================= -->
     <div class="page" data-page="guaranteed">
-      <div class="page-header"><h2>Guaranteed Income</h2><p>Social Security, spousal benefit, military pension, VA disability, and annuity — each with its own yearly increase rate. SS and the spousal benefit grow using Social Security COLA (set on the Assumptions page); pension, VA disability, and the annuity each have their own editable yearly increase % below.</p></div>
+      <div class="page-header"><h2>Guaranteed Income</h2><p>Social Security, spousal benefit, up to two pensions, VA disability, and annuity — each with its own yearly increase rate. SS and the spousal benefit grow using Social Security COLA (set on the Assumptions page); each pension, VA disability, and the annuity each have their own editable yearly increase % below.</p></div>
       <div class="mini-chart-card"><canvas id="chart_guaranteed"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Guaranteed income by year</div><canvas id="chart_guaranteed_yearly"></canvas></div>
 
@@ -669,14 +672,25 @@
           </div>
         </div>
         <hr class="divider">
+        <div class="mini-label">Pension 1 — Military</div>
         <div class="three-col">
-          <div class="field"><label>Military Pension ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
+          <div class="field"><label>Pension 1 ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
           <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90">
             <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
             <div id="pensionAgeDateHint" class="age-date-hint"></div>
           </div>
           <div class="field"><label>Pension yearly increase (%)</label><input type="number" id="pensionGrowth" value="2.5" step="0.1"></div>
         </div>
+        <div class="mini-label">Pension 2</div>
+        <div class="three-col">
+          <div class="field"><label>Pension 2 ($/yr, today's $)</label><input type="number" id="pension2Annual" value="0" step="1"></div>
+          <div class="field"><label>Pension 2 start age</label><input type="number" id="pension2Age" value="60" min="40" max="90">
+            <input type="month" id="pension2AgeDate" class="age-date-input" oninput="syncAgeDate('pension2AgeDate','pension2Age','pension2AgeDateHint','currentAge')">
+            <div id="pension2AgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>Pension 2 yearly increase (%)</label><input type="number" id="pension2Growth" value="2.5" step="0.1"></div>
+        </div>
+        <hr class="divider">
         <div class="three-col">
           <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
           <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90">
@@ -695,7 +709,33 @@
           </div>
           <div class="field"><label>Annuity yearly increase (%)</label><input type="number" id="annuityGrowth" value="0" step="0.1"></div>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both the pension and VA disability are treated as already active today. Note: this simplified model doesn't apply income tax to any guaranteed income source, so the VA disability's tax-free status doesn't change the math yet — it's broken out separately for clarity and in case that changes later.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both pensions and VA disability are treated as already active today if their start age is at or before your current age. Federal + Idaho income tax is applied to Social Security (85%), both pensions, and the annuity before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page) — VA disability stays fully tax-free.</p>
+      </div>
+
+      <div class="card">
+        <h3>Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
+        <p style="font-size:15.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
+        <div class="three-col">
+          <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="0" min="0" max="100"></div>
+          <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="100" min="10" max="150" step="5"></div>
+        </div>
+        <hr class="divider">
+        <div class="mini-label">SBP on Pension 1 (Military)</div>
+        <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled"><label for="sbp1Enabled">SBP elected on Pension 1</label></div>
+        <div class="two-col">
+          <div class="field"><label>SBP annuity to spouse ($/mo, today's $, taxable)</label><input type="number" id="sbp1MonthlyAnnuity" value="0" step="10"></div>
+          <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="0" step="5"></div>
+        </div>
+        <div class="mini-label">SBP on Pension 2</div>
+        <div class="checkbox-row"><input type="checkbox" id="sbp2Enabled"><label for="sbp2Enabled">SBP/survivor annuity elected on Pension 2</label></div>
+        <div class="two-col">
+          <div class="field"><label>Survivor annuity to spouse ($/mo, today's $, taxable)</label><input type="number" id="sbp2MonthlyAnnuity" value="0" step="10"></div>
+          <div class="field"><label>Premium you pay now ($/mo)</label><input type="number" id="sbp2PremiumMonthly" value="0" step="5"></div>
+        </div>
+        <div class="mini-label">VA Dependency &amp; Indemnity Compensation (DIC)</div>
+        <div class="checkbox-row"><input type="checkbox" id="dicEligible"><label for="dicEligible">Spouse likely DIC-eligible</label></div>
+        <div class="field"><label>DIC amount ($/mo, tax-free — 2026 base rate is $1,699.36)</label><input type="number" id="dicMonthlyAmount" value="1699" step="1"></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">SBP pays 55% of whatever base amount you elected and is taxable income to your spouse; the premium (paid while you're alive) stops once SBP starts. DIC is tax-free and, since Jan. 2023, no longer offsets SBP — your spouse can receive full SBP and full DIC at the same time. DIC eligibility depends on cause/duration of a service-connected disability rating, not just having one — worth confirming with the VA.</p>
       </div>
 
       <div class="card">
@@ -708,7 +748,7 @@
 
     <!-- ================= INCOME GAP & WITHDRAWALS ================= -->
     <div class="page" data-page="gap">
-      <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, pension, VA disability, annuity, after income tax — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
+      <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, both pensions, VA disability, annuity, after income tax — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
       <div class="mini-chart-card"><canvas id="chart_gap"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><canvas id="chart_gap_yearly"></canvas></div>
 
@@ -804,7 +844,7 @@
       <div class="card">
         <h3>Federal<span class="sub-label">2026 brackets, Married Filing Jointly (10/12/22/24/32/35/37%)</span></h3>
         <div class="field"><label>Standard deduction ($/yr, MFJ)</label><input type="number" id="stdDeduction" value="32200" step="100"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Social Security and spousal benefit are treated as 85% taxable (typical once other income is substantial); VA disability stays fully tax-free and isn't included. Pension and annuity income are fully taxable.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Social Security and spousal benefit are treated as 85% taxable (typical once other income is substantial); VA disability stays fully tax-free and isn't included. Both pensions and annuity income are fully taxable.</p>
       </div>
 
       <div class="card">
@@ -844,7 +884,7 @@
         <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="2.5" step="0.1"></div>
         <div class="field"><label>Medical Inflation Rate (%/yr)</label><input type="number" id="medicalInflation" value="5" step="0.1"></div>
         <div class="field"><label>Social Security COLA (%/yr)</label><input type="number" id="ssCola" value="2.5" step="0.1"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (pension still uses General Inflation). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (each pension has its own yearly increase % instead, set on the Guaranteed Income page). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
       </div>
 
       <div class="card">
@@ -1101,7 +1141,7 @@ function saveState() {
     if (!el.id) return;
     fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   });
-  const state = { fields, expenses, brokeragePies, debts, transactions, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom };
+  const state = { fields, expenses, brokeragePies, debts, transactions, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, excessIncomeDestinationPieName };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, ignore */ }
   return state;
 }
@@ -1117,6 +1157,7 @@ function applyState(state) {
   if (Array.isArray(state.insurancePolicies)) insurancePolicies = state.insurancePolicies;
   if (Array.isArray(state.withdrawalOrderState)) withdrawalOrderState = state.withdrawalOrderState;
   if (typeof state.withdrawalModeCustom === 'boolean') withdrawalModeCustom = state.withdrawalModeCustom;
+  if (typeof state.excessIncomeDestinationPieName === 'string') excessIncomeDestinationPieName = state.excessIncomeDestinationPieName;
   if (state.fields) {
     Object.keys(state.fields).forEach(id => {
       const el = els(id);
@@ -1186,7 +1227,7 @@ function renderFutureExpenseRows() {
       <input type="text" value="${f.name||''}" placeholder="Description" oninput="updateFutureExpense(${i},'name',this.value)">
       <div class="age-cell">
         <input type="number" value="${f.age}" step="1" title="Your age when it hits" oninput="updateFutureExpense(${i},'age',this.value)">
-        <input type="month" title="Or pick a month/year" onchange="setFutureExpenseAgeFromDate(${i}, this.value)">
+        <input type="month" value="${f.dateValue||''}" title="Or pick a month/year" onchange="setFutureExpenseAgeFromDate(${i}, this.value)">
       </div>
       <input type="number" value="${f.amount}" step="100" title="Amount ($, today's $)" oninput="updateFutureExpense(${i},'amount',this.value)">
       <select onchange="updateFutureExpense(${i},'recurring',this.value)">
@@ -1202,6 +1243,8 @@ function updateFutureExpense(i, field, value) {
   if (field === 'recurring') futureExpenses[i][field] = value === 'true';
   else if (field === 'name') futureExpenses[i][field] = value;
   else futureExpenses[i][field] = +value;
+  // Editing the age number directly means the pinned date picker no longer necessarily matches it.
+  if (field === 'age') futureExpenses[i].dateValue = null;
   if (field === 'recurring') renderFutureExpenseRows();
   render();
 }
@@ -1227,6 +1270,7 @@ function ageToMonthYear(currentAge, targetAge) {
 function setFutureExpenseAgeFromDate(i, monthVal) {
   if (!monthVal) return;
   futureExpenses[i].age = monthToAge(monthVal, +els('currentAge').value);
+  futureExpenses[i].dateValue = monthVal;
   renderFutureExpenseRows();
   render();
 }
@@ -1241,7 +1285,7 @@ function renderWindfallRows() {
       <input type="text" value="${w.name||''}" placeholder="Description" oninput="updateWindfall(${i},'name',this.value)">
       <div class="age-cell">
         <input type="number" value="${w.age}" step="1" title="Your age when received" oninput="updateWindfall(${i},'age',this.value)">
-        <input type="month" title="Or pick a month/year" onchange="setWindfallAgeFromDate(${i}, this.value)">
+        <input type="month" value="${w.dateValue||''}" title="Or pick a month/year" onchange="setWindfallAgeFromDate(${i}, this.value)">
       </div>
       <input type="number" value="${w.amount}" step="1000" title="Amount ($)" oninput="updateWindfall(${i},'amount',this.value)">
       <select onchange="updateWindfall(${i},'destination',this.value)">
@@ -1254,6 +1298,7 @@ function renderWindfallRows() {
 }
 function updateWindfall(i, field, value) {
   windfalls[i][field] = (field==='age'||field==='amount') ? +value : value;
+  if (field === 'age') windfalls[i].dateValue = null;
   render();
 }
 function addWindfall() { windfalls.push({ name:'New windfall', age:60, amount:10000, destination:'Brokerage' }); renderWindfallRows(); render(); }
@@ -1261,6 +1306,7 @@ function removeWindfall(i) { windfalls.splice(i,1); renderWindfallRows(); render
 function setWindfallAgeFromDate(i, monthVal) {
   if (!monthVal) return;
   windfalls[i].age = monthToAge(monthVal, +els('currentAge').value);
+  windfalls[i].dateValue = monthVal;
   renderWindfallRows();
   render();
 }
@@ -1311,15 +1357,31 @@ function renderBrokeragePieRows() {
     </div>
   `).join('');
   els('brokeragePieTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.balance||0), 0));
+  renderExcessIncomeDestinationOptions();
 }
 function updateBrokeragePie(i, field, value) {
   brokeragePies[i][field] = field==='balance' ? +value : value;
   els('brokeragePieTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.balance||0), 0));
-  if (field === 'name') renderPieContributionRows();
+  if (field === 'name') { renderPieContributionRows(); renderExcessIncomeDestinationOptions(); }
   render();
 }
 function addBrokeragePie() { brokeragePies.push({ name:'New pie', balance:1000, contribution:0 }); renderBrokeragePieRows(); renderPieContributionRows(); render(); }
 function removeBrokeragePie(i) { brokeragePies.splice(i,1); renderBrokeragePieRows(); renderPieContributionRows(); render(); }
+
+// ---------- Excess income savings destination: a single named pie (e.g. a cash-like SGOV pie), not spread across all pies ----------
+let excessIncomeDestinationPieName = '';
+function renderExcessIncomeDestinationOptions() {
+  const sel = els('excessIncomeDestinationPie');
+  if (!sel) return;
+  if (!brokeragePies.some(p => p.name === excessIncomeDestinationPieName) && brokeragePies.length) {
+    excessIncomeDestinationPieName = brokeragePies[0].name;
+  }
+  sel.innerHTML = brokeragePies.map((p,i) => `<option value="${p.name}" ${p.name===excessIncomeDestinationPieName?'selected':''}>${p.name || 'Pie '+(i+1)}</option>`).join('');
+}
+function updateExcessIncomeDestination(name) {
+  excessIncomeDestinationPieName = name;
+  render();
+}
 
 // ---------- Per-pie monthly contributions (Income & Contributions page; shares brokeragePies array) ----------
 function renderPieContributionRows() {
@@ -1569,6 +1631,7 @@ function readInputs() {
     rothPct: +els('rothTSPPct').value/100,
     matchCapPct: +els('matchPct').value/100,
     excessIncomeSavingsPct: +els('excessIncomeSavingsPct').value/100,
+    excessIncomeDestinationPieName: excessIncomeDestinationPieName,
     insurancePremiumMonthly: insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0),
     brokeragePieBalances: brokeragePies.map(p => +p.balance || 0),
     brokeragePieContributionsMonthly: brokeragePies.map(p => +p.contribution || 0),
@@ -1590,6 +1653,19 @@ function readInputs() {
     ssAge: +els('ssAge').value,
     pensionAnnual: +els('pensionAnnual').value,
     pensionGrowth: +els('pensionGrowth').value/100,
+    pension2Annual: +els('pension2Annual').value,
+    pension2Growth: +els('pension2Growth').value/100,
+    pension2Age: +els('pension2Age').value,
+    survivorshipDeathAge: +els('survivorshipDeathAge').value || 0,
+    survivorSpendingPct: +els('survivorSpendingPct').value/100 || 1,
+    sbp1Enabled: els('sbp1Enabled').checked,
+    sbp1Annual: +els('sbp1MonthlyAnnuity').value * 12,
+    sbp1PremiumMonthly: +els('sbp1PremiumMonthly').value,
+    sbp2Enabled: els('sbp2Enabled').checked,
+    sbp2Annual: +els('sbp2MonthlyAnnuity').value * 12,
+    sbp2PremiumMonthly: +els('sbp2PremiumMonthly').value,
+    dicEligible: els('dicEligible').checked,
+    dicMonthlyAmount: +els('dicMonthlyAmount').value,
     vaDisabilityAnnual: +els('vaDisabilityAnnual').value,
     vaDisabilityGrowth: +els('vaDisabilityGrowth').value/100,
     vaDisabilityAge: +els('vaDisabilityAge').value,
@@ -1739,6 +1815,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
     const medicalInflator = Math.pow(1+inputs.medicalInflation, y);
     const ssInflator = Math.pow(1+inputs.ssCola, y);
     const pensionInflator = Math.pow(1+inputs.pensionGrowth, y);
+    const pension2Inflator = Math.pow(1+inputs.pension2Growth, y);
     const vaInflator = Math.pow(1+inputs.vaDisabilityGrowth, y);
     const annuityInflator = Math.pow(1+inputs.annuityGrowth, y);
     let housingCost;
@@ -1750,7 +1827,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // Insurance policy premiums (from the Insurance page) grow with General Inflation and apply in every year, not just retirement.
     const insurancePremiumAnnual = (inputs.insurancePremiumMonthly || 0) * 12 * inflator;
 
-    let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, vaDisabilityAmount=0, annuityAmount=0;
+    let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, pension2Amount=0, vaDisabilityAmount=0, annuityAmount=0, sbpAmount=0, dicAmount=0;
     let fedMarginal=null, ltcgMarginal=null;
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
     let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0;
@@ -1779,7 +1856,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
         const pieContribThisYear = (+pieContribsMonthly[i] || 0) * 12 * Math.pow(1+inputs.incomeGrowth, y);
         balBrokeragePies[i] = balBrokeragePies[i]*(1+preR) + pieContribThisYear;
       }
-      applyPooledDelta(balBrokeragePies, excessIncomeSaved);
+      // Excess income goes entirely into the single chosen pie (e.g. a cash-like SGOV pie), not spread across all pies.
+      const excessDestIdx = brokeragePies.findIndex(p => p.name === inputs.excessIncomeDestinationPieName);
+      if (excessDestIdx >= 0 && excessDestIdx < balBrokeragePies.length) balBrokeragePies[excessDestIdx] += excessIncomeSaved;
+      else applyPooledDelta(balBrokeragePies, excessIncomeSaved);
       balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate); balHYSA *= (1+inputs.hysaRate);
     } else {
       if (investableAtRetirement === null) {
@@ -1790,6 +1870,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const postR = (shocks.post && shocks.post[yearsSinceRetirement] !== undefined) ? shocks.post[yearsSinceRetirement]
         : (randomize ? randNormal(inputs.postReturn, inputs.postStdev) : inputs.postReturn);
       const spendMult = inputs.spendingMultiplier || 1;
+      // Survivorship what-if (Explorers page only, gated on inputs.survivorshipEnabled which the main plan never sets):
+      // once past the assumed age the primary member predeceases the spouse, pension(s)/VA disability/spousal SS stop
+      // and SBP/DIC (if configured) take over instead.
+      const survivorshipActive = !!(inputs.survivorshipEnabled && inputs.survivorshipDeathAge && age >= inputs.survivorshipDeathAge);
       // Healthcare coverage: Tricare covers whichever of you hasn't yet reached Medicare age; each of you separately
       // picks up a Part B premium once you individually reach Medicare age (no Part D for either of you).
       const userOnMedicare = age >= inputs.medicareAge;
@@ -1804,18 +1888,32 @@ function projectRun(inputs, ctx, randomize, shocks) {
       medicalCostAnnual = medicarePremiumBase * medicalInflator;
       expensesCategoriesAnnual = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) * spendMult;
       const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
-      let totalSpending = expensesInflated + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
+      // SBP premiums (survivorship what-if only) are paid while both are alive in that scenario and stop once
+      // survivorship kicks in (the retiree's own pay, which funded the premium, has stopped).
+      const sbpPremiumAnnual = (inputs.survivorshipEnabled && !survivorshipActive)
+        ? ((inputs.sbp1Enabled ? inputs.sbp1PremiumMonthly : 0) + (inputs.sbp2Enabled ? inputs.sbp2PremiumMonthly : 0)) * 12 * inflator : 0;
+      let totalSpending = expensesInflated + housingCost + debtPaymentThisYear + insurancePremiumAnnual + sbpPremiumAnnual;
+      if (survivorshipActive && inputs.survivorSpendingPct) totalSpending *= inputs.survivorSpendingPct;
 
       ssAmount = age >= inputs.ssAge ? inputs.ssMonthly*12*ssInflator : 0;
       spousalBenefit = (!inputs.spouseWorks && age >= ctx.effectiveSpousalStartAge) ? inputs.ssMonthly*inputs.spousalPct*12*ssInflator : 0;
       pensionAmount = age >= inputs.pensionAge ? inputs.pensionAnnual*pensionInflator : 0;
+      pension2Amount = age >= inputs.pension2Age ? inputs.pension2Annual*pension2Inflator : 0;
       vaDisabilityAmount = age >= inputs.vaDisabilityAge ? inputs.vaDisabilityAnnual*vaInflator : 0;
       annuityAmount = age >= inputs.annuityStartAge ? inputs.annuityMonthly*12*annuityInflator : 0;
-      guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + vaDisabilityAmount + annuityAmount;
+      if (survivorshipActive) {
+        // Pension(s) and VA disability stopped with the primary member's death; the ~50% spousal SS rate is
+        // replaced by the full 100% survivor benefit (already what ssAmount computes, so it's left as-is and
+        // spousalBenefit is zeroed instead of double-counting both).
+        pensionAmount = 0; pension2Amount = 0; vaDisabilityAmount = 0; spousalBenefit = 0;
+        sbpAmount = (inputs.sbp1Enabled ? inputs.sbp1Annual*pensionInflator : 0) + (inputs.sbp2Enabled ? inputs.sbp2Annual*pension2Inflator : 0);
+        dicAmount = inputs.dicEligible ? inputs.dicMonthlyAmount*12*ssInflator : 0;
+      }
+      guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + pension2Amount + vaDisabilityAmount + annuityAmount + sbpAmount + dicAmount;
 
       // Real federal marginal brackets (2026 MFJ) + Idaho's flat state rate.
-      // SS/spousal benefit treated as 85% taxable; VA disability excluded (tax-free); pension/annuity fully taxable.
-      const taxableGuaranteed = 0.85*(ssAmount+spousalBenefit) + pensionAmount + annuityAmount;
+      // SS/spousal benefit treated as 85% taxable; VA disability and DIC excluded (tax-free); pensions/annuity/SBP fully taxable.
+      const taxableGuaranteed = 0.85*(ssAmount+spousalBenefit) + pensionAmount + pension2Amount + annuityAmount + sbpAmount;
       const taxableBeforeWithdrawal = Math.max(0, taxableGuaranteed - inputs.stdDeduction);
       // Guaranteed income doesn't arrive tax-free — actual federal + Idaho tax owed on it (progressive, using the
       // standard deduction) is deducted before comparing it against spending, instead of treating it at face value.
@@ -1901,7 +1999,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       rows.push({
         age, spouseAge: age - ctx.ageGap, income: age < inputs.retirementAge ? income : null,
         contributions, tradContribOut, rothContribOut, matchContribOut,
-        guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, vaDisabilityAmount, annuityAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
+        guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, pension2Amount, vaDisabilityAmount, annuityAmount, sbpAmount, dicAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
         medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual,
         fedMarginalRate: age >= inputs.retirementAge ? fedMarginal : null, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null
@@ -2038,8 +2136,8 @@ function buildChartConfig(pageId, snap) {
       return barConfig(labels.length?labels:['No expenses logged'], labels.length?labels.map(l=>byCat[l]):[0], { horizontal:true });
     }
     case 'guaranteed':
-      return barConfig(['Your Social Security','Spousal Benefit','Military Pension','VA Disability'],
-        [snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.vaDisabilityAtRetirement], { horizontal:true });
+      return barConfig(['Your Social Security','Spousal Benefit','Pension 1','Pension 2','VA Disability'],
+        [snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.pension2AtRetirement, snap.vaDisabilityAtRetirement], { horizontal:true });
     case 'taxes':
       return barConfig(['Gross withdrawn from accounts','Net spending covered'], [snap.grossWithdrawalFirstYear, snap.netSpendingFirstYear]);
     case 'gap':
@@ -2147,7 +2245,8 @@ function buildYearlyChartConfig(pageId, snap) {
       return yearlyBarConfig(ages, [
         { label: 'Social Security (SS COLA)', data: rows.map(r => d(r.ssAmount, r.age)) },
         { label: 'Spousal Benefit (SS COLA)', data: rows.map(r => d(r.spousalBenefit, r.age)) },
-        { label: 'Pension (own yearly increase %)', data: rows.map(r => d(r.pensionAmount, r.age)) },
+        { label: 'Pension 1 (own yearly increase %)', data: rows.map(r => d(r.pensionAmount, r.age)) },
+        { label: 'Pension 2 (own yearly increase %)', data: rows.map(r => d(r.pension2Amount, r.age)) },
         { label: 'VA Disability (own yearly increase %)', data: rows.map(r => d(r.vaDisabilityAmount, r.age)) },
         { label: 'Annuity (own yearly increase %)', data: rows.map(r => d(r.annuityAmount, r.age)) }
       ], { stacked: true });
@@ -2222,6 +2321,12 @@ function renderExplorers() {
   const inputs = readInputs();
   const ctx = buildContext(inputs);
   const whatIf = WHAT_IF_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
+  // Survivorship (SBP/DIC) is a dynamically-named what-if, shown only once an assumed death age is set on the
+  // Guaranteed Income page. It's never enabled in the baseline plan or the Monte Carlo confidence score.
+  if (inputs.survivorshipDeathAge > 0) {
+    const survivorshipScenario = { name: `You predecease your spouse at age ${inputs.survivorshipDeathAge} (SBP + DIC)`, apply: inp => ({ ...inp, survivorshipEnabled: true }) };
+    whatIf.push(runExplorerScenario(survivorshipScenario, inputs, ctx));
+  }
   const marketRisk = MARKET_RISK_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
 
   const rowsHtml = list => list.map(r => `
@@ -2343,7 +2448,7 @@ function buildPlanSummaryForAI() {
   return `Household: user age ${inputs.currentAge}, retiring at ${inputs.retirementAge}, spouse age ${inputs.spouseCurrentAge}. Idaho resident.
 Investable balance at retirement: ${fmtMoney(result.investableAtRetirement)}. Confidence score: ${Math.round(score)}%. ${result.depletionAge ? 'Portfolio depletes at age '+result.depletionAge+'.' : 'Portfolio lasts through age '+ctx.effectiveLifeExpectancy+'.'}
 Traditional TSP: ${fmtMoney(inputs.tradTSPBalance)}, Roth TSP: ${fmtMoney(inputs.rothTSPBalance)}, Brokerage: ${fmtMoney(inputs.brokerageBalance)}, Cash: ${fmtMoney(inputs.checkingBalance+inputs.savingsBalance+inputs.hysaBalance)}.
-Guaranteed income: SS $${inputs.ssMonthly}/mo at ${inputs.ssAge}, pension $${inputs.pensionAnnual}/yr, VA disability $${inputs.vaDisabilityAnnual}/yr (tax-free), annuity $${inputs.annuityMonthly}/mo at ${inputs.annuityStartAge}.
+Guaranteed income: SS $${inputs.ssMonthly}/mo at ${inputs.ssAge}, pension 1 $${inputs.pensionAnnual}/yr, pension 2 $${inputs.pension2Annual}/yr, VA disability $${inputs.vaDisabilityAnnual}/yr (tax-free), annuity $${inputs.annuityMonthly}/mo at ${inputs.annuityStartAge}.
 Monthly recurring expenses total: ${fmtMoney(expenses.reduce((s,e)=>s+(+e.amount||0),0))}. Rent: $${inputs.rentMonthly}/mo. Debt: ${debts.map(d=>`${d.name} $${d.balance} at ${d.apr}% APR, $${d.payment}/mo`).join('; ') || 'none'}.
 Rule of 55 assumption: ${inputs.ruleOf55Applies ? 'on (no early withdrawal penalty)' : 'off (10% penalty before 59.5)'}.`;
 }
@@ -2704,6 +2809,7 @@ function render() {
     ssAtRetirement: rowAtRetirement ? rowAtRetirement.ssAmount : 0,
     spousalAtRetirement: rowAtRetirement ? rowAtRetirement.spousalBenefit : 0,
     pensionAtRetirement: rowAtRetirement ? rowAtRetirement.pensionAmount : 0,
+    pension2AtRetirement: rowAtRetirement ? rowAtRetirement.pension2Amount : 0,
     vaDisabilityAtRetirement: rowAtRetirement ? rowAtRetirement.vaDisabilityAmount : 0,
     grossWithdrawalFirstYear: rowAtRetirement ? rowAtRetirement.grossWithdrawal : 0,
     netSpendingFirstYear: rowAtRetirement ? rowAtRetirement.withdrawal : 0,
