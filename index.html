@@ -711,18 +711,9 @@
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Housing (Housing page)</span><span id="combinedHousing">$0/mo</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Debt payments (Debt page)</span><span id="combinedDebt">$0/mo</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Insurance premiums (Insurance page)</span><span id="combinedInsurance">$0/mo</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivorship (what-if only, Survivorship page)</span><span id="combinedSurvivorship">Not set</span></div>
         <div class="total-row"><span>Combined monthly total</span><span id="combinedGrandTotal">$0/mo</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This card only displays numbers already entered elsewhere — it doesn't add anything to the projection itself. Housing shows today's rent (or mortgage + property tax/insurance once you buy, if that's modeled); Debt shows today's monthly loan payments; Insurance shows today's premium total. Each is counted exactly once in the Monte Carlo engine, from its own page — not from this card.</p>
-      </div>
-
-      <div class="card">
-        <h3 onclick="toggleCard(this)">Survivorship<span class="sub-label">Tracking only — set on the Survivorship page; shown here for reference. Not part of this page's totals, and doesn't affect your main plan or Monte Carlo score.</span></h3>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Assumed age you predecease your spouse</span><span id="trackSurvivorshipAge">Not set</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Spouse's spending after (% of normal)</span><span id="trackSurvivorSpendingPct">100%</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP on Pension 1 (Military)</span><span id="trackSbp1">Not elected</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span id="trackSbp2">Not elected</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span id="trackDic">Not eligible</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Edit these on the <b>Survivorship</b> page. This is a what-if scenario that only shows up on the Explorers page — it never changes your baseline plan or confidence score.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This card only displays numbers already entered elsewhere — it doesn't add anything to the projection itself. Housing shows today's rent (or mortgage + property tax/insurance once you buy, if that's modeled); Debt shows today's monthly loan payments; Insurance shows today's premium total. Each is counted exactly once in the Monte Carlo engine, from its own page — not from this card. Survivorship is a what-if only — it's never part of the combined monthly total above, since it doesn't apply to your baseline plan.</p>
       </div>
 
       <div class="card">
@@ -739,6 +730,16 @@
         <div class="row-list" id="futureExpenseRows"></div>
         <button class="add-btn" onclick="addFutureExpense()">+ Add future expense</button>
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">One-time items hit once at the age you set; "Yearly until" repeats every year from that age through the end age, both grown by General Inflation.</p>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Survivorship<span class="sub-label">Tracking only — set on the Survivorship page; shown here for reference. Not part of this page's totals, and doesn't affect your main plan or Monte Carlo score.</span></h3>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Assumed age you predecease your spouse</span><span id="trackSurvivorshipAge">Not set</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Spouse's spending after (% of normal)</span><span id="trackSurvivorSpendingPct">100%</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP on Pension 1 (Military)</span><span id="trackSbp1">Not elected</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span id="trackSbp2">Not elected</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span id="trackDic">Not eligible</span></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Edit these on the <b>Survivorship</b> page. This is a what-if scenario that only shows up on the Explorers page — it never changes your baseline plan or confidence score.</p>
       </div>
     </div>
 
@@ -1328,7 +1329,7 @@ function renderSurvivorshipTrackingCard(inputs) {
   els('trackDic').textContent = inputs.dicEligible ? (fmtMoney(inputs.dicMonthlyAmount) + '/mo') : 'Not eligible';
 }
 
-function renderCombinedExpensesCard(rows) {
+function renderCombinedExpensesCard(rows, inputs) {
   if (!els('combinedGrandTotal')) return;
   const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
   const debtMonthly = debts.reduce((s,d) => s + (+d.payment || 0), 0);
@@ -1339,6 +1340,16 @@ function renderCombinedExpensesCard(rows) {
   els('combinedDebt').textContent = fmtMoney(debtMonthly) + '/mo';
   els('combinedInsurance').textContent = fmtMoney(insuranceMonthly) + '/mo';
   els('combinedGrandTotal').textContent = fmtMoney(expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly) + '/mo';
+  if (els('combinedSurvivorship') && inputs) {
+    if (inputs.survivorshipDeathAge > 0) {
+      const survivorshipMonthly = (inputs.sbp1Enabled ? inputs.sbp1Annual/12 : 0)
+        + (inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0)
+        + (inputs.dicEligible ? inputs.dicMonthlyAmount : 0);
+      els('combinedSurvivorship').textContent = fmtMoney(survivorshipMonthly) + '/mo if triggered at age ' + inputs.survivorshipDeathAge;
+    } else {
+      els('combinedSurvivorship').textContent = 'Not set';
+    }
+  }
 }
 
 // ---------- Future / one-time planned expenses (dynamic rows) ----------
@@ -2838,7 +2849,7 @@ function render() {
   renderDebtPayoffPlan(inputs, ctx);
   renderGapTable(rows, inputs, retirementAge);
   renderWithdrawalOrderRows();
-  renderCombinedExpensesCard(rows);
+  renderCombinedExpensesCard(rows, inputs);
   renderSurvivorshipTrackingCard(inputs);
 
   const totalCurrentAssets = inputs.tradTSPBalance + inputs.rothTSPBalance + inputs.brokerageBalance
