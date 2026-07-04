@@ -446,6 +446,39 @@
       </div>
 
       <div class="card">
+        <h3>Pensions &amp; VA Disability</h3>
+        <div class="mini-label">Pension 1 — Military</div>
+        <div class="three-col">
+          <div class="field"><label>Pension 1 ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
+          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90">
+            <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
+            <div id="pensionAgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>Pension yearly increase (%)</label><input type="number" id="pensionGrowth" value="2.5" step="0.1"></div>
+        </div>
+        <div class="mini-label">Government Civil Service</div>
+        <div class="three-col">
+          <div class="field"><label>Government Civil Service Pension ($/yr, today's $)</label><input type="number" id="pension2Annual" value="11148" step="1"></div>
+          <div class="field"><label>Government Civil Service Pension start age</label><input type="number" id="pension2Age" value="62" min="40" max="90">
+            <input type="month" id="pension2AgeDate" class="age-date-input" value="2035-11" oninput="syncAgeDate('pension2AgeDate','pension2Age','pension2AgeDateHint','currentAge')">
+            <div id="pension2AgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>Government Civil Service Pension yearly increase (%)</label><input type="number" id="pension2Growth" value="2.5" step="0.1"></div>
+        </div>
+        <hr class="divider">
+        <div class="mini-label">VA Disability</div>
+        <div class="three-col">
+          <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
+          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90">
+            <input type="month" id="vaDisabilityAgeDate" class="age-date-input" oninput="syncAgeDate('vaDisabilityAgeDate','vaDisabilityAge','vaDisabilityAgeDateHint','currentAge')">
+            <div id="vaDisabilityAgeDateHint" class="age-date-hint"></div>
+          </div>
+          <div class="field"><label>VA yearly increase (%)</label><input type="number" id="vaDisabilityGrowth" value="2.5" step="0.1"></div>
+        </div>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both pensions and VA disability are treated as already active today if their start age is at or before your current age. Federal + Idaho income tax applies to both pensions before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page) — VA disability stays fully tax-free.</p>
+      </div>
+
+      <div class="card">
         <h3>Investment Contributions<span class="sub-label">How much goes in each pay period</span></h3>
         <div class="two-col">
           <div class="field"><label>Traditional TSP (% of income)</label><input type="number" id="tradTSPPct" value="11" step="0.5"></div>
@@ -487,7 +520,7 @@
         <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split proportionally across all the accounts above by their balance that year — the order numbers stop mattering, since every account participates at once.</p>
       </div>
 
-      <div class="note">Guaranteed Income — Social Security, spousal benefit, up to two pensions, VA disability, and annuity — each with its own yearly increase rate. SS and the spousal benefit grow using Social Security COLA (set on the Assumptions page); each pension, VA disability, and the annuity each have their own editable yearly increase % below.</div>
+      <div class="note">Guaranteed Income — Social Security, spousal benefit, and annuity below, each with its own yearly increase rate (SS and the spousal benefit grow using Social Security COLA, set on the Assumptions page). Pensions and VA disability are in the Pensions &amp; VA Disability card near the top of this page.</div>
       <div class="mini-chart-card"><canvas id="chart_guaranteed"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Guaranteed income by year</div><canvas id="chart_guaranteed_yearly"></canvas></div>
 
@@ -508,34 +541,6 @@
           </div>
         </div>
         <hr class="divider">
-        <div class="mini-label">Pension 1 — Military</div>
-        <div class="three-col">
-          <div class="field"><label>Pension 1 ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
-          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90">
-            <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
-            <div id="pensionAgeDateHint" class="age-date-hint"></div>
-          </div>
-          <div class="field"><label>Pension yearly increase (%)</label><input type="number" id="pensionGrowth" value="2.5" step="0.1"></div>
-        </div>
-        <div class="mini-label">Government Civil Service</div>
-        <div class="three-col">
-          <div class="field"><label>Government Civil Service Pension ($/yr, today's $)</label><input type="number" id="pension2Annual" value="11148" step="1"></div>
-          <div class="field"><label>Government Civil Service Pension start age</label><input type="number" id="pension2Age" value="62" min="40" max="90">
-            <input type="month" id="pension2AgeDate" class="age-date-input" value="2035-11" oninput="syncAgeDate('pension2AgeDate','pension2Age','pension2AgeDateHint','currentAge')">
-            <div id="pension2AgeDateHint" class="age-date-hint"></div>
-          </div>
-          <div class="field"><label>Government Civil Service Pension yearly increase (%)</label><input type="number" id="pension2Growth" value="2.5" step="0.1"></div>
-        </div>
-        <hr class="divider">
-        <div class="three-col">
-          <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
-          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90">
-            <input type="month" id="vaDisabilityAgeDate" class="age-date-input" oninput="syncAgeDate('vaDisabilityAgeDate','vaDisabilityAge','vaDisabilityAgeDateHint','currentAge')">
-            <div id="vaDisabilityAgeDateHint" class="age-date-hint"></div>
-          </div>
-          <div class="field"><label>VA yearly increase (%)</label><input type="number" id="vaDisabilityGrowth" value="2.5" step="0.1"></div>
-        </div>
-        <hr class="divider">
         <div class="mini-label">Annuity</div>
         <div class="three-col">
           <div class="field"><label>Annuity payout ($/mo, today's $)</label><input type="number" id="annuityMonthly" value="0" step="50"></div>
@@ -545,7 +550,7 @@
           </div>
           <div class="field"><label>Annuity yearly increase (%)</label><input type="number" id="annuityGrowth" value="0" step="0.1"></div>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both pensions and VA disability are treated as already active today if their start age is at or before your current age. Federal + Idaho income tax is applied to Social Security (85%), both pensions, and the annuity before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page) — VA disability stays fully tax-free.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Social Security (85%) and the annuity are taxed (Federal + Idaho) before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page). Pensions and VA disability are set in the Pensions &amp; VA Disability card near the top of this page — VA disability stays fully tax-free.</p>
       </div>
 
       <div class="card">
