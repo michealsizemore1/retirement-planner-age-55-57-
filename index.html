@@ -460,6 +460,8 @@
       <div class="mini-chart-card"><canvas id="chart_income"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income by year</div><canvas id="chart_income_yearly"></canvas></div>
 
+      <div class="note" style="margin-top:0;">At retirement, guaranteed income vs. spending nets to a <b><span id="incomePageSurplusNote">—</span></b> surplus/(gap), with <b><span id="incomePageWithdrawalNote">—</span></b> drawn from your accounts that year. Full year-by-year surplus/gap and withdrawal detail (with its own charts) is on the <b>Income Gap &amp; Withdrawals</b> page.</div>
+
       <div class="card">
         <h3 onclick="toggleCard(this)">Income</h3>
         <div class="field"><label>Current annual job income ($)</label><input type="number" id="currentIncome" value="77432" step="1"></div>
@@ -704,6 +706,8 @@
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><canvas id="chart_expenses_yearly"></canvas></div>
 
       <div class="note" style="margin-top:0;">Don't add rent/mortgage here — that's on the <b>Housing</b> page. Don't add TSP/brokerage contributions here either — those are on <b>Money Flows</b>. This page is for everything else that isn't already covered elsewhere, so nothing gets double-counted.</div>
+
+      <div class="note">At retirement, total spending vs. guaranteed income nets to a <b><span id="expensesPageSurplusNote">—</span></b> surplus/(gap), with <b><span id="expensesPageWithdrawalNote">—</span></b> drawn from your accounts that year. Full year-by-year surplus/gap and withdrawal detail (with its own charts) is on the <b>Income Gap &amp; Withdrawals</b> page.</div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">All Household Expenses<span class="sub-label">Combined view only — each item is still entered and edited on its own page; this just lets you see them side by side</span></h3>
@@ -2877,6 +2881,14 @@ function render() {
   const firstYearGuaranteed = rowAtRetirement ? (rowAtRetirement.guaranteedIncomeAfterTax != null ? rowAtRetirement.guaranteedIncomeAfterTax : rowAtRetirement.guaranteedIncome) : 0;
   const firstYearSpending = rowAtRetirement ? rowAtRetirement.spending : (ctx.expensesTotal + inputs.rentMonthly*12);
   const gapToday = Math.max(0, firstYearSpending - firstYearGuaranteed);
+
+  // Small reference notes on the Income and Expenses pages, pointing back at the full
+  // Surplus/(Gap) and withdrawal detail that lives on the Income Gap & Withdrawals page.
+  const surplusSigned = firstYearGuaranteed - firstYearSpending;
+  const surplusText = fmtMoney(dv(Math.abs(surplusSigned), retirementAge, inputs)) + (surplusSigned >= 0 ? ' surplus' : ' gap');
+  const withdrawalText = fmtMoney(dv(rowAtRetirement ? rowAtRetirement.grossWithdrawal : 0, retirementAge, inputs));
+  ['incomePageSurplusNote','expensesPageSurplusNote'].forEach(id => { if (els(id)) els(id).textContent = surplusText; });
+  ['incomePageWithdrawalNote','expensesPageWithdrawalNote'].forEach(id => { if (els(id)) els(id).textContent = withdrawalText; });
 
   els('statCards').innerHTML = `
     <div class="stat"><div class="label">Investable balance at retirement (age ${retirementAge})</div><div class="value">${fmtMoneyK(dv(investableAtRetirement, retirementAge, inputs))}</div></div>
