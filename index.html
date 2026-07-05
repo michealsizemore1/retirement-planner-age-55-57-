@@ -125,15 +125,15 @@
     border-radius:var(--radius);
     padding:16px 18px;
     margin-bottom:16px;
-    height:660px;
-    max-height:660px;
+    height:460px;
+    max-height:460px;
     display:flex;
     flex-direction:column;
   }
   .mini-chart-card .mini-label{flex:0 0 auto;}
   .mini-chart-card .chart-range-nav{flex:0 0 auto;}
   .mini-chart-card canvas{flex:1 1 auto; min-height:0; max-height:none;}
-  .mini-chart-card.chart-horizontal{height:330px; max-height:330px;}
+  .mini-chart-card.chart-horizontal{height:230px; max-height:230px;}
 
   .chart-range-nav{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px;}
   .range-nav-btn{
@@ -406,7 +406,7 @@
         <h2>Projected Balances<span id="dollarModeNote" style="font-size:16.5px; font-weight:400; color:var(--muted);"></span></h2>
         <p class="sub">Investable accounts (TSP + brokerage) grow, then draw down in retirement using your chosen Withdrawal Strategy (Money Flows page). Net worth adds cash, home equity, and subtracts debt.</p>
         <div class="chart-range-nav" data-chart="dashboard"><button class="range-nav-btn range-prev" onclick="chartRangeNav('dashboard','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('dashboard','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('dashboard','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="dashboard"></div>
-        <div style="height:780px; position:relative;">
+        <div style="height:540px; position:relative;">
           <canvas id="balanceChart"></canvas>
         </div>
         <div class="legend-note">
@@ -2339,7 +2339,10 @@ function buildChartConfig(pageId, snap) {
     case 'housing':
       return barConfig(['Current annual rent','Housing cost at retirement'], [snap.currentRentAnnual, snap.housingCostAtRetirement]);
     case 'expenses':
-      return barConfig(expenses.map(e=>e.category), expenses.map(e=>+e.amount||0), { horizontal:true });
+      return barConfig(
+        expenses.map(e => (e.category==='Utilities' || e.category==='Subscriptions') ? `${e.category}: ${e.name||'Unnamed'}` : e.category),
+        expenses.map(e=>+e.amount||0), { horizontal:true }
+      );
     case 'debt':
       return barConfig(debts.map(d=>d.name||d.category), debts.map(d=>+d.balance||0), { horizontal:true });
     case 'transactions': {
