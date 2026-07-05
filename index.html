@@ -125,13 +125,15 @@
     border-radius:var(--radius);
     padding:16px 18px;
     margin-bottom:16px;
-    min-height:380px;
+    height:660px;
+    max-height:660px;
     display:flex;
     flex-direction:column;
   }
   .mini-chart-card .mini-label{flex:0 0 auto;}
   .mini-chart-card .chart-range-nav{flex:0 0 auto;}
   .mini-chart-card canvas{flex:1 1 auto; min-height:0; max-height:none;}
+  .mini-chart-card.chart-horizontal{height:330px; max-height:330px;}
 
   .chart-range-nav{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px;}
   .range-nav-btn{
@@ -141,6 +143,11 @@
   .range-nav-btn.lifetime.active{background:var(--navy); color:#fff; border-color:var(--navy); font-weight:700;}
   .range-nav-btn:disabled{opacity:0.35; cursor:not-allowed;}
   .range-nav-btn:not(:disabled):hover{border-color:var(--teal); color:var(--teal);}
+  .range-readout{
+    display:none; flex:0 0 auto; text-align:center; font-size:14px; font-weight:600; color:var(--navy);
+    background:#f4f7fa; border:1px solid var(--border); border-radius:8px;
+    padding:6px 10px; margin:-4px 0 12px; line-height:1.5;
+  }
 
   .card{
     background:var(--card);
@@ -398,8 +405,8 @@
       <div class="chart-wrap">
         <h2>Projected Balances<span id="dollarModeNote" style="font-size:16.5px; font-weight:400; color:var(--muted);"></span></h2>
         <p class="sub">Investable accounts (TSP + brokerage) grow, then draw down in retirement using your chosen Withdrawal Strategy (Money Flows page). Net worth adds cash, home equity, and subtracts debt.</p>
-        <div class="chart-range-nav" data-chart="dashboard"><button class="range-nav-btn range-prev" onclick="chartRangeNav('dashboard','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('dashboard','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('dashboard','next')"><span class="range-nav-label">Age</span> »</button></div>
-        <div style="height:460px; position:relative;">
+        <div class="chart-range-nav" data-chart="dashboard"><button class="range-nav-btn range-prev" onclick="chartRangeNav('dashboard','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('dashboard','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('dashboard','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="dashboard"></div>
+        <div style="height:780px; position:relative;">
           <canvas id="balanceChart"></canvas>
         </div>
         <div class="legend-note">
@@ -473,8 +480,8 @@
     <div class="page" data-page="income">
       <div class="page-header"><h2>Income</h2><p>What comes in — job income, pensions, VA disability, Social Security, and annuity. How it's invested and withdrawn lives on the <b>Money Flows</b> page.</p></div>
 
-      <div class="mini-chart-card"><canvas id="chart_income"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income by year</div><div class="chart-range-nav" data-chart="income_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('income_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('income_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('income_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_income_yearly"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><canvas id="chart_income"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income by year</div><div class="chart-range-nav" data-chart="income_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('income_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('income_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('income_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="income_yearly"></div><canvas id="chart_income_yearly"></canvas></div>
 
       <div class="note" style="margin-top:0;">At retirement, guaranteed income vs. spending nets to a <b><span id="incomePageSurplusNote">—</span></b> surplus/(gap), with <b><span id="incomePageWithdrawalNote">—</span></b> drawn from your accounts that year. Full year-by-year surplus/gap and withdrawal detail (with its own charts) is on the <b>Income Gap &amp; Withdrawals</b> page.</div>
 
@@ -593,8 +600,8 @@
     <div class="page" data-page="moneyflows">
       <div class="page-header"><h2>Money Flows</h2><p>How your paycheck gets invested each pay period, and how accounts get drawn down in retirement.</p></div>
       <div class="mini-chart-card"><canvas id="chart_moneyflows"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income &amp; contributions by year</div><div class="chart-range-nav" data-chart="moneyflows_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('moneyflows_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('moneyflows_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('moneyflows_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_moneyflows_yearly"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Brokerage contribution by portfolio</div><canvas id="chart_moneyflows_pies"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income &amp; contributions by year</div><div class="chart-range-nav" data-chart="moneyflows_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('moneyflows_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('moneyflows_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('moneyflows_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="moneyflows_yearly"></div><canvas id="chart_moneyflows_yearly"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Brokerage contribution by portfolio</div><canvas id="chart_moneyflows_pies"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Investment Contributions<span class="sub-label">How much goes in each pay period</span></h3>
@@ -643,7 +650,7 @@
     <div class="page" data-page="investments">
       <div class="page-header"><h2>Investments</h2><p>Current balances across your retirement and brokerage accounts.</p></div>
       <div class="mini-chart-card"><canvas id="chart_investments"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Brokerage balance by portfolio</div><canvas id="chart_investments_pies"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Brokerage balance by portfolio</div><canvas id="chart_investments_pies"></canvas></div>
 
       <div class="stat" style="margin-bottom:16px;"><div class="label">Total current assets (TSP + brokerage + cash)</div><div class="value" id="totalAssetsTile">$0</div></div>
 
@@ -682,7 +689,7 @@
     <div class="page" data-page="housing">
       <div class="page-header"><h2>Housing</h2><p>Currently renting — optionally model a future purchase.</p></div>
       <div class="mini-chart-card"><canvas id="chart_housing"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Housing cost by year</div><div class="chart-range-nav" data-chart="housing_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('housing_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('housing_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('housing_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_housing_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Housing cost by year</div><div class="chart-range-nav" data-chart="housing_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('housing_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('housing_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('housing_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="housing_yearly"></div><canvas id="chart_housing_yearly"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Housing</h3>
@@ -718,8 +725,8 @@
     <!-- ================= EXPENSES ================= -->
     <div class="page" data-page="expenses">
       <div class="page-header"><h2>Expenses</h2><p>Recurring monthly bills, in today's dollars. Amounts are entered monthly and annualized automatically for the projection. The Healthcare category grows using the Medical Inflation Rate (set on the Assumptions page); every other category uses General Inflation.</p></div>
-      <div class="mini-chart-card"><canvas id="chart_expenses"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><div class="chart-range-nav" data-chart="expenses_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('expenses_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('expenses_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('expenses_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_expenses_yearly"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><canvas id="chart_expenses"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><div class="chart-range-nav" data-chart="expenses_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('expenses_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('expenses_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('expenses_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="expenses_yearly"></div><canvas id="chart_expenses_yearly"></canvas></div>
 
       <div class="note" style="margin-top:0;">Don't add rent/mortgage here — that's on the <b>Housing</b> page. Don't add TSP/brokerage contributions here either — those are on <b>Money Flows</b>. This page is for everything else that isn't already covered elsewhere, so nothing gets double-counted.</div>
 
@@ -766,7 +773,7 @@
     <!-- ================= DEBT ================= -->
     <div class="page" data-page="debt">
       <div class="page-header"><h2>Debt</h2><p>Loans and balances, amortized and paid off over time.</p></div>
-      <div class="mini-chart-card"><canvas id="chart_debt"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><canvas id="chart_debt"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Debt</h3>
@@ -795,7 +802,7 @@
     <!-- ================= TRANSACTIONS ================= -->
     <div class="page" data-page="transactions">
       <div class="page-header"><h2>Transactions</h2><p>A log of actual account activity. This is a standalone ledger — it doesn't feed the projection, which runs on your Expenses assumptions instead.</p></div>
-      <div class="mini-chart-card"><canvas id="chart_transactions"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><canvas id="chart_transactions"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Recent Transactions</h3>
@@ -811,7 +818,7 @@
     <div class="page" data-page="gap">
       <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, both pensions, VA disability, annuity, after income tax — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
       <div class="mini-chart-card"><canvas id="chart_gap"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><div class="chart-range-nav" data-chart="gap_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('gap_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('gap_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('gap_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_gap_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><div class="chart-range-nav" data-chart="gap_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('gap_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('gap_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('gap_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="gap_yearly"></div><canvas id="chart_gap_yearly"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Year-by-Year Gap &amp; Withdrawals</h3>
@@ -829,7 +836,7 @@
     <div class="page" data-page="medical">
       <div class="page-header"><h2>Medical</h2><p>Healthcare premiums before and after Medicare eligibility — separate from the Healthcare category on the Expenses page, which is for extra out-of-pocket costs.</p></div>
       <div class="mini-chart-card"><canvas id="chart_medical"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums &amp; LTC cost by year</div><div class="chart-range-nav" data-chart="medical_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('medical_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('medical_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('medical_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_medical_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums &amp; LTC cost by year</div><div class="chart-range-nav" data-chart="medical_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('medical_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('medical_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('medical_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="medical_yearly"></div><canvas id="chart_medical_yearly"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Pre-Medicare — Tricare<span class="sub-label">Covers both of you until each of you reaches Medicare age</span></h3>
@@ -900,7 +907,7 @@
     <!-- ================= ESTATE PLANNING ================= -->
     <div class="page" data-page="estate">
       <div class="page-header"><h2>Estate Planning</h2><p>A checklist — informational, doesn't feed the projection math.</p></div>
-      <div class="mini-chart-card"><canvas id="chart_estate"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><canvas id="chart_estate"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Estate Planning Checklist</h3>
@@ -916,7 +923,7 @@
     <!-- ================= INSURANCE ================= -->
     <div class="page" data-page="insurance">
       <div class="page-header"><h2>Insurance</h2><p>A policy tracker. Total monthly premiums below are added to your spending every year (growing with General Inflation) in both the deterministic projection and the Monte Carlo simulation — coverage amounts are informational only.</p></div>
-      <div class="mini-chart-card"><canvas id="chart_insurance"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><canvas id="chart_insurance"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Insurance Policies</h3>
@@ -959,7 +966,7 @@
     <!-- ================= ASSUMPTIONS ================= -->
     <div class="page" data-page="assumptions">
       <div class="page-header"><h2>Assumptions &amp; Guardrails</h2><p>Growth, volatility, and how spending adapts to market performance.</p></div>
-      <div class="mini-chart-card"><canvas id="chart_assumptions"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><canvas id="chart_assumptions"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Growth Assumptions<span class="sub-label">Applies to TSP and brokerage</span></h3>
@@ -1001,7 +1008,7 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">What-If Scenarios<span class="sub-label">Single-lever changes to your plan</span></h3>
-        <div class="mini-chart-card"><canvas id="chart_whatif"></canvas></div>
+        <div class="mini-chart-card chart-horizontal"><canvas id="chart_whatif"></canvas></div>
         <div class="table-scroll">
           <table id="whatIfTable">
             <thead><tr><th>Scenario</th><th>Investable at Retirement</th><th>Ending Investable Balance</th><th>Ending Net Worth</th><th>Runs Out At</th><th>Confidence Score</th></tr></thead>
@@ -1012,7 +1019,7 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Market Risk Scenarios<span class="sub-label">Stress-tests using return shocks, weak markets, or high inflation</span></h3>
-        <div class="mini-chart-card"><canvas id="chart_marketrisk"></canvas></div>
+        <div class="mini-chart-card chart-horizontal"><canvas id="chart_marketrisk"></canvas></div>
         <div class="table-scroll">
           <table id="marketRiskTable">
             <thead><tr><th>Scenario</th><th>Investable at Retirement</th><th>Ending Investable Balance</th><th>Ending Net Worth</th><th>Runs Out At</th><th>Confidence Score</th></tr></thead>
@@ -2376,10 +2383,11 @@ function buildChartConfig(pageId, snap) {
 }
 
 // ---------- Chart range navigator (« Age X · Lifetime · Age X »), Boldin-style ----------
-// Lets you step a chart's x-axis through a fixed-size age window, or reset to the full lifetime view.
-// Purely a display/zoom control — never touches inputs, the plan, or the Monte Carlo score.
-const CHART_RANGE_WINDOW = 10; // years shown per "page" once zoomed in
-const chartRangeState = {}; // keyed by chart key: { zoomed, startAge }
+// The chart always shows the full lifetime timeline — this never zooms or hides any years.
+// Stepping with «/» just pins that single year's tooltip (all series' values), like a hover
+// that stays put; Lifetime un-pins it. Purely a display control — never touches inputs, the
+// plan, or the Monte Carlo score.
+const chartRangeState = {}; // keyed by chart key: { selectedAge } — null selectedAge = Lifetime (nothing pinned)
 
 function getProjectionAgeBounds() {
   const rows = lastSnapshot ? lastSnapshot.rows : null;
@@ -2387,19 +2395,36 @@ function getProjectionAgeBounds() {
   return [rows[0].age, rows[rows.length - 1].age];
 }
 
+// Finds the data-array index for a given age, whether the chart uses category labels
+// (yearly bar charts: labels like 'Age 62') or {x,y} points (the Dashboard line chart).
+function findAgeIndex(chart, age) {
+  if (chart.data.labels && chart.data.labels.length) {
+    return chart.data.labels.indexOf('Age ' + age);
+  }
+  const ds = chart.data.datasets && chart.data.datasets[0];
+  if (!ds || !ds.data) return -1;
+  return ds.data.findIndex(pt => pt && typeof pt === 'object' && pt.x === age);
+}
+
+// Maps a projection age to its calendar year, using the same currentAge anchor as the
+// Year-by-year detail table, so the range-nav indicator and that table always agree.
+function ageToCalendarYear(age) {
+  const currentAge = lastSnapshot && lastSnapshot.inputs ? lastSnapshot.inputs.currentAge : null;
+  if (currentAge == null) return null;
+  return new Date().getFullYear() + (age - currentAge);
+}
+
 function chartRangeNav(chartKey, action) {
   const [minAge, maxAge] = getProjectionAgeBounds();
-  const span = Math.min(CHART_RANGE_WINDOW, Math.max(1, maxAge - minAge));
-  if (!chartRangeState[chartKey]) chartRangeState[chartKey] = { zoomed: false, startAge: minAge };
+  if (!chartRangeState[chartKey]) chartRangeState[chartKey] = { selectedAge: null };
   const st = chartRangeState[chartKey];
   if (action === 'lifetime') {
-    st.zoomed = false;
-  } else if (!st.zoomed) {
-    st.zoomed = true;
-    st.startAge = action === 'next' ? minAge : Math.max(minAge, maxAge - span);
+    st.selectedAge = null;
+  } else if (st.selectedAge == null) {
+    st.selectedAge = action === 'next' ? maxAge : minAge;
   } else {
-    const delta = action === 'next' ? span : -span;
-    st.startAge = Math.min(Math.max(st.startAge + delta, minAge), Math.max(minAge, maxAge - span));
+    const delta = action === 'next' ? 1 : -1;
+    st.selectedAge = Math.min(Math.max(st.selectedAge + delta, minAge), maxAge);
   }
   applyChartRange(chartKey);
 }
@@ -2407,49 +2432,112 @@ function chartRangeNav(chartKey, action) {
 function applyChartRange(chartKey) {
   const chart = charts[chartKey];
   const [minAge, maxAge] = getProjectionAgeBounds();
-  const span = Math.min(CHART_RANGE_WINDOW, Math.max(1, maxAge - minAge));
-  if (!chartRangeState[chartKey]) chartRangeState[chartKey] = { zoomed: false, startAge: minAge };
+  if (!chartRangeState[chartKey]) chartRangeState[chartKey] = { selectedAge: null };
   const st = chartRangeState[chartKey];
-  const endAge = Math.min(st.startAge + span, maxAge);
-  if (chart && chart.options && chart.options.scales && chart.options.scales.x) {
-    if (!st.zoomed) {
-      delete chart.options.scales.x.min;
-      delete chart.options.scales.x.max;
-    } else if (chartKey === 'dashboard') {
-      chart.options.scales.x.min = st.startAge;
-      chart.options.scales.x.max = endAge;
-    } else {
-      chart.options.scales.x.min = 'Age ' + st.startAge;
-      chart.options.scales.x.max = 'Age ' + endAge;
+  // The «/»/Lifetime button labels and the readout text are our own state and DOM — they must
+  // always update no matter what. Pinning Chart.js's own tooltip is a nice-to-have on top, so
+  // it's isolated in a try/catch: if the Chart.js call throws or behaves oddly for a given
+  // chart/browser, that can no longer silently block the labels and readout from updating.
+  if (chart) {
+    try {
+      if (st.selectedAge == null) {
+        chart.setActiveElements([]);
+        if (chart.tooltip) chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+      } else {
+        const idx = findAgeIndex(chart, st.selectedAge);
+        if (idx > -1) {
+          const active = chart.data.datasets.map((_, datasetIndex) => ({ datasetIndex, index: idx }));
+          chart.setActiveElements(active);
+          // Anchor the tooltip at the real pixel position of the selected bar/point instead of
+          // the canvas corner (0,0) — pinning it at (0,0) worked out fine on a narrow phone
+          // screen but rendered the tooltip off in the corner, away from the data, on a wide
+          // desktop chart, which is why the selection looked like it "did nothing" on a PC.
+          let pos = { x: 0, y: 0 };
+          for (const el of active) {
+            const meta = chart.getDatasetMeta(el.datasetIndex);
+            const item = meta && meta.data && meta.data[el.index];
+            if (item) { pos = { x: item.x, y: item.y }; break; }
+          }
+          if (chart.tooltip) chart.tooltip.setActiveElements(active, pos);
+        }
+      }
+      chart.update();
+    } catch (err) {
+      console.error('Chart range-nav tooltip pin failed (labels/readout still updated):', err);
     }
-    chart.update();
   }
-  updateChartRangeUi(chartKey, minAge, maxAge, span);
+  updateRangeReadout(chartKey, chart);
+  updateChartRangeUi(chartKey, minAge, maxAge);
 }
 
-function updateChartRangeUi(chartKey, minAge, maxAge, span) {
+// Chart.js's programmatic tooltip pin (above) is a nice-to-have, but its rendering can be
+// finicky across browsers/screen sizes. This readout is the reliable source of truth for
+// "what did I select": it reads straight from the chart's own data and always shows correct
+// values for the selected year, independent of whether the Chart.js tooltip itself renders.
+function updateRangeReadout(chartKey, chart) {
+  const readout = document.querySelector(`.range-readout[data-chart="${chartKey}"]`);
+  if (!readout) return;
+  const st = chartRangeState[chartKey];
+  if (!st || st.selectedAge == null || !chart) {
+    readout.style.display = 'none';
+    readout.textContent = '';
+    return;
+  }
+  let idx = -1, parts = [];
+  try {
+    idx = findAgeIndex(chart, st.selectedAge);
+    if (idx > -1) {
+      parts = (chart.data.datasets || []).map(ds => {
+        const raw = ds.data[idx];
+        const val = raw && typeof raw === 'object' ? raw.y : raw;
+        return (ds.label || 'Value') + ': ' + (typeof val === 'number' ? fmtMoney(val) : '—');
+      });
+    }
+  } catch (err) {
+    console.error('Range readout failed to read chart data:', err);
+  }
+  if (idx < 0) {
+    readout.style.display = 'none';
+    readout.textContent = '';
+    return;
+  }
+  const yr = ageToCalendarYear(st.selectedAge);
+  const yearText = yr != null ? yr : ('Age ' + st.selectedAge);
+  readout.textContent = yearText + '  —  ' + parts.join('   ·   ');
+  readout.style.display = 'block';
+}
+
+function updateChartRangeUi(chartKey, minAge, maxAge) {
   const nav = document.querySelector(`.chart-range-nav[data-chart="${chartKey}"]`);
   if (!nav) return;
-  const st = chartRangeState[chartKey] || { zoomed: false, startAge: minAge };
-  const lifetimeBtn = nav.querySelector('.range-lifetime');
+  const st = chartRangeState[chartKey] || { selectedAge: null };
+  const lifetimeBtn = nav.querySelector('.lifetime');
   const prevBtn = nav.querySelector('.range-prev');
   const nextBtn = nav.querySelector('.range-next');
-  if (lifetimeBtn) lifetimeBtn.classList.toggle('active', !st.zoomed);
   const prevLabel = prevBtn ? prevBtn.querySelector('.range-nav-label') : null;
   const nextLabel = nextBtn ? nextBtn.querySelector('.range-nav-label') : null;
-  if (!st.zoomed) {
-    const windowStart = Math.max(minAge, maxAge - span);
-    if (prevLabel) prevLabel.textContent = 'Age ' + windowStart;
-    if (nextLabel) nextLabel.textContent = 'Age ' + windowStart;
+  // Once a year is selected, all three controls read as one consecutive run of calendar
+  // years (e.g. « 2039   2040   2041 »), so stepping prev/next always lands on the
+  // adjacent year shown right next to the button you clicked.
+  const yearLabel = (age) => {
+    const yr = ageToCalendarYear(age);
+    return yr != null ? String(yr) : 'Age ' + age;
+  };
+  if (lifetimeBtn) lifetimeBtn.textContent = 'Lifetime';
+  if (st.selectedAge == null) {
+    if (lifetimeBtn) lifetimeBtn.classList.add('active');
+    if (prevLabel) prevLabel.textContent = yearLabel(minAge);
+    if (nextLabel) nextLabel.textContent = yearLabel(maxAge);
     if (prevBtn) prevBtn.disabled = false;
     if (nextBtn) nextBtn.disabled = false;
   } else {
-    const prevStart = Math.max(minAge, st.startAge - span);
-    const nextStart = Math.min(Math.max(minAge, maxAge - span), st.startAge + span);
-    if (prevLabel) prevLabel.textContent = 'Age ' + prevStart;
-    if (nextLabel) nextLabel.textContent = 'Age ' + nextStart;
-    if (prevBtn) prevBtn.disabled = st.startAge <= minAge;
-    if (nextBtn) nextBtn.disabled = st.startAge >= maxAge - span;
+    if (lifetimeBtn) lifetimeBtn.classList.remove('active');
+    const prevAge = Math.max(minAge, st.selectedAge - 1);
+    const nextAge = Math.min(maxAge, st.selectedAge + 1);
+    if (prevLabel) prevLabel.textContent = yearLabel(prevAge);
+    if (nextLabel) nextLabel.textContent = yearLabel(nextAge);
+    if (prevBtn) prevBtn.disabled = st.selectedAge <= minAge;
+    if (nextBtn) nextBtn.disabled = st.selectedAge >= maxAge;
   }
 }
 
