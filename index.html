@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Michael's and Cynthia's Retirement Planner</title>
+<title>Michael & Cynthia's Planner</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root{
@@ -41,7 +41,7 @@
   .header-bar{display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap;}
   .header-titles{flex:1 1 220px; min-width:220px;}
   .dollar-toggle{display:flex; border:1px solid rgba(255,255,255,0.3); border-radius:20px; overflow:hidden; flex-shrink:0; margin-top:2px;}
-  .dollar-toggle-btn{padding:8px 14px; font-size:15px; color:#cfe6e0; cursor:pointer; white-space:nowrap;}
+  .dollar-toggle-btn{padding:8px 14px; font-size:16.5px; color:#cfe6e0; cursor:pointer; white-space:nowrap;}
   .dollar-toggle-btn.active{background:var(--teal); color:#fff; font-weight:600;}
   .hamburger-btn{
     background:rgba(255,255,255,0.12);
@@ -125,8 +125,22 @@
     border-radius:var(--radius);
     padding:16px 18px;
     margin-bottom:16px;
+    min-height:380px;
+    display:flex;
+    flex-direction:column;
   }
-  .mini-chart-card canvas{max-height:230px;}
+  .mini-chart-card .mini-label{flex:0 0 auto;}
+  .mini-chart-card .chart-range-nav{flex:0 0 auto;}
+  .mini-chart-card canvas{flex:1 1 auto; min-height:0; max-height:none;}
+
+  .chart-range-nav{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px;}
+  .range-nav-btn{
+    background:#fbfcfc; border:1px solid var(--border); border-radius:20px;
+    padding:6px 14px; font-size:15px; font-weight:600; color:var(--muted); cursor:pointer;
+  }
+  .range-nav-btn.lifetime.active{background:var(--navy); color:#fff; border-color:var(--navy); font-weight:700;}
+  .range-nav-btn:disabled{opacity:0.35; cursor:not-allowed;}
+  .range-nav-btn:not(:disabled):hover{border-color:var(--teal); color:var(--teal);}
 
   .card{
     background:var(--card);
@@ -149,14 +163,14 @@
   }
   .card h3 .sub-label{
     text-transform:none; letter-spacing:0; color:var(--muted); font-weight:400;
-    font-size:15.5px; display:block; margin-top:3px;
+    font-size:16.5px; display:block; margin-top:3px;
   }
   .card h3::after{
     content:'▾';
     position:absolute;
     right:0;
     top:0;
-    font-size:15px;
+    font-size:16.5px;
     color:var(--muted);
     transition:transform 0.2s;
   }
@@ -169,16 +183,16 @@
     width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font-size:18px; background:#fbfcfc;
   }
   .field input[type="checkbox"]{width:21px; height:21px; accent-color:var(--teal);}
-  .age-date-input{margin-top:6px; font-size:15.5px !important; padding:6px 9px !important;}
-  .age-date-hint{font-size:12.5px; color:var(--muted); margin-top:4px;}
+  .age-date-input{margin-top:6px; font-size:16.5px !important; padding:6px 9px !important;}
+  .age-date-hint{font-size:16px; color:var(--muted); margin-top:4px;}
   .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .three-col{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
   .divider{border:none; border-top:1px dashed var(--border); margin:12px 0;}
-  .mini-label{font-size:15.5px; font-weight:600; color:var(--navy); margin:2px 0 10px;}
+  .mini-label{font-size:16.5px; font-weight:600; color:var(--navy); margin:2px 0 10px;}
   .checkbox-row{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
   .checkbox-row label{margin:0; font-size:17px; color:var(--text);}
   .pill-row{display:flex; gap:8px; margin-top:8px;}
-  .pill{border:1px solid var(--border); background:#fbfcfc; color:var(--muted); font-size:15.5px; padding:6px 13px; border-radius:20px; cursor:pointer;}
+  .pill{border:1px solid var(--border); background:#fbfcfc; color:var(--muted); font-size:16.5px; padding:6px 13px; border-radius:20px; cursor:pointer;}
   .pill.active{background:var(--teal); color:#fff; border-color:var(--teal);}
   .sub-fields{border-left:2px solid var(--teal-light); padding-left:14px; margin-top:10px;}
 
@@ -192,7 +206,7 @@
   .row-item.insurance-row{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
   .row-item input, .row-item select{padding:8px 9px; border:1px solid var(--border); border-radius:6px; font-size:16.5px; background:#fbfcfc; width:100%;}
   .age-cell{display:flex; flex-direction:column; gap:4px;}
-  .age-cell input[type="month"]{font-size:13.5px; padding:5px 7px;}
+  .age-cell input[type="month"]{font-size:16.5px; padding:5px 7px;}
   .withdraw-order-row{
     display:flex; align-items:center; gap:12px;
     background:#fbfcfc; border:1px solid var(--border); border-radius:8px;
@@ -200,11 +214,11 @@
   }
   .withdraw-order-num{
     width:28px; height:28px; flex:0 0 auto; border-radius:50%; background:var(--border);
-    color:var(--navy); font-weight:700; font-size:14.5px; display:flex; align-items:center; justify-content:center;
+    color:var(--navy); font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center;
   }
   .withdraw-order-info{flex:1; min-width:0;}
   .withdraw-order-name{font-size:16.5px; font-weight:600; color:var(--navy); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .withdraw-order-badge{font-size:13.5px; color:var(--muted); margin-top:2px;}
+  .withdraw-order-badge{font-size:16.5px; color:var(--muted); margin-top:2px;}
   .withdraw-order-balance{font-size:16.5px; font-weight:600; color:var(--navy); flex:0 0 auto; text-align:right; min-width:78px;}
   .withdraw-order-arrows{display:flex; flex-direction:column; gap:2px; flex:0 0 auto;}
   .withdraw-order-arrows button{
@@ -213,7 +227,7 @@
   }
   .withdraw-order-arrows button:disabled{opacity:0.35; cursor:not-allowed;}
   .withdraw-order-arrows button:not(:disabled):hover{background:var(--teal-light); color:var(--teal);}
-  .row-header{display:grid; gap:8px; margin-bottom:6px; font-size:13.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
+  .row-header{display:grid; gap:8px; margin-bottom:6px; font-size:16.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
   .row-header.cols-2{grid-template-columns:1.3fr 0.9fr 26px;}
   .row-header.cols-pie{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
   .row-item.pie-row{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
@@ -254,7 +268,6 @@
   .chart-wrap{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px;}
   .chart-wrap h2{font-size:20px; margin:0 0 6px; color:var(--navy);}
   .chart-wrap p.sub{margin:0 0 16px; font-size:16.5px; color:var(--muted);}
-  canvas{max-height:380px;}
   .legend-note{display:flex; flex-wrap:wrap; gap:18px; font-size:16px; color:var(--muted); margin-top:12px;}
   .legend-note span{display:flex; align-items:center; gap:6px;}
   .dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
@@ -307,7 +320,7 @@
   .floating-ai-panel .chat-box{margin-top:0; overflow-y:auto;}
   .floating-ai-panel .chat-log{max-height:38vh;}
   @media (max-width:480px){
-    .ask-ai-fab{padding:12px 16px; font-size:15.5px;}
+    .ask-ai-fab{padding:12px 16px; font-size:16.5px;}
     .floating-ai-panel{right:10px; left:10px; width:auto; bottom:74px;}
     header{padding:16px 16px;}
     header h1{font-size:20px;}
@@ -321,7 +334,7 @@
   <div class="header-bar">
     <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Open menu">☰</button>
     <div class="header-titles">
-      <h1>Michael's and Cynthia's Retirement Planner</h1>
+      <h1>Michael &amp; Cynthia's Planner</h1>
       <p>Tap the menu to jump to a section. <span class="current-page-label" id="currentPageLabel">Dashboard</span></p>
     </div>
     <div class="dollar-toggle" id="dollarToggle">
@@ -383,9 +396,12 @@
       <div class="compare-box" id="compareBox"></div>
 
       <div class="chart-wrap">
-        <h2>Projected Balances<span id="dollarModeNote" style="font-size:15px; font-weight:400; color:var(--muted);"></span></h2>
+        <h2>Projected Balances<span id="dollarModeNote" style="font-size:16.5px; font-weight:400; color:var(--muted);"></span></h2>
         <p class="sub">Investable accounts (TSP + brokerage) grow, then draw down in retirement using your chosen Withdrawal Strategy (Money Flows page). Net worth adds cash, home equity, and subtracts debt.</p>
-        <canvas id="balanceChart"></canvas>
+        <div class="chart-range-nav" data-chart="dashboard"><button class="range-nav-btn range-prev" onclick="chartRangeNav('dashboard','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('dashboard','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('dashboard','next')"><span class="range-nav-label">Age</span> »</button></div>
+        <div style="height:460px; position:relative;">
+          <canvas id="balanceChart"></canvas>
+        </div>
         <div class="legend-note">
           <span><span class="dot" style="background:#1f7a6c"></span>Investable (accumulation)</span>
           <span><span class="dot" style="background:#e08c2b"></span>Investable (drawdown)</span>
@@ -434,7 +450,7 @@
         <div class="field">
           <label>Planned last working day</label>
           <input type="date" id="retirementDate" value="2028-12-31" oninput="syncRetirementDate(true)">
-          <div id="retirementDateHint" style="font-size:15px;color:var(--muted);margin-top:4px;"></div>
+          <div id="retirementDateHint" style="font-size:16.5px;color:var(--muted);margin-top:4px;"></div>
         </div>
         <div class="field"><label>Plan until age (your life expectancy)</label><input type="number" id="lifeExpectancy" value="100" min="60" max="105"></div>
       </div>
@@ -449,7 +465,7 @@
           <input type="checkbox" id="spouseWorks">
           <label for="spouseWorks">Spouse has their own earnings record / Social Security</label>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:2px 0 0;">The plan runs through whichever of you two lives longer, so household spending doesn't stop early for the survivor.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:2px 0 0;">The plan runs through whichever of you two lives longer, so household spending doesn't stop early for the survivor.</p>
       </div>
     </div>
 
@@ -458,7 +474,7 @@
       <div class="page-header"><h2>Income</h2><p>What comes in — job income, pensions, VA disability, Social Security, and annuity. How it's invested and withdrawn lives on the <b>Money Flows</b> page.</p></div>
 
       <div class="mini-chart-card"><canvas id="chart_income"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income by year</div><canvas id="chart_income_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income by year</div><div class="chart-range-nav" data-chart="income_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('income_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('income_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('income_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_income_yearly"></canvas></div>
 
       <div class="note" style="margin-top:0;">At retirement, guaranteed income vs. spending nets to a <b><span id="incomePageSurplusNote">—</span></b> surplus/(gap), with <b><span id="incomePageWithdrawalNote">—</span></b> drawn from your accounts that year. Full year-by-year surplus/gap and withdrawal detail (with its own charts) is on the <b>Income Gap &amp; Withdrawals</b> page.</div>
 
@@ -498,7 +514,7 @@
           </div>
           <div class="field"><label>VA yearly increase (%)</label><input type="number" id="vaDisabilityGrowth" value="2.5" step="0.1"></div>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both pensions and VA disability are treated as already active today if their start age is at or before your current age. Federal + Idaho income tax applies to both pensions before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page) — VA disability stays fully tax-free.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Both pensions and VA disability are treated as already active today if their start age is at or before your current age. Federal + Idaho income tax applies to both pensions before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page) — VA disability stays fully tax-free.</p>
       </div>
 
       <div class="note">Guaranteed Income — Social Security, spousal benefit, and annuity below, each with its own yearly increase rate (SS and the spousal benefit grow using Social Security COLA, set on the Assumptions page). Pensions and VA disability are in the Pensions &amp; VA Disability card near the top of this page.</div>
@@ -529,7 +545,7 @@
           </div>
           <div class="field"><label>Annuity yearly increase (%)</label><input type="number" id="annuityGrowth" value="0" step="0.1"></div>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Social Security (85%) and the annuity are taxed (Federal + Idaho) before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page). Pensions and VA disability are set in the Pensions &amp; VA Disability card near the top of this page — VA disability stays fully tax-free.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">Social Security (85%) and the annuity are taxed (Federal + Idaho) before comparing guaranteed income to spending (see the Income Gap &amp; Withdrawals page). Pensions and VA disability are set in the Pensions &amp; VA Disability card near the top of this page — VA disability stays fully tax-free.</p>
       </div>
 
       <div class="card">
@@ -546,7 +562,7 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
-        <p style="font-size:15.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
         <div class="three-col">
           <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="0" min="0" max="100"></div>
           <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="100" min="10" max="150" step="5"></div>
@@ -558,18 +574,18 @@
           <div class="field"><label>SBP coverage (% of pension)</label><input type="number" id="sbp1Pct" value="55" min="0" max="55" step="1"></div>
           <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="116" step="5"></div>
         </div>
-        <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp1Computed">$0</span>/mo to spouse, taxable, based on your current Military Pension amount</p>
+        <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">= <span id="sbp1Computed">$0</span>/mo to spouse, taxable, based on your current Military Pension amount</p>
         <div class="mini-label">Survivor Annuity on Government Civil Service Pension</div>
         <div class="checkbox-row"><input type="checkbox" id="sbp2Enabled" onchange="render()"><label for="sbp2Enabled">Survivor annuity elected on Government Civil Service pension</label></div>
         <div class="two-col">
           <div class="field"><label>Survivor annuity coverage (% of pension)</label><input type="number" id="sbp2Pct" value="50" min="0" max="50" step="1"></div>
           <div class="field"><label>Premium you pay now ($/mo)</label><input type="number" id="sbp2PremiumMonthly" value="0" step="5"></div>
         </div>
-        <p style="font-size:14.5px;color:var(--muted);margin:2px 0 0;">= <span id="sbp2Computed">$0</span>/mo to spouse, taxable, based on your current Government Civil Service pension amount</p>
+        <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">= <span id="sbp2Computed">$0</span>/mo to spouse, taxable, based on your current Government Civil Service pension amount</p>
         <div class="mini-label">VA Dependency &amp; Indemnity Compensation (DIC)</div>
         <div class="checkbox-row"><input type="checkbox" id="dicEligible"><label for="dicEligible">Spouse likely DIC-eligible</label></div>
         <div class="field"><label>DIC amount ($/mo, tax-free — 2026 base rate is $1,699.36)</label><input type="number" id="dicMonthlyAmount" value="1699" step="1"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Military SBP pays 55% of your pension and is taxable income to your spouse; Government Civil Service survivor annuities max out at 50%. Both auto-calculate from your entered pension amounts above and grow at that pension's own yearly increase rate. The premium (paid while you're alive) stops once the survivor annuity starts. DIC is tax-free and, since Jan. 2023, no longer offsets SBP — your spouse can receive both in full at the same time. DIC eligibility depends on cause/duration of a service-connected disability rating, not just having one — worth confirming with the VA.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Military SBP pays 55% of your pension and is taxable income to your spouse; Government Civil Service survivor annuities max out at 50%. Both auto-calculate from your entered pension amounts above and grow at that pension's own yearly increase rate. The premium (paid while you're alive) stops once the survivor annuity starts. DIC is tax-free and, since Jan. 2023, no longer offsets SBP — your spouse can receive both in full at the same time. DIC eligibility depends on cause/duration of a service-connected disability rating, not just having one — worth confirming with the VA.</p>
       </div>
     </div>
 
@@ -577,7 +593,7 @@
     <div class="page" data-page="moneyflows">
       <div class="page-header"><h2>Money Flows</h2><p>How your paycheck gets invested each pay period, and how accounts get drawn down in retirement.</p></div>
       <div class="mini-chart-card"><canvas id="chart_moneyflows"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income &amp; contributions by year</div><canvas id="chart_moneyflows_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income &amp; contributions by year</div><div class="chart-range-nav" data-chart="moneyflows_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('moneyflows_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('moneyflows_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('moneyflows_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_moneyflows_yearly"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Brokerage contribution by portfolio</div><canvas id="chart_moneyflows_pies"></canvas></div>
 
       <div class="card">
@@ -602,7 +618,7 @@
         <div class="field"><label>Deposit into</label>
           <select id="excessIncomeDestinationPie" onchange="updateExcessIncomeDestination(this.value)"></select>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">"Leftover" income = your job income, minus TSP/Roth/agency-match/brokerage contributions above, minus recurring expenses, housing, and debt payments for that year. Only applies while you're still working, and goes entirely into the single pie you pick above (edit pie names on the Investments page).</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">"Leftover" income = your job income, minus TSP/Roth/agency-match/brokerage contributions above, minus recurring expenses, housing, and debt payments for that year. Only applies while you're still working, and goes entirely into the single pie you pick above (edit pie names on the Investments page).</p>
       </div>
 
       <div class="card">
@@ -611,7 +627,7 @@
           <span class="pill active" id="withdrawModeTraditionalPill" onclick="setWithdrawalMode(false)">Traditional</span>
           <span class="pill" id="withdrawModeCustomPill" onclick="setWithdrawalMode(true)">Customized</span>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 10px;line-height:1.5;">Edit the order of your accounts based on when you expect to make withdrawals from them. <b>Traditional</b> uses a conventional taxable → tax-deferred → tax-free sequence; switch to <b>Customized</b> to use the ▲▼ arrows and set your own order.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 10px;line-height:1.5;">Edit the order of your accounts based on when you expect to make withdrawals from them. <b>Traditional</b> uses a conventional taxable → tax-deferred → tax-free sequence; switch to <b>Customized</b> to use the ▲▼ arrows and set your own order.</p>
         <div class="mini-label">Account Order</div>
         <div id="withdrawalOrderRows"></div>
         <hr class="divider">
@@ -619,7 +635,7 @@
           <input type="checkbox" id="withdrawSimultaneous" onchange="render()">
           <label for="withdrawSimultaneous">Withdraw from multiple accounts at the same time (proportionally), instead of one at a time</label>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split proportionally across all the accounts above by their balance that year — the order numbers stop mattering, since every account participates at once.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split proportionally across all the accounts above by their balance that year — the order numbers stop mattering, since every account participates at once.</p>
       </div>
     </div>
 
@@ -645,7 +661,7 @@
         <div class="row-list" id="brokeragePieRows"></div>
         <button class="add-btn" onclick="addBrokeragePie()">+ Add pie</button>
         <div class="total-row"><span>Total brokerage</span><span id="brokeragePieTotal">$0</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">"Market-linked" pies grow using the return/volatility assumptions on the Assumptions page (same risk as your TSP). "Cash-like" pies (e.g. a T-bills/SGOV bucket) instead grow at their own fixed rate every year, with no simulated volatility — matching how HYSA is already treated. Use this for a de-risked bridge fund so it doesn't get shaken around by the same stock-market swings as your equity holdings in the Monte Carlo.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">"Market-linked" pies grow using the return/volatility assumptions on the Assumptions page (same risk as your TSP). "Cash-like" pies (e.g. a T-bills/SGOV bucket) instead grow at their own fixed rate every year, with no simulated volatility — matching how HYSA is already treated. Use this for a de-risked bridge fund so it doesn't get shaken around by the same stock-market swings as your equity holdings in the Monte Carlo.</p>
       </div>
 
       <div class="card">
@@ -666,7 +682,7 @@
     <div class="page" data-page="housing">
       <div class="page-header"><h2>Housing</h2><p>Currently renting — optionally model a future purchase.</p></div>
       <div class="mini-chart-card"><canvas id="chart_housing"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Housing cost by year</div><canvas id="chart_housing_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Housing cost by year</div><div class="chart-range-nav" data-chart="housing_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('housing_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('housing_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('housing_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_housing_yearly"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Housing</h3>
@@ -703,7 +719,7 @@
     <div class="page" data-page="expenses">
       <div class="page-header"><h2>Expenses</h2><p>Recurring monthly bills, in today's dollars. Amounts are entered monthly and annualized automatically for the projection. The Healthcare category grows using the Medical Inflation Rate (set on the Assumptions page); every other category uses General Inflation.</p></div>
       <div class="mini-chart-card"><canvas id="chart_expenses"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><canvas id="chart_expenses_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><div class="chart-range-nav" data-chart="expenses_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('expenses_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('expenses_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('expenses_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_expenses_yearly"></canvas></div>
 
       <div class="note" style="margin-top:0;">Don't add rent/mortgage here — that's on the <b>Housing</b> page. Don't add TSP/brokerage contributions here either — those are on <b>Money Flows</b>. This page is for everything else that isn't already covered elsewhere, so nothing gets double-counted.</div>
 
@@ -717,7 +733,7 @@
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Insurance premiums (Insurance page)</span><span id="combinedInsurance">$0/mo</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivorship (what-if only, Survivorship page)</span><span id="combinedSurvivorship">Not set</span></div>
         <div class="total-row"><span>Combined monthly total</span><span id="combinedGrandTotal">$0/mo</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This card only displays numbers already entered elsewhere — it doesn't add anything to the projection itself. Housing shows today's rent (or mortgage + property tax/insurance once you buy, if that's modeled); Debt shows today's monthly loan payments; Insurance shows today's premium total. Each is counted exactly once in the Monte Carlo engine, from its own page — not from this card. Survivorship is a what-if only — it's never part of the combined monthly total above, since it doesn't apply to your baseline plan.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This card only displays numbers already entered elsewhere — it doesn't add anything to the projection itself. Housing shows today's rent (or mortgage + property tax/insurance once you buy, if that's modeled); Debt shows today's monthly loan payments; Insurance shows today's premium total. Each is counted exactly once in the Monte Carlo engine, from its own page — not from this card. Survivorship is a what-if only — it's never part of the combined monthly total above, since it doesn't apply to your baseline plan.</p>
       </div>
 
       <div class="card">
@@ -733,7 +749,7 @@
         <div class="row-header cols-future"><span>Description</span><span>Age</span><span>Amount ($)</span><span>Frequency</span><span></span></div>
         <div class="row-list" id="futureExpenseRows"></div>
         <button class="add-btn" onclick="addFutureExpense()">+ Add future expense</button>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">One-time items hit once at the age you set; "Yearly until" repeats every year from that age through the end age, both grown by General Inflation.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">One-time items hit once at the age you set; "Yearly until" repeats every year from that age through the end age, both grown by General Inflation.</p>
       </div>
 
       <div class="card">
@@ -743,7 +759,7 @@
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP on Military Pension</span><span id="trackSbp1">Not elected</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span id="trackSbp2">Not elected</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span id="trackDic">Not eligible</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Edit these on the <b>Survivorship</b> page. This is a what-if scenario that only shows up on the Explorers page — it never changes your baseline plan or confidence score.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Edit these on the <b>Survivorship</b> page. This is a what-if scenario that only shows up on the Explorers page — it never changes your baseline plan or confidence score.</p>
       </div>
     </div>
 
@@ -758,7 +774,7 @@
         <div class="row-list" id="debtRows"></div>
         <button class="add-btn" onclick="addDebt()">+ Add debt</button>
         <div class="total-row"><span>Total balance</span><span id="debtTotal">$0</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Car Payment's $712/mo is your real number — its balance and APR are placeholders, update them to match your actual loan.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Car Payment's $712/mo is your real number — its balance and APR are placeholders, update them to match your actual loan.</p>
       </div>
 
       <div class="card">
@@ -772,7 +788,7 @@
         </div>
         <div class="total-row"><span>Debt-free by</span><span id="debtFreeAge">—</span></div>
         <div class="total-row" id="debtExtraSummaryRow" style="display:none;"><span>With the extra payment</span><span id="debtExtraSummary">—</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Each debt is paid off independently at its own current payment — this isn't a snowball/avalanche redirect strategy where freed-up payments roll onto the next debt. The extra payment column shows what happens if you add that amount on top of the highest-APR debt's payment only; the other debts stay on their normal schedule.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Each debt is paid off independently at its own current payment — this isn't a snowball/avalanche redirect strategy where freed-up payments roll onto the next debt. The extra payment column shows what happens if you add that amount on top of the highest-APR debt's payment only; the other debts stay on their normal schedule.</p>
       </div>
     </div>
 
@@ -795,7 +811,7 @@
     <div class="page" data-page="gap">
       <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, both pensions, VA disability, annuity, after income tax — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
       <div class="mini-chart-card"><canvas id="chart_gap"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><canvas id="chart_gap_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><div class="chart-range-nav" data-chart="gap_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('gap_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('gap_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('gap_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_gap_yearly"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Year-by-Year Gap &amp; Withdrawals</h3>
@@ -805,7 +821,7 @@
             <tbody id="gapRows"></tbody>
           </table>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Guaranteed income here is shown after federal + Idaho income tax (progressive, using your standard deduction) — VA disability stays untaxed, but Social Security (85%), pension, and annuity income all have real tax owed on them before they're available to spend. A positive surplus means guaranteed income covers that year's spending with room to spare; a gap (shown in red) is the shortfall pulled from your accounts in the order set on the Money Flows page. Pre-retirement years aren't shown — spending and withdrawals aren't tracked against the portfolio until retirement.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Guaranteed income here is shown after federal + Idaho income tax (progressive, using your standard deduction) — VA disability stays untaxed, but Social Security (85%), pension, and annuity income all have real tax owed on them before they're available to spend. A positive surplus means guaranteed income covers that year's spending with room to spare; a gap (shown in red) is the shortfall pulled from your accounts in the order set on the Money Flows page. Pre-retirement years aren't shown — spending and withdrawals aren't tracked against the portfolio until retirement.</p>
       </div>
     </div>
 
@@ -813,7 +829,7 @@
     <div class="page" data-page="medical">
       <div class="page-header"><h2>Medical</h2><p>Healthcare premiums before and after Medicare eligibility — separate from the Healthcare category on the Expenses page, which is for extra out-of-pocket costs.</p></div>
       <div class="mini-chart-card"><canvas id="chart_medical"></canvas></div>
-      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums &amp; LTC cost by year</div><canvas id="chart_medical_yearly"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums &amp; LTC cost by year</div><div class="chart-range-nav" data-chart="medical_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('medical_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('medical_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('medical_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><canvas id="chart_medical_yearly"></canvas></div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Pre-Medicare — Tricare<span class="sub-label">Covers both of you until each of you reaches Medicare age</span></h3>
@@ -826,7 +842,7 @@
           <div class="field"><label>Vision/Eyes ($/mo, today's $)</label><input type="number" id="tricareVisionMonthly" value="24" step="5"></div>
           <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="tricareDentalMonthly" value="92" step="5"></div>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Applies whenever at least one of you hasn't yet reached Medicare age — your spouse stays on your Tricare coverage even after you individually age into Medicare, until she reaches Medicare age herself. Same rule for the hearing/vision/dental add-ons above.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Applies whenever at least one of you hasn't yet reached Medicare age — your spouse stays on your Tricare coverage even after you individually age into Medicare, until she reaches Medicare age herself. Same rule for the hearing/vision/dental add-ons above.</p>
       </div>
 
       <div class="card">
@@ -844,7 +860,7 @@
           <div class="field"><label>Vision/Eyes ($/mo, today's $)</label><input type="number" id="visionMonthly" value="24" step="5"></div>
           <div class="field"><label>Dental ($/mo, today's $)</label><input type="number" id="dentalMonthly" value="92" step="5"></div>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">All figures grow with Medical Inflation (Assumptions page) and are added on top of anything in the Healthcare category on the Expenses page. Since your ages differ, there's a stretch where one of you is on Part B while the other is still on Tricare — both costs apply during that gap. Hearing, vision, and dental start once you reach Medicare age and cover both of you.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">All figures grow with Medical Inflation (Assumptions page) and are added on top of anything in the Healthcare category on the Expenses page. Since your ages differ, there's a stretch where one of you is on Part B while the other is still on Tricare — both costs apply during that gap. Hearing, vision, and dental start once you reach Medicare age and cover both of you.</p>
       </div>
 
       <div class="card">
@@ -875,8 +891,8 @@
             </select>
           </div>
           <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="75000" step="1000"></div>
-          <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Picking a care type fills in a Boise-area cost estimate below, which you can still edit by hand — it doesn't lock the number. Estimates: in-home care ~$30/hr (Boise-area caregiver rates run roughly $21-$36/hr depending on agency vs. independent hire); assisted living ~$54,000/yr (Boise-area facilities run lower than Idaho's ~$60,000/yr statewide median); memory care ~$72,000/yr; nursing home (semi-private) ~$120,000/yr (Idaho runs above the national median here); family/informal care ~$12,000/yr for incidentals, supplies, and respite care rather than a wage. Source: Genworth/CareScout Cost of Care Survey and local caregiver rate data, today's dollars.</p>
-          <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
+          <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Picking a care type fills in a Boise-area cost estimate below, which you can still edit by hand — it doesn't lock the number. Estimates: in-home care ~$30/hr (Boise-area caregiver rates run roughly $21-$36/hr depending on agency vs. independent hire); assisted living ~$54,000/yr (Boise-area facilities run lower than Idaho's ~$60,000/yr statewide median); memory care ~$72,000/yr; nursing home (semi-private) ~$120,000/yr (Idaho runs above the national median here); family/informal care ~$12,000/yr for incidentals, supplies, and respite care rather than a wage. Source: Genworth/CareScout Cost of Care Survey and local caregiver rate data, today's dollars.</p>
+          <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
         </div>
       </div>
     </div>
@@ -908,7 +924,7 @@
         <div class="row-list" id="insuranceRows"></div>
         <button class="add-btn" onclick="addInsurancePolicy()">+ Add policy</button>
         <div class="total-row"><span>Total premiums</span><span id="insuranceTotal">$0/mo</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This is the only place insurance premiums are tracked — the Expenses page no longer has a separate Insurance category, so there's no risk of double-counting a policy in both places.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This is the only place insurance premiums are tracked — the Expenses page no longer has a separate Insurance category, so there's no risk of double-counting a policy in both places.</p>
       </div>
     </div>
 
@@ -922,7 +938,7 @@
       <div class="card">
         <h3 onclick="toggleCard(this)">Federal<span class="sub-label">2026 brackets, Married Filing Jointly (10/12/22/24/32/35/37%)</span></h3>
         <div class="field"><label>Standard deduction ($/yr, MFJ)</label><input type="number" id="stdDeduction" value="32200" step="100"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Social Security and spousal benefit are treated as 85% taxable (typical once other income is substantial); VA disability stays fully tax-free and isn't included. Both pensions and annuity income are fully taxable.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Social Security and spousal benefit are treated as 85% taxable (typical once other income is substantial); VA disability stays fully tax-free and isn't included. Both pensions and annuity income are fully taxable.</p>
       </div>
 
       <div class="card">
@@ -936,7 +952,7 @@
           <input type="checkbox" id="ruleOf55Applies" checked>
           <label for="ruleOf55Applies">Rule of 55 applies — no 10% early-withdrawal penalty on Traditional TSP</label>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">You separate from federal service in the year you turn 55 or later, so Traditional TSP withdrawals avoid the usual 10% penalty before age 59½. Uncheck this to see what happens if that assumption doesn't hold (e.g. money later rolled into an IRA loses Rule of 55 protection).</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">You separate from federal service in the year you turn 55 or later, so Traditional TSP withdrawals avoid the usual 10% penalty before age 59½. Uncheck this to see what happens if that assumption doesn't hold (e.g. money later rolled into an IRA loses Rule of 55 protection).</p>
       </div>
     </div>
 
@@ -955,7 +971,7 @@
           <div class="field"><label>Return during retirement (%/yr)</label><input type="number" id="postReturn" value="7" step="0.1"></div>
           <div class="field"><label>Volatility, in retirement (%)</label><input type="number" id="postStdev" value="12" step="0.5"></div>
         </div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">These volatility figures apply to your TSP and any "Market-linked" brokerage pies (100% C/S/I funds, no bonds, historically runs roughly 17-19% annual standard deviation). Any pie you mark "Cash-like" on the Investments page (e.g. a T-bills/SGOV bridge) ignores this and grows at its own fixed rate instead — it won't get shaken around by this volatility.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.6;">These volatility figures apply to your TSP and any "Market-linked" brokerage pies (100% C/S/I funds, no bonds, historically runs roughly 17-19% annual standard deviation). Any pie you mark "Cash-like" on the Investments page (e.g. a T-bills/SGOV bridge) ignores this and grows at its own fixed rate instead — it won't get shaken around by this volatility.</p>
       </div>
 
       <div class="card">
@@ -963,7 +979,7 @@
         <div class="field"><label>General Inflation Rate (%/yr)</label><input type="number" id="inflation" value="3" step="0.1"></div>
         <div class="field"><label>Medical Inflation Rate (%/yr)</label><input type="number" id="medicalInflation" value="5" step="0.1"></div>
         <div class="field"><label>Social Security COLA (%/yr)</label><input type="number" id="ssCola" value="2.5" step="0.1"></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (each pension has its own yearly increase % instead, set in the Pensions &amp; VA Disability section of the Income page). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">General Inflation grows every Expenses category except Healthcare. Medical Inflation grows Healthcare only. Social Security COLA grows your SS and spousal benefit (each pension has its own yearly increase % instead, set in the Pensions &amp; VA Disability section of the Income page). Housing Appreciation lives on the Housing page and only shows up in the chart below if you model a future purchase.</p>
       </div>
 
       <div class="card">
@@ -1043,7 +1059,7 @@
       <div class="card">
         <h3 onclick="toggleCard(this)">Coach AI Chat<span class="sub-label">Optional — only used if you add a key</span></h3>
         <div class="field"><label>Anthropic API key</label><input type="text" id="anthropicApiKey" placeholder="sk-ant-..." autocomplete="off"></div>
-        <p style="font-size:15px;color:var(--muted);margin:0;line-height:1.55;">This file has no backend — adding a key here lets the Coach page call the Anthropic API directly from your browser, using your own account and usage. The key is stored only in this browser's local storage; it is never sent anywhere except directly to Anthropic when you ask a question. Each question sends a snapshot of your plan numbers to Anthropic's servers. Leave this blank to keep the Coach fully offline.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:0;line-height:1.55;">This file has no backend — adding a key here lets the Coach page call the Anthropic API directly from your browser, using your own account and usage. The key is stored only in this browser's local storage; it is never sent anywhere except directly to Anthropic when you ask a question. Each question sends a snapshot of your plan numbers to Anthropic's servers. Leave this blank to keep the Coach fully offline.</p>
       </div>
     </div>
 
@@ -1054,7 +1070,7 @@
 <button class="ask-ai-fab" id="askAiFab" onclick="toggleFloatingAi()" aria-label="Ask AI">✦ Ask AI</button>
 <div class="floating-ai-panel" id="floatingAiPanel" style="display:none;">
   <div class="floating-ai-header">
-    <span>Ask AI<span class="sub-label" style="display:block; text-transform:none; font-weight:400; font-size:13.5px; margin-top:2px;">Answered using a snapshot of your current plan as context</span></span>
+    <span>Ask AI<span class="sub-label" style="display:block; text-transform:none; font-weight:400; font-size:16.5px; margin-top:2px;">Answered using a snapshot of your current plan as context</span></span>
     <button class="floating-ai-close" onclick="toggleFloatingAi(false)" aria-label="Close">×</button>
   </div>
   <div id="coachAiGate"></div>
@@ -1113,6 +1129,7 @@ function taxOwedFromBrackets(taxableIncome, brackets) {
 }
 
 // ---------- Page navigation (hamburger drawer) ----------
+if (typeof Chart !== 'undefined') { Chart.defaults.font.size = 13; Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"; }
 let charts = {};
 let lastSnapshot = null;
 let dollarView = 'nominal'; // 'nominal' (future $) | 'real' (today's $)
@@ -2283,6 +2300,7 @@ function barConfig(labels, values, opts) {
     options: {
       indexAxis: opts.horizontal ? 'y' : 'x',
       responsive: true,
+      maintainAspectRatio: false,
       animation: false,
       interaction: { mode: 'nearest', axis: opts.horizontal ? 'y' : 'x', intersect: false },
       plugins: {
@@ -2294,8 +2312,8 @@ function barConfig(labels, values, opts) {
         }
       },
       scales: {
-        x: opts.horizontal ? { ticks: { callback: fmt } } : { ticks: { autoSkip: false, font:{size:10} } },
-        y: opts.horizontal ? { ticks: { font:{size:10} } } : { ticks: { callback: fmt } }
+        x: opts.horizontal ? { ticks: { callback: fmt } } : { ticks: { autoSkip: false, font:{size:13} } },
+        y: opts.horizontal ? { ticks: { font:{size:13} } } : { ticks: { callback: fmt } }
       }
     }
   };
@@ -2357,6 +2375,84 @@ function buildChartConfig(pageId, snap) {
   }
 }
 
+// ---------- Chart range navigator (« Age X · Lifetime · Age X »), Boldin-style ----------
+// Lets you step a chart's x-axis through a fixed-size age window, or reset to the full lifetime view.
+// Purely a display/zoom control — never touches inputs, the plan, or the Monte Carlo score.
+const CHART_RANGE_WINDOW = 10; // years shown per "page" once zoomed in
+const chartRangeState = {}; // keyed by chart key: { zoomed, startAge }
+
+function getProjectionAgeBounds() {
+  const rows = lastSnapshot ? lastSnapshot.rows : null;
+  if (!rows || !rows.length) return [0, 0];
+  return [rows[0].age, rows[rows.length - 1].age];
+}
+
+function chartRangeNav(chartKey, action) {
+  const [minAge, maxAge] = getProjectionAgeBounds();
+  const span = Math.min(CHART_RANGE_WINDOW, Math.max(1, maxAge - minAge));
+  if (!chartRangeState[chartKey]) chartRangeState[chartKey] = { zoomed: false, startAge: minAge };
+  const st = chartRangeState[chartKey];
+  if (action === 'lifetime') {
+    st.zoomed = false;
+  } else if (!st.zoomed) {
+    st.zoomed = true;
+    st.startAge = action === 'next' ? minAge : Math.max(minAge, maxAge - span);
+  } else {
+    const delta = action === 'next' ? span : -span;
+    st.startAge = Math.min(Math.max(st.startAge + delta, minAge), Math.max(minAge, maxAge - span));
+  }
+  applyChartRange(chartKey);
+}
+
+function applyChartRange(chartKey) {
+  const chart = charts[chartKey];
+  const [minAge, maxAge] = getProjectionAgeBounds();
+  const span = Math.min(CHART_RANGE_WINDOW, Math.max(1, maxAge - minAge));
+  if (!chartRangeState[chartKey]) chartRangeState[chartKey] = { zoomed: false, startAge: minAge };
+  const st = chartRangeState[chartKey];
+  const endAge = Math.min(st.startAge + span, maxAge);
+  if (chart && chart.options && chart.options.scales && chart.options.scales.x) {
+    if (!st.zoomed) {
+      delete chart.options.scales.x.min;
+      delete chart.options.scales.x.max;
+    } else if (chartKey === 'dashboard') {
+      chart.options.scales.x.min = st.startAge;
+      chart.options.scales.x.max = endAge;
+    } else {
+      chart.options.scales.x.min = 'Age ' + st.startAge;
+      chart.options.scales.x.max = 'Age ' + endAge;
+    }
+    chart.update();
+  }
+  updateChartRangeUi(chartKey, minAge, maxAge, span);
+}
+
+function updateChartRangeUi(chartKey, minAge, maxAge, span) {
+  const nav = document.querySelector(`.chart-range-nav[data-chart="${chartKey}"]`);
+  if (!nav) return;
+  const st = chartRangeState[chartKey] || { zoomed: false, startAge: minAge };
+  const lifetimeBtn = nav.querySelector('.range-lifetime');
+  const prevBtn = nav.querySelector('.range-prev');
+  const nextBtn = nav.querySelector('.range-next');
+  if (lifetimeBtn) lifetimeBtn.classList.toggle('active', !st.zoomed);
+  const prevLabel = prevBtn ? prevBtn.querySelector('.range-nav-label') : null;
+  const nextLabel = nextBtn ? nextBtn.querySelector('.range-nav-label') : null;
+  if (!st.zoomed) {
+    const windowStart = Math.max(minAge, maxAge - span);
+    if (prevLabel) prevLabel.textContent = 'Age ' + windowStart;
+    if (nextLabel) nextLabel.textContent = 'Age ' + windowStart;
+    if (prevBtn) prevBtn.disabled = false;
+    if (nextBtn) nextBtn.disabled = false;
+  } else {
+    const prevStart = Math.max(minAge, st.startAge - span);
+    const nextStart = Math.min(Math.max(minAge, maxAge - span), st.startAge + span);
+    if (prevLabel) prevLabel.textContent = 'Age ' + prevStart;
+    if (nextLabel) nextLabel.textContent = 'Age ' + nextStart;
+    if (prevBtn) prevBtn.disabled = st.startAge <= minAge;
+    if (nextBtn) nextBtn.disabled = st.startAge >= maxAge - span;
+  }
+}
+
 function ensureOrUpdateChart(pageId, snap) {
   if (pageId === 'dashboard' || pageId === 'explorers') return; // handled separately
   const config = buildChartConfig(pageId, snap);
@@ -2390,14 +2486,15 @@ function yearlyBarConfig(ages, series, opts) {
     data: { labels: ages.map(a => 'Age ' + a), datasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       animation: false,
       interaction: { mode: 'index', axis: 'x', intersect: false },
       plugins: {
-        legend: { display: series.length > 1, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+        legend: { display: series.length > 1, position: 'bottom', labels: { boxWidth: 12, font: { size: 13 } } },
         tooltip: { enabled: true, callbacks: { label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.y) } }
       },
       scales: {
-        x: { stacked: !!opts.stacked, ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: 10 } } },
+        x: { stacked: !!opts.stacked, ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: 13 } } },
         y: { stacked: !!opts.stacked, ticks: { callback: v => fmtMoneyK(v) } }
       }
     }
@@ -2459,10 +2556,12 @@ function ensureOrUpdateYearlyChart(pageId, snap) {
     charts[key].data = config.data;
     charts[key].options = config.options;
     charts[key].update();
+    applyChartRange(key);
   } else {
     const canvas = els('chart_' + pageId + '_yearly');
     if (!canvas) return;
     charts[key] = new Chart(canvas.getContext('2d'), config);
+    applyChartRange(key);
   }
 }
 
@@ -2960,7 +3059,7 @@ function render() {
     ]
   };
   const options = {
-    responsive: true, animation: false,
+    responsive: true, maintainAspectRatio: false, animation: false,
     interaction: { mode: 'index', intersect: false },
     plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: {
       title: items => 'Age ' + items[0].parsed.x, label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.y)
@@ -2972,6 +3071,7 @@ function render() {
   };
   if (charts.dashboard) { charts.dashboard.data = data; charts.dashboard.options = options; charts.dashboard.update(); }
   else { charts.dashboard = new Chart(els('balanceChart').getContext('2d'), { type:'line', data, options, plugins:[verticalLinePlugin] }); }
+  applyChartRange('dashboard');
 
   // Table
   if (els('dollarModeNote')) els('dollarModeNote').textContent = dollarView === 'real' ? " (today's dollars)" : ' (future/nominal dollars)';
