@@ -2320,7 +2320,10 @@ function barConfig(labels, values, opts) {
       },
       scales: {
         x: opts.horizontal ? { ticks: { callback: fmt } } : { ticks: { autoSkip: false, font:{size:13} } },
-        y: opts.horizontal ? { ticks: { font:{size:13} } } : { ticks: { callback: fmt } }
+        // autoSkip:false on the category axis guarantees every bar gets its own visible label —
+        // without it, Chart.js silently drops labels (and makes bars look "missing") once there
+        // isn't quite enough room, which is exactly what happened with 10 named expense items.
+        y: opts.horizontal ? { ticks: { autoSkip: false, font:{size:13} } } : { ticks: { callback: fmt } }
       }
     }
   };
@@ -2339,8 +2342,11 @@ function buildChartConfig(pageId, snap) {
     case 'housing':
       return barConfig(['Current annual rent','Housing cost at retirement'], [snap.currentRentAnnual, snap.housingCostAtRetirement]);
     case 'expenses':
+      // Utilities/Subscriptions have several named items each (Verizon, Idaho Power, YouTube
+      // Premium, etc.) — show the item name alone (shorter, fits the chart) rather than
+      // repeating the category, which is what made every "Utilities" bar look the same before.
       return barConfig(
-        expenses.map(e => (e.category==='Utilities' || e.category==='Subscriptions') ? `${e.category}: ${e.name||'Unnamed'}` : e.category),
+        expenses.map(e => (e.category==='Utilities' || e.category==='Subscriptions') ? (e.name||'Unnamed') : e.category),
         expenses.map(e=>+e.amount||0), { horizontal:true }
       );
     case 'debt':
@@ -2548,12 +2554,25 @@ function ensureOrUpdateChart(pageId, snap) {
   if (pageId === 'dashboard' || pageId === 'explorers') return; // handled separately
   const config = buildChartConfig(pageId, snap);
   if (!config) return;
+  const canvas = els('chart_' + pageId);
+  // Horizontal bar charts (Expenses, Debt, Transactions, etc.) can have anywhere from a
+  // couple of bars to a dozen named items. A single fixed card height either wastes space
+  // for short lists or crowds/clips a long one — so size the card to the actual bar count,
+  // with a sensible floor and ceiling (the ceiling still scrolls within the page).
+  if (config.options.indexAxis === 'y' && canvas) {
+    const card = canvas.closest('.mini-chart-card');
+    if (card) {
+      const n = (config.data.labels || []).length;
+      const fitHeight = Math.min(560, Math.max(230, n * 34 + 70));
+      card.style.height = fitHeight + 'px';
+      card.style.maxHeight = fitHeight + 'px';
+    }
+  }
   if (charts[pageId]) {
     charts[pageId].data = config.data;
     charts[pageId].options = config.options;
     charts[pageId].update();
   } else {
-    const canvas = els('chart_' + pageId);
     if (!canvas) return;
     charts[pageId] = new Chart(canvas.getContext('2d'), config);
   }
