@@ -597,6 +597,14 @@
         <div class="field"><label>DIC amount ($/mo, tax-free — 2026 base rate is $1,699.36)</label><input type="number" id="dicMonthlyAmount" value="1699" step="1"></div>
         <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Military SBP pays 55% of your pension and is taxable income to your spouse; Government Civil Service survivor annuities max out at 50%. Both auto-calculate from your entered pension amounts above and grow at that pension's own yearly increase rate. The premium (paid while you're alive) stops once the survivor annuity starts. DIC is tax-free and, since Jan. 2023, no longer offsets SBP — your spouse can receive both in full at the same time. DIC eligibility depends on cause/duration of a service-connected disability rating, not just having one — worth confirming with the VA.</p>
       </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">If This Happens<span class="sub-label">Updates instantly as you check boxes above — this is the only place that reflects them outside the Explorers page</span></h3>
+        <div id="survivorshipSummaryBody"></div>
+      </div>
+
+      <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Income to spouse, today's $</div><canvas id="chart_survivorship_income"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Spouse's expenses, today's $</div><canvas id="chart_survivorship_expenses"></canvas></div>
     </div>
 
     <!-- ================= MONEY FLOWS ================= -->
@@ -1354,6 +1362,79 @@ function renderCombinedExpensesCard(rows, inputs) {
   els('combinedDebt').textContent = fmtMoney(debtMonthly) + '/mo';
   els('combinedInsurance').textContent = fmtMoney(insuranceMonthly) + '/mo';
   els('combinedGrandTotal').textContent = fmtMoney(expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly) + '/mo';
+}
+
+// Live "if this happens" readout on the Survivorship page itself. The engine only applies this
+// what-if on the Explorers page (never the main plan/Monte Carlo score), so without this readout
+// checking the boxes here produces no visible change anywhere until you navigate to Explorers —
+// this gives instant feedback right where you're setting the age/elections/eligibility.
+function renderSurvivorshipSummary(inputs) {
+  const body = els('survivorshipSummaryBody');
+  if (!body) return;
+  if (!inputs.survivorshipDeathAge || inputs.survivorshipDeathAge <= 0) {
+    body.innerHTML = `<p style="font-size:16.5px;color:var(--muted);margin:0;">Enter an assumed age above to see what this scenario would pay your spouse. Right now this is off — no age is set.</p>`;
+    return;
+  }
+  const sbp1Monthly = inputs.sbp1Enabled ? inputs.sbp1Annual/12 : 0;
+  const sbp2Monthly = inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0;
+  const dicMonthly = inputs.dicEligible ? inputs.dicMonthlyAmount : 0;
+  const total = sbp1Monthly + sbp2Monthly + dicMonthly;
+  body.innerHTML = `
+    <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Starting at age <b>${inputs.survivorshipDeathAge}</b> in this scenario: both pensions and VA disability stop, Social Security drops to the survivor benefit, and your spouse's spending is assumed at <b>${Math.round(inputs.survivorSpendingPct*100)}%</b> of normal.</p>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP — Military Pension</span><span>${inputs.sbp1Enabled ? fmtMoney(sbp1Monthly)+'/mo' : 'Not elected — $0'}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span>${inputs.sbp2Enabled ? fmtMoney(sbp2Monthly)+'/mo' : 'Not elected — $0'}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span>${inputs.dicEligible ? fmtMoney(dicMonthly)+'/mo' : 'Not eligible — $0'}</span></div>
+    <div class="total-row"><span>Total to spouse from this scenario</span><span>${fmtMoney(total)}/mo</span></div>
+    <p style="font-size:16px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This total updates the moment you check a box above. To see how it affects the confidence score and portfolio longevity, visit the <b>Explorers</b> page — the "You predecease your spouse..." row there reflects these same settings.</p>
+  `;
+}
+
+// Two snapshot bar charts, styled the same way as the Income/Expenses page charts, showing
+// what the spouse would receive and spend under this what-if — in today's dollars, matching
+// the "If This Happens" text above (same numbers, just visualized like every other section).
+function renderSurvivorshipCharts(inputs, rows) {
+  const incomeCanvas = els('chart_survivorship_income');
+  const expenseCanvas = els('chart_survivorship_expenses');
+  if (!incomeCanvas || !expenseCanvas) return;
+
+  const sbp1Monthly = inputs.sbp1Enabled ? inputs.sbp1Annual/12 : 0;
+  const sbp2Monthly = inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0;
+  const dicMonthly = inputs.dicEligible ? inputs.dicMonthlyAmount : 0;
+  const ssMonthly = inputs.ssMonthly || 0; // survivor benefit = the full amount of the deceased's own SS
+  const incomeConfig = barConfig(
+    ['Social Security (survivor benefit)', 'SBP — Military Pension', 'Survivor annuity — Govt Civil Service', 'VA DIC'],
+    [ssMonthly*12, sbp1Monthly*12, sbp2Monthly*12, dicMonthly*12],
+    { horizontal: true }
+  );
+
+  const pct = inputs.survivorSpendingPct || 1;
+  const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
+  const debtMonthly = debts.reduce((s,d) => s + (+d.payment || 0), 0);
+  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0);
+  const housingMonthly = (rows && rows.length ? rows[0].housingCost : 0) / 12;
+  const expenseConfig = barConfig(
+    ['Recurring expenses', 'Housing', 'Debt payments', 'Insurance premiums'],
+    [expensesMonthly*12*pct, housingMonthly*12*pct, debtMonthly*12*pct, insuranceMonthly*12*pct],
+    { horizontal: true }
+  );
+
+  [[incomeCanvas, incomeConfig, 'survivorship_income'], [expenseCanvas, expenseConfig, 'survivorship_expenses']]
+    .forEach(([canvas, config, key]) => {
+      // Same dynamic-height sizing used for every other horizontal bar chart, so a 4-bar
+      // chart here looks the same as a 4-bar chart anywhere else in the tool.
+      const card = canvas.closest('.mini-chart-card');
+      if (card) {
+        const n = config.data.labels.length;
+        const fitHeight = Math.min(560, Math.max(230, n * 34 + 70));
+        card.style.height = fitHeight + 'px';
+        card.style.maxHeight = fitHeight + 'px';
+      }
+      if (charts[key]) {
+        charts[key].data = config.data; charts[key].options = config.options; charts[key].update();
+      } else {
+        charts[key] = new Chart(canvas.getContext('2d'), config);
+      }
+    });
 }
 
 // ---------- Future / one-time planned expenses (dynamic rows) ----------
@@ -3034,6 +3115,8 @@ function render() {
 
   if (els('sbp1Computed')) els('sbp1Computed').textContent = fmtMoney(inputs.sbp1Annual/12);
   if (els('sbp2Computed')) els('sbp2Computed').textContent = fmtMoney(inputs.sbp2Annual/12);
+  renderSurvivorshipSummary(inputs);
+  renderSurvivorshipCharts(inputs, rows);
 
   renderDebtPayoffPlan(inputs, ctx);
   renderGapTable(rows, inputs, retirementAge);
