@@ -1368,7 +1368,7 @@ function renderCombinedExpensesCard(rows, inputs) {
 // what-if on the Explorers page (never the main plan/Monte Carlo score), so without this readout
 // checking the boxes here produces no visible change anywhere until you navigate to Explorers —
 // this gives instant feedback right where you're setting the age/elections/eligibility.
-function renderSurvivorshipSummary(inputs) {
+function renderSurvivorshipSummary(inputs, rows) {
   const body = els('survivorshipSummaryBody');
   if (!body) return;
   if (!inputs.survivorshipDeathAge || inputs.survivorshipDeathAge <= 0) {
@@ -1378,14 +1378,24 @@ function renderSurvivorshipSummary(inputs) {
   const sbp1Monthly = inputs.sbp1Enabled ? inputs.sbp1Annual/12 : 0;
   const sbp2Monthly = inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0;
   const dicMonthly = inputs.dicEligible ? inputs.dicMonthlyAmount : 0;
-  const total = sbp1Monthly + sbp2Monthly + dicMonthly;
+  const guaranteedMonthly = sbp1Monthly + sbp2Monthly + dicMonthly + (inputs.ssMonthly || 0);
+
+  const pct = inputs.survivorSpendingPct || 1;
+  const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
+  const debtMonthly = debts.reduce((s,d) => s + (+d.payment || 0), 0);
+  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0);
+  const housingMonthly = (rows && rows.length ? rows[0].housingCost : 0) / 12;
+  const totalExpensesMonthly = (expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly) * pct;
+  const drawdownMonthly = Math.max(0, totalExpensesMonthly - guaranteedMonthly);
+
   body.innerHTML = `
     <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Starting at age <b>${inputs.survivorshipDeathAge}</b> in this scenario: both pensions and VA disability stop, Social Security drops to the survivor benefit, and your spouse's spending is assumed at <b>${Math.round(inputs.survivorSpendingPct*100)}%</b> of normal.</p>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP — Military Pension</span><span>${inputs.sbp1Enabled ? fmtMoney(sbp1Monthly)+'/mo' : 'Not elected — $0'}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span>${inputs.sbp2Enabled ? fmtMoney(sbp2Monthly)+'/mo' : 'Not elected — $0'}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span>${inputs.dicEligible ? fmtMoney(dicMonthly)+'/mo' : 'Not eligible — $0'}</span></div>
-    <div class="total-row"><span>Total to spouse from this scenario</span><span>${fmtMoney(total)}/mo</span></div>
-    <p style="font-size:16px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This total updates the moment you check a box above. To see how it affects the confidence score and portfolio longevity, visit the <b>Explorers</b> page — the "You predecease your spouse..." row there reflects these same settings.</p>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Investment drawdown (covers the rest of spending)</span><span>${fmtMoney(drawdownMonthly)}/mo</span></div>
+    <div class="total-row"><span>Total covering spouse's spending</span><span>${fmtMoney(guaranteedMonthly + drawdownMonthly)}/mo</span></div>
+    <p style="font-size:16px;color:var(--muted);margin:8px 0 0;line-height:1.5;">This updates the moment you check a box above. To see how the withdrawals affect the confidence score and portfolio longevity, visit the <b>Explorers</b> page — the "You predecease your spouse..." row there reflects these same settings.</p>
   `;
 }
 
@@ -1401,17 +1411,27 @@ function renderSurvivorshipCharts(inputs, rows) {
   const sbp2Monthly = inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0;
   const dicMonthly = inputs.dicEligible ? inputs.dicMonthlyAmount : 0;
   const ssMonthly = inputs.ssMonthly || 0; // survivor benefit = the full amount of the deceased's own SS
-  const incomeConfig = barConfig(
-    ['SS Survivor Benefit', 'SBP (Military Pension)', 'Survivor Annuity (Govt)', 'VA DIC'],
-    [ssMonthly*12, sbp1Monthly*12, sbp2Monthly*12, dicMonthly*12],
-    { horizontal: true }
-  );
+  const guaranteedAnnual = ssMonthly*12 + sbp1Monthly*12 + sbp2Monthly*12 + dicMonthly*12;
 
   const pct = inputs.survivorSpendingPct || 1;
   const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
   const debtMonthly = debts.reduce((s,d) => s + (+d.payment || 0), 0);
   const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0);
   const housingMonthly = (rows && rows.length ? rows[0].housingCost : 0) / 12;
+  const expenseTotalAnnual = (expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly) * 12 * pct;
+
+  // Guaranteed income (SS/SBP/DIC) rarely covers 100% of expenses on its own — whatever's left
+  // has to come from withdrawing the portfolio (TSP/brokerage/cash), same as it does for the
+  // baseline plan's own Surplus/(Gap) & Withdrawals math. Without this bar, the income chart
+  // understated what actually funds the spouse's spending.
+  const investmentDrawdownAnnual = Math.max(0, expenseTotalAnnual - guaranteedAnnual);
+
+  const incomeConfig = barConfig(
+    ['SS Survivor Benefit', 'SBP (Military Pension)', 'Survivor Annuity (Govt)', 'VA DIC', 'Investment Drawdown'],
+    [ssMonthly*12, sbp1Monthly*12, sbp2Monthly*12, dicMonthly*12, investmentDrawdownAnnual],
+    { horizontal: true }
+  );
+
   const expenseConfig = barConfig(
     ['Recurring expenses', 'Housing', 'Debt payments', 'Insurance premiums'],
     [expensesMonthly*12*pct, housingMonthly*12*pct, debtMonthly*12*pct, insuranceMonthly*12*pct],
@@ -3149,7 +3169,7 @@ function render() {
 
   if (els('sbp1Computed')) els('sbp1Computed').textContent = fmtMoney(inputs.sbp1Annual/12);
   if (els('sbp2Computed')) els('sbp2Computed').textContent = fmtMoney(inputs.sbp2Annual/12);
-  renderSurvivorshipSummary(inputs);
+  renderSurvivorshipSummary(inputs, rows);
   renderSurvivorshipCharts(inputs, rows);
 
   renderDebtPayoffPlan(inputs, ctx);
