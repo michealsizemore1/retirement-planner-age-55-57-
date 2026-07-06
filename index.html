@@ -135,7 +135,7 @@
   .mini-chart-card canvas{flex:1 1 auto; min-height:0; max-height:none;}
   .mini-chart-card.chart-horizontal{height:230px; max-height:230px;}
 
-  .chart-range-nav{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px;}
+  .chart-range-nav{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
   .range-nav-btn{
     background:#fbfcfc; border:1px solid var(--border); border-radius:20px;
     padding:6px 14px; font-size:15px; font-weight:600; color:var(--muted); cursor:pointer;
@@ -184,8 +184,14 @@
   .card.collapsed h3{ margin-bottom:0; }
   .card.collapsed h3::after{ transform:rotate(-90deg); }
   .card.collapsed > *:not(h3){ display:none; }
-  .field{margin-bottom:13px; min-width:0;}
-  .field label{display:flex; justify-content:space-between; font-size:16.5px; color:var(--muted); margin-bottom:5px; min-width:0; white-space:normal; word-break:break-word;}
+  /* Fields sharing a row (.two-col/.three-col) stretch to equal height by default (grid's normal
+     align-items:stretch), but a plain block label doesn't use that extra space — so a short label
+     next to a long one that wraps to 3-4 lines left the short field's input sitting higher up than
+     its neighbors'. Making .field a flex column and letting the label grow to fill the row's full
+     height (flex:1, text pinned to the bottom via align-items:flex-end) pushes every input down to
+     the same line regardless of how many lines its own label wrapped to. */
+  .field{margin-bottom:13px; min-width:0; display:flex; flex-direction:column;}
+  .field label{display:flex; justify-content:space-between; align-items:flex-end; font-size:16.5px; color:var(--muted); margin-bottom:5px; min-width:0; white-space:normal; word-break:break-word; flex:1 0 auto;}
   .field input[type="number"], .field input[type="date"], .field input[type="month"], .field input[type="text"], .field select{
     width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font-size:18px; background:#fbfcfc;
   }
@@ -198,7 +204,7 @@
   .mini-label{font-size:16.5px; font-weight:600; color:var(--navy); margin:2px 0 10px;}
   .checkbox-row{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
   .checkbox-row label{margin:0; font-size:17px; color:var(--text);}
-  .pill-row{display:flex; gap:8px; margin-top:8px;}
+  .pill-row{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;}
   .pill{border:1px solid var(--border); background:#fbfcfc; color:var(--muted); font-size:16.5px; padding:6px 13px; border-radius:20px; cursor:pointer;}
   .pill.active{background:var(--teal); color:#fff; border-color:var(--teal);}
   .sub-fields{border-left:2px solid var(--teal-light); padding-left:14px; margin-top:10px;}
@@ -207,7 +213,7 @@
   .row-item{display:grid; grid-template-columns:1.3fr 0.9fr 26px; gap:8px; align-items:center; margin-bottom:8px;}
   .row-item.debt-row{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
   .row-item.tx-row{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
-  .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 26px;}
+  .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 26px;}
   .row-item.future-row{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px;}
   .row-item.windfall-row{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px;}
   .row-item.insurance-row{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
@@ -243,7 +249,7 @@
   .row-header.cols-contrib{grid-template-columns:1.6fr 0.9fr;}
   .row-header.cols-future{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px;}
   .row-header.cols-windfall{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px;}
-  .row-header.cols-expense{grid-template-columns:1.1fr 1fr 0.7fr 26px;}
+  .row-header.cols-expense{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 26px;}
   .row-header.cols-insurance{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
   .row-item.contrib-row{grid-template-columns:1.6fr 0.9fr; align-items:center;}
   .pie-name-label{font-size:16.5px; color:var(--text);}
@@ -260,6 +266,28 @@
   .stat .value{font-size:28px; font-weight:700; color:var(--navy);}
   .stat.warn .value{color:var(--danger);}
   .stat.ok .value{color:var(--good);}
+
+  /* "What If I..." card selector (Explorers page) — a Boldin-style single-select grid of quick
+     stress-test scenarios. Clicking a card toggles it on/off; the radio circle fills in teal when
+     selected, matching the checked look of a real radio button without needing an actual <input>. */
+  .whatif-card-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-bottom:16px;}
+  .whatif-card{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px 18px; cursor:pointer; font-size:16.5px; font-weight:600; color:var(--navy); line-height:1.4;
+  }
+  .whatif-card:hover{border-color:var(--teal);}
+  .whatif-card.selected{border-color:var(--teal); background:var(--teal-light);}
+  .whatif-radio{width:20px; height:20px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; margin-top:1px; background:#fff;}
+  .whatif-card.selected .whatif-radio{border-color:var(--teal); background:radial-gradient(var(--teal) 42%, transparent 46%);}
+
+  /* Market Explorer (Explorers page) — mimics Boldin's own Market Downturn tab: a dismissible note,
+     the same whatif-card radio grid (reused as-is), a "set your own conditions" panel, and a plain-text
+     Chance-of-Success callout above the projection chart. */
+  .info-banner{display:flex; justify-content:space-between; align-items:center; gap:12px; background:#eef2f5; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:15.5px; color:var(--muted);}
+  .info-banner-close{background:none; border:none; font-size:19px; line-height:1; cursor:pointer; color:var(--muted); padding:0 4px;}
+  .market-explorer-headline{font-size:18px; font-weight:700; color:var(--navy); margin:14px 0 4px;}
+  .market-explorer-detail{font-size:15.5px; color:var(--muted); margin-bottom:10px;}
 
   .score-card{
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
@@ -335,6 +363,15 @@
     header{padding:16px 16px;}
     header h1{font-size:20px;}
     header p{font-size:14px;}
+  }
+  /* .two-col/.three-col never adapted to phone widths — cramming 2 or 3 fields side by side left each
+     one too narrow for its own contents (e.g. the "Retire at 55/56/57" pill row, which has no room to
+     wrap sideways and was getting pushed off the right edge of the screen). Stacking every field to a
+     single column below 600px gives each one the full screen width instead. #statCards is deliberately
+     excluded (it already forces 2 columns on purpose for the Dashboard tiles, which are short labels
+     that don't have this problem). */
+  @media (max-width:600px){
+    .two-col, .three-col{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -797,10 +834,12 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Recurring Monthly Expenses</h3>
-        <div class="row-header cols-expense"><span>Name</span><span>Category</span><span>$/mo</span><span></span></div>
+        <div class="row-header cols-expense"><span>Name</span><span>Category</span><span>Must Spend</span><span>Like to Spend</span><span></span></div>
         <div class="row-list" id="expenseRows"></div>
         <button class="add-btn" onclick="addExpense()">+ Add expense</button>
-        <div class="total-row"><span>Total (excl. housing)</span><span id="expenseTotal">$0</span></div>
+        <div class="total-row"><span>Must Spend total (excl. housing)</span><span id="expenseMustSpendTotal">$0</span></div>
+        <div class="total-row"><span>Like to Spend total (excl. housing)</span><span id="expenseTotal">$0</span></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">"Like to Spend" is the baseline number the projection uses every year. "Must Spend" is your bare-minimum essential floor: when dynamic spending guardrails (Assumptions page) cut spending in a down market, the cut never pushes recurring expenses below this total — housing, debt, insurance, and medical premiums are already treated as 100% essential and are never cut.</p>
       </div>
 
       <div class="card">
@@ -1042,12 +1081,41 @@
           <div class="field"><label>Guardrail band (±% of initial withdrawal rate)</label><input type="number" id="guardBand" value="20" step="1"></div>
           <div class="field"><label>Spending adjustment when triggered (%)</label><input type="number" id="guardAdj" value="10" step="1"></div>
         </div>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When triggered downward, spending is cut by the % above but never below your Must Spend essential floor (Expenses page) — housing, debt, insurance, and medical premiums are always fully paid regardless of the cut.</p>
       </div>
     </div>
 
     <!-- ================= EXPLORERS ================= -->
     <div class="page" data-page="explorers">
       <div class="page-header"><h2>Explorers</h2><p>What-if and market-risk scenarios, each compared against your current plan. Dollar columns respect the Today's $ / Future $ toggle in the header.</p></div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">What If I...<span class="sub-label">Pick a quick scenario and see the impact on your savings over time</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Explore these common "what if" scenarios and see the impact on your savings over time. Pick one to compare it against your current plan below — click it again to go back to just your current plan.</p>
+        <div class="whatif-card-grid" id="whatIfCardGrid"></div>
+        <div class="mini-label" style="margin-bottom:8px;">My Savings Projection</div>
+        <div class="mini-chart-card"><canvas id="chart_whatif_savings"></canvas><div class="chart-range-nav" data-chart="whatif_savings"><button class="range-nav-btn range-prev" onclick="chartRangeNav('whatif_savings','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('whatif_savings','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('whatif_savings','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="whatif_savings"></div></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:0;">"Savings" here is your investable balance plus cash (TSP, brokerage, checking/savings/HYSA) — it doesn't include home equity.</p>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Market Explorer<span class="sub-label">Downturn stress-tests with a Chance-of-Success readout</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">What if you experience a market downturn or a sequence of poor returns around your retirement date? See whether your portfolio will sustain withdrawals to meet your financial goals.</p>
+        <div class="info-banner" id="marketExplorerBanner"><span>This explorer always runs on average (non-randomized) assumptions, regardless of Monte Carlo settings used elsewhere in your plan.</span><button class="info-banner-close" onclick="els('marketExplorerBanner').style.display='none'" aria-label="Dismiss">×</button></div>
+        <div class="whatif-card-grid" id="marketExplorerCardGrid"></div>
+        <div id="marketExplorerCustomPanel" style="display:none;">
+          <div class="mini-label" style="margin:4px 0 10px;">Set Your Own Market Conditions</div>
+          <div class="three-col">
+            <div class="field"><label>When does the market drop begin? (age)</label><input type="number" id="mktExplorerStartAge" value="" min="0" max="100" placeholder="Retirement age"></div>
+            <div class="field"><label>How long does the downturn last? (years)</label><input type="number" id="mktExplorerDuration" value="3" min="1" max="20"></div>
+            <div class="field"><label>How much do investments drop? (%/yr)</label><input type="number" id="mktExplorerDropPct" value="25" min="0" max="100" step="1"></div>
+          </div>
+        </div>
+        <div id="marketExplorerResult"></div>
+        <div class="mini-label" style="margin:16px 0 8px;">My Savings Projection</div>
+        <div class="mini-chart-card"><canvas id="chart_market_explorer"></canvas><div class="chart-range-nav" data-chart="market_explorer"><button class="range-nav-btn range-prev" onclick="chartRangeNav('market_explorer','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('market_explorer','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('market_explorer','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="market_explorer"></div></div>
+        <p style="font-size:15.5px;color:var(--muted);margin:0;">"Savings" here is your investable balance plus cash (TSP, brokerage, checking/savings/HYSA) — it doesn't include home equity.</p>
+      </div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">What-If Scenarios<span class="sub-label">Single-lever changes to your plan</span></h3>
@@ -1071,7 +1139,7 @@
         </div>
       </div>
 
-      <div class="note">Each scenario re-runs your full plan with one change applied (or, for market risk, a specific sequence of returns/inflation pinned in). "Confidence Score" is a 300-simulation Monte Carlo success rate for that scenario alone, so it's directly comparable to your baseline score on the Dashboard.</div>
+      <div class="note">Each scenario re-runs your full plan with one change applied (or, for market risk, a specific sequence of returns/inflation pinned in). "Confidence Score" is a 1000-simulation Monte Carlo success rate for that scenario alone — the same simulation count as your baseline score on the Dashboard, so every number on this page is directly comparable.</div>
     </div>
 
     <!-- ================= COACH ================= -->
@@ -1297,8 +1365,13 @@ function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.dataset.page === pageId));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === pageId));
   els('currentPageLabel').textContent = PAGE_LABELS[pageId] || pageId;
-  // Every card collapses each time its section is visited, so you always land on a clean, scannable list of titles.
-  document.querySelectorAll(`.page[data-page="${pageId}"] .card`).forEach(c => c.classList.add('collapsed'));
+  // Every collapsible card collapses each time its section is visited, so you always land on a clean,
+  // scannable list of titles. Only cards with an actual <h3 onclick="toggleCard(this)"> header are
+  // collapsible — a few cards (What If I..., Market Explorer) use a plain <h2> instead because they're
+  // meant to always stay open, and must NOT get the .collapsed class: the CSS rule that hides a
+  // collapsed card's body (.card.collapsed > *:not(h3){display:none}) would hide literally everything
+  // in them, since they have no h3 to spare.
+  document.querySelectorAll(`.page[data-page="${pageId}"] .card`).forEach(c => { if (c.querySelector(':scope > h3')) c.classList.add('collapsed'); });
   if (lastSnapshot) refreshSectionCharts(pageId, lastSnapshot);
   if (pageId === 'explorers') renderExplorers();
   if (pageId === 'coach') { renderCoachTips(); renderCoachAiGate(); }
@@ -1422,17 +1495,21 @@ function loadState() {
 
 // ---------- Expenses (dynamic rows, monthly $ amounts) ----------
 const EXPENSE_CATEGORIES = ['Food & Groceries','Transportation','Healthcare','Utilities','Entertainment & Travel','Personal Care','Shopping','Gifts & Donations','Subscriptions','Pet Care','Personal Support','Other'];
+// "amount" is the "Like to Spend" figure — the only one the engine actually uses. "mustSpend" is the
+// essential-floor figure Boldin shows alongside it; it's captured for reference/future stress-testing
+// but doesn't itself change the projection. Existing rows default mustSpend = amount (essential utility
+// bills), except the two clearly-discretionary ones, which default to $0.
 let expenses = [
-  { name:'Intermountain Gas', category:'Utilities', amount:50.00 },
-  { name:'Verizon', category:'Utilities', amount:154.00 },
-  { name:'Idaho Power', category:'Utilities', amount:90.00 },
-  { name:'Centurylink', category:'Utilities', amount:105.00 },
-  { name:'YouTube Premium', category:'Subscriptions', amount:27.00 },
-  { name:'Ring', category:'Subscriptions', amount:10.00 },
-  { name:'Sinking Funds', category:'Subscriptions', amount:130.00 },
-  { name:'Planet Fitness', category:'Personal Care', amount:21.00 },
-  { name:'To Cindy', category:'Personal Support', amount:3466.00 },
-  { name:'Fun money / Backup', category:'Personal Support', amount:450.00 }
+  { name:'Intermountain Gas', category:'Utilities', amount:50.00, mustSpend:50.00 },
+  { name:'Verizon', category:'Utilities', amount:154.00, mustSpend:154.00 },
+  { name:'Idaho Power', category:'Utilities', amount:90.00, mustSpend:90.00 },
+  { name:'Centurylink', category:'Utilities', amount:105.00, mustSpend:105.00 },
+  { name:'YouTube Premium', category:'Subscriptions', amount:27.00, mustSpend:0 },
+  { name:'Ring', category:'Subscriptions', amount:10.00, mustSpend:0 },
+  { name:'Sinking Funds', category:'Subscriptions', amount:130.00, mustSpend:0 },
+  { name:'Planet Fitness', category:'Personal Care', amount:21.00, mustSpend:0 },
+  { name:'To Cindy', category:'Personal Support', amount:3466.00, mustSpend:3466.00 },
+  { name:'Fun money / Backup', category:'Personal Support', amount:450.00, mustSpend:0 }
 ];
 function renderExpenseRows() {
   const container = els('expenseRows');
@@ -1442,18 +1519,23 @@ function renderExpenseRows() {
       <select onchange="updateExpense(${i},'category',this.value)">
         ${EXPENSE_CATEGORIES.map(c => `<option value="${c}" ${c===e.category?'selected':''}>${c}</option>`).join('')}
       </select>
+      <input type="number" value="${e.mustSpend != null ? e.mustSpend : e.amount}" step="10" oninput="updateExpense(${i},'mustSpend',this.value)">
       <input type="number" value="${e.amount}" step="10" oninput="updateExpense(${i},'amount',this.value)">
       <button class="remove-btn" onclick="removeExpense(${i})" title="Remove">×</button>
     </div>
   `).join('');
+  updateExpenseTotals();
+}
+function updateExpenseTotals() {
   els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0)) + '/mo';
+  els('expenseMustSpendTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.mustSpend||0), 0)) + '/mo';
 }
 function updateExpense(i, field, value) {
-  expenses[i][field] = field==='amount' ? +value : value;
-  els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0)) + '/mo';
+  expenses[i][field] = (field==='amount' || field==='mustSpend') ? +value : value;
+  updateExpenseTotals();
   render();
 }
-function addExpense() { expenses.push({ name:'New expense', category:'Other', amount:50 }); renderExpenseRows(); render(); }
+function addExpense() { expenses.push({ name:'New expense', category:'Other', amount:50, mustSpend:50 }); renderExpenseRows(); render(); }
 function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render(); }
 
 // Read-only combined view on the Expenses page: shows Housing/Debt/Insurance alongside the
@@ -1670,13 +1752,19 @@ function renderSurvivorshipCharts(inputs, rows, ctx) {
 // amount be overridden for that scenario. Both stored right on the item itself (item.survivorContinues,
 // item.survivorAmount — default continuing at the normal amount when unset) so they ride along with that
 // item's own array in saveState/loadState — no separate persistence plumbing needed.
+function survivorArrByName(arrName) {
+  if (arrName === 'expenses') return expenses;
+  if (arrName === 'debts') return debts;
+  if (arrName === 'futureExpenses') return futureExpenses;
+  return insurancePolicies;
+}
 function setSurvivorContinues(arrName, i, checked) {
-  const arr = arrName === 'expenses' ? expenses : (arrName === 'debts' ? debts : insurancePolicies);
+  const arr = survivorArrByName(arrName);
   if (arr[i]) arr[i].survivorContinues = checked;
   render();
 }
 function setSurvivorAmount(arrName, i, value) {
-  const arr = arrName === 'expenses' ? expenses : (arrName === 'debts' ? debts : insurancePolicies);
+  const arr = survivorArrByName(arrName);
   if (arr[i]) arr[i].survivorAmount = value === '' ? null : +value;
   render();
 }
@@ -1688,7 +1776,7 @@ function setSurvivorAmount(arrName, i, value) {
 function renderSurvivorExpenseChecklist() {
   const body = els('survivorExpenseChecklistBody');
   if (!body) return;
-  const itemRow = (arrName, i, item, label, keyName) => {
+  const itemRow = (arrName, i, item, label, keyName, suffix) => {
     const normalAmount = +item[keyName] || 0;
     const overrideVal = (item.survivorAmount != null && item.survivorAmount !== '') ? item.survivorAmount : '';
     return `
@@ -1697,16 +1785,21 @@ function renderSurvivorExpenseChecklist() {
         <input type="checkbox" ${item.survivorContinues===false?'':'checked'} onchange="setSurvivorContinues('${arrName}',${i},this.checked)">
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</span>
       </label>
-      <span style="flex:0 0 auto;display:flex;align-items:center;gap:4px;">$<input type="number" value="${overrideVal !== '' ? overrideVal : normalAmount}" step="5" ${item.survivorContinues===false?'disabled':''} style="width:80px;padding:4px 6px;font-size:15px;" onchange="setSurvivorAmount('${arrName}',${i},this.value)">/mo</span>
+      <span style="flex:0 0 auto;display:flex;align-items:center;gap:4px;">$<input type="number" value="${overrideVal !== '' ? overrideVal : normalAmount}" step="5" ${item.survivorContinues===false?'disabled':''} style="width:80px;padding:4px 6px;font-size:15px;" onchange="setSurvivorAmount('${arrName}',${i},this.value)">${suffix != null ? suffix : '/mo'}</span>
     </div>`;
   };
-  const section = (title, arrName, arr, labelFn, keyName) => `
+  const section = (title, arrName, arr, labelFn, keyName, suffix) => `
     <div class="mini-label" style="margin:10px 0 2px;">${title}</div>
-    ${arr.length ? arr.map((item,i) => itemRow(arrName, i, item, labelFn(item), keyName)).join('') : `<p style="font-size:15px;color:var(--muted);margin:2px 0;">Nothing entered yet.</p>`}
+    ${arr.length ? arr.map((item,i) => itemRow(arrName, i, item, labelFn(item), keyName, suffix)).join('') : `<p style="font-size:15px;color:var(--muted);margin:2px 0;">Nothing entered yet.</p>`}
   `;
+  // Future / one-time expenses each hit at their own specific age (or age range, if recurring), not every
+  // month — so the label spells out when, and the $ figure reads as a per-hit or per-year amount instead
+  // of "/mo" like the always-on recurring costs above.
+  const futureExpenseLabel = f => `${f.name || 'Future expense'} (age ${f.age}${f.recurring && f.endAge ? '–' + f.endAge : ''}${f.recurring ? '/yr' : ', one-time'})`;
   body.innerHTML = section('Expenses', 'expenses', expenses, e => e.name || e.category, 'amount')
     + section('Debts', 'debts', debts, d => d.name || d.category || 'Debt', 'payment')
-    + section('Insurance premiums', 'insurancePolicies', insurancePolicies, p => p.name || p.type || 'Policy', 'premium');
+    + section('Insurance premiums', 'insurancePolicies', insurancePolicies, p => p.name || p.type || 'Policy', 'premium')
+    + section('Future / One-Time Expenses', 'futureExpenses', futureExpenses, futureExpenseLabel, 'amount', '');
 }
 
 // ---------- Future / one-time planned expenses (dynamic rows) ----------
@@ -2334,10 +2427,18 @@ function projectRun(inputs, ctx, randomize, shocks) {
     }
 
     // Future / one-time planned expenses: hit at a specific age (or a recurring range), drawn from cash first then brokerage.
+    // Survivorship what-if: only items still checked "continues" on the Survivorship page's checklist count,
+    // at each item's edited override amount if one was set — same per-item pattern as expenses/debts/insurance.
+    // Explorers "What If I..." cards (e.g. "an unexpected $50k expense in 5 years") inject a synthetic entry
+    // via ctx.futureExpensesOverride instead of touching the real futureExpenses list, so trying a scenario
+    // never risks mutating what's actually entered on the Housing/Money Flows page.
     let futureExpenseCostThisYear = 0;
-    futureExpenses.forEach(f => {
+    (ctx.futureExpensesOverride || futureExpenses).forEach(f => {
       const hits = f.recurring ? (age >= f.age && age <= (f.endAge || f.age)) : (age === f.age);
-      if (hits) futureExpenseCostThisYear += (+f.amount || 0) * Math.pow(1+inputs.inflation, y);
+      if (!hits) return;
+      if (survivorshipActive && f.survivorContinues === false) return;
+      const amt = (survivorshipActive && f.survivorAmount != null && f.survivorAmount !== '') ? (+f.survivorAmount || 0) : (+f.amount || 0);
+      futureExpenseCostThisYear += amt * Math.pow(1+inputs.inflation, y);
     });
     if (futureExpenseCostThisYear > 0) {
       let feRemaining = futureExpenseCostThisYear;
@@ -2512,12 +2613,25 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const expensesMedicalForYear = survivorshipActive ? ctx.expensesMedicalSurvivor : ctx.expensesMedical;
       expensesCategoriesAnnual = (expensesNonMedicalForYear * inflator + expensesMedicalForYear * medicalInflator) * spendMult;
       const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
+      // Must Spend floor for this year's recurring expenses only (housing/debt/insurance/Tricare-Medicare
+      // premiums/SBP premiums don't have a discretionary counterpart modeled, so they're treated as 100%
+      // essential below rather than needing their own Must Spend split).
+      const mustSpendNonMedicalForYear = survivorshipActive ? ctx.expensesMustSpendNonMedicalSurvivor : ctx.expensesMustSpendNonMedical;
+      const mustSpendMedicalForYear = survivorshipActive ? ctx.expensesMustSpendMedicalSurvivor : ctx.expensesMustSpendMedical;
+      const mustSpendCategoriesAnnual = (mustSpendNonMedicalForYear * inflator + mustSpendMedicalForYear * medicalInflator) * spendMult;
       // SBP premiums (survivorship what-if only) are paid while both are alive in that scenario and stop once
       // survivorship kicks in (the retiree's own pay, which funded the premium, has stopped).
       const sbpPremiumAnnual = (inputs.survivorshipEnabled && !survivorshipActive)
         ? ((inputs.sbp1Enabled ? inputs.sbp1PremiumMonthly : 0) + (inputs.sbp2Enabled ? inputs.sbp2PremiumMonthly : 0)) * 12 * inflator : 0;
       let totalSpending = expensesInflated + housingCost + debtPaymentThisYear + insurancePremiumAnnual + sbpPremiumAnnual;
-      if (survivorshipActive && inputs.survivorSpendingPct) totalSpending *= inputs.survivorSpendingPct;
+      // Everything except the discretionary slice of recurring expenses is treated as 100% essential —
+      // housing, debt payments, insurance premiums, SBP premiums, and Tricare/Medicare/FEDVIP premiums
+      // (medicalCostAnnual, already folded into expensesInflated above) don't have a Must Spend split.
+      let essentialFloor = mustSpendCategoriesAnnual + medicalCostAnnual + housingCost + debtPaymentThisYear + insurancePremiumAnnual + sbpPremiumAnnual;
+      if (survivorshipActive && inputs.survivorSpendingPct) {
+        totalSpending *= inputs.survivorSpendingPct;
+        essentialFloor *= inputs.survivorSpendingPct;
+      }
 
       // ssAmount/spousalBenefit/pensionAmount/pension2Amount/vaDisabilityAmount/annuityAmount/sbpAmount/
       // dicAmount/guaranteedIncome are all computed once, above, before the retirement-age branch split —
@@ -2539,7 +2653,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
       if (inputs.guardrailsEnabled && initialWithdrawalRate !== null && startInvestable > 0) {
         const currentRate = need0/startInvestable;
         if (currentRate < initialWithdrawalRate*(1-inputs.guardBand)) totalSpending *= (1+inputs.guardAdj);
-        else if (currentRate > initialWithdrawalRate*(1+inputs.guardBand)) totalSpending *= (1-inputs.guardAdj);
+        // Downward cut only: never trims spending below the Must Spend essential floor, no matter how
+        // large a cut the guardrail % would otherwise call for.
+        else if (currentRate > initialWithdrawalRate*(1+inputs.guardBand)) totalSpending = Math.max(essentialFloor, totalSpending*(1-inputs.guardAdj));
       }
       spending = totalSpending;
       const need = Math.max(0, totalSpending - guaranteedIncomeAfterTax);
@@ -2645,6 +2761,13 @@ function buildContext(inputs) {
   const expensesTotal = expenses.reduce((s,e) => s + (+e.amount || 0), 0) * 12;
   const expensesMedical = expenses.filter(e => e.category === 'Healthcare').reduce((s,e) => s + (+e.amount || 0), 0) * 12;
   const expensesNonMedical = expensesTotal - expensesMedical;
+  // "Must Spend" totals — the essential floor guardrails won't cut below (see the guardrail-cut branch
+  // in projectRun). Falls back to the full "Like to Spend" amount for any row saved before this field
+  // existed, matching the same fallback the Expenses page row rendering already uses.
+  const mustSpendVal = e => (e.mustSpend != null ? +e.mustSpend : (+e.amount || 0));
+  const expensesMustSpendTotal = expenses.reduce((s,e) => s + mustSpendVal(e), 0) * 12;
+  const expensesMustSpendMedical = expenses.filter(e => e.category === 'Healthcare').reduce((s,e) => s + mustSpendVal(e), 0) * 12;
+  const expensesMustSpendNonMedical = expensesMustSpendTotal - expensesMustSpendMedical;
   // Survivorship what-if: a parallel set of totals that only include expenses/debts marked as continuing
   // after you're gone (item.survivorContinues, toggled on the Survivorship page — defaults to continuing
   // when unset), using each item's edited override amount (item.survivorAmount) if the user set one,
@@ -2658,10 +2781,17 @@ function buildContext(inputs) {
   const expensesTotalSurvivor = expenses.filter(e => e.survivorContinues !== false).reduce((s,e) => s + survivorVal(e), 0) * 12;
   const expensesMedicalSurvivor = expenses.filter(e => e.category === 'Healthcare' && e.survivorContinues !== false).reduce((s,e) => s + survivorVal(e), 0) * 12;
   const expensesNonMedicalSurvivor = expensesTotalSurvivor - expensesMedicalSurvivor;
+  // Must Spend, survivorship-filtered (same "continuing" filter as the Like-to-Spend survivor totals
+  // above) — no separate survivor override amount for Must Spend itself, just the plain per-row floor.
+  const expensesMustSpendTotalSurvivor = expenses.filter(e => e.survivorContinues !== false).reduce((s,e) => s + mustSpendVal(e), 0) * 12;
+  const expensesMustSpendMedicalSurvivor = expenses.filter(e => e.category === 'Healthcare' && e.survivorContinues !== false).reduce((s,e) => s + mustSpendVal(e), 0) * 12;
+  const expensesMustSpendNonMedicalSurvivor = expensesMustSpendTotalSurvivor - expensesMustSpendMedicalSurvivor;
   return {
     maxYears, ageGap, effectiveLifeExpectancy, effectiveSpousalStartAge, debtSchedules, mortgageSchedule,
     expensesTotal, expensesMedical, expensesNonMedical,
-    debtSchedulesSurvivor, expensesTotalSurvivor, expensesMedicalSurvivor, expensesNonMedicalSurvivor
+    expensesMustSpendTotal, expensesMustSpendMedical, expensesMustSpendNonMedical,
+    debtSchedulesSurvivor, expensesTotalSurvivor, expensesMedicalSurvivor, expensesNonMedicalSurvivor,
+    expensesMustSpendTotalSurvivor, expensesMustSpendMedicalSurvivor, expensesMustSpendNonMedicalSurvivor
   };
 }
 
@@ -2710,7 +2840,9 @@ function runExplorerScenario(scenario, baseInputs, baseCtx) {
   }
   const shocks = scenario.shocks || {};
   const det = projectRun(inputs, ctx, false, shocks);
-  const score = runMonteCarlo(inputs, ctx, 300, shocks);
+  // 1000 runs, matching the Dashboard's baseline confidence score, so every Explorers scenario is
+  // directly comparable to it (and to each other) at the same simulation count.
+  const score = runMonteCarlo(inputs, ctx, 1000, shocks);
   const lastRow = det.rows.length ? det.rows[det.rows.length - 1] : null;
   return {
     name: scenario.name,
@@ -2722,6 +2854,204 @@ function runExplorerScenario(scenario, baseInputs, baseCtx) {
     endAge: lastRow ? lastRow.age : inputs.retirementAge,
     score
   };
+}
+
+// ---------- "What If I..." card selector (Explorers page, mimics Boldin's own What-If screen) ----------
+// Each entry gets a build(inputs, ctx) hook returning a fresh {inputs, ctx} pair for that one scenario,
+// rather than mutating anything shared — same non-destructive spirit as WHAT_IF_SCENARIOS above, just
+// covering a different (and differently-shaped) set of quick stress tests, including two that need a
+// synthetic debt/expense injected rather than a simple input tweak.
+const WHATIF_CARDS = [
+  { name: 'Live 5 years longer than expected',
+    build: (inputs) => { const newInputs = { ...inputs, lifeExpectancy: inputs.lifeExpectancy + 5 }; return { inputs: newInputs, ctx: buildContext(newInputs) }; } },
+  { name: 'Achieve 1% higher average rate of return',
+    build: (inputs, ctx) => ({ inputs: { ...inputs, preReturn: inputs.preReturn + 0.01, postReturn: inputs.postReturn + 0.01 }, ctx }) },
+  { name: 'Achieve 1% lower average rate of return',
+    build: (inputs, ctx) => ({ inputs: { ...inputs, preReturn: inputs.preReturn - 0.01, postReturn: inputs.postReturn - 0.01 }, ctx }) },
+  { name: 'Take out a $50k loan',
+    // A 5-year personal loan at a representative 9% APR — proceeds land in HYSA (spendable cash) the
+    // same year, and its payment schedule is added alongside your real debts via a cloned ctx, so trying
+    // this never touches what's actually entered on the Debt page.
+    build: (inputs, ctx) => {
+      const payment = mortgagePayment(50000, 9, 5);
+      const loanSchedule = buildDebtSchedule({ apr: 9, balance: 50000, payment }, ctx.maxYears);
+      return { inputs: { ...inputs, hysaBalance: inputs.hysaBalance + 50000 }, ctx: { ...ctx, debtSchedules: [...ctx.debtSchedules, loanSchedule] } };
+    } },
+  { name: 'Have an unexpected $50k expense in 5 years',
+    build: (inputs, ctx) => ({ inputs, ctx: { ...ctx, futureExpensesOverride: [...futureExpenses, { name: 'Unexpected expense', age: inputs.currentAge + 5, amount: 50000, recurring: false }] } }) }
+];
+let selectedWhatIfCard = null;
+function selectWhatIfCard(idx) {
+  selectedWhatIfCard = (selectedWhatIfCard === idx) ? null : idx;
+  render();
+}
+function renderWhatIfCards() {
+  const grid = els('whatIfCardGrid');
+  if (!grid) return;
+  grid.innerHTML = WHATIF_CARDS.map((s, i) => `
+    <div class="whatif-card ${selectedWhatIfCard === i ? 'selected' : ''}" onclick="selectWhatIfCard(${i})">
+      <span>${s.name}</span>
+      <span class="whatif-radio"></span>
+    </div>
+  `).join('');
+}
+// "My Savings Projection" — baseline alone when nothing's selected (matching Boldin's own default state),
+// or baseline vs. the selected card side by side once one is picked, so the comparison itself is visible
+// rather than just the modified line on its own.
+function renderWhatIfSavingsChart(inputs, ctx) {
+  const canvas = els('chart_whatif_savings');
+  if (!canvas) return;
+  const baseRows = projectRun(inputs, ctx, false).rows;
+  let scenarioRows = null, scenarioName = null;
+  if (selectedWhatIfCard != null && WHATIF_CARDS[selectedWhatIfCard]) {
+    const scenario = WHATIF_CARDS[selectedWhatIfCard];
+    const built = scenario.build(inputs, ctx);
+    scenarioRows = projectRun(built.inputs, built.ctx, false).rows;
+    scenarioName = scenario.name;
+  }
+  // "Live 5 years longer" runs more rows than the baseline (a longer horizon), so the two series can
+  // come back different lengths — use whichever is longer for the age labels and pad the shorter one
+  // with nulls (Chart.js just skips drawing a bar there) rather than assuming they line up 1:1.
+  const longerRows = (scenarioRows && scenarioRows.length > baseRows.length) ? scenarioRows : baseRows;
+  const ages = longerRows.map(r => r.age);
+  const savingsByYear = rows => ages.map((age, i) => rows[i] ? dv(rows[i].investable + rows[i].cash, rows[i].age, inputs) : null);
+  // Canvas fillStyle can't resolve a CSS var() reference, so this is the actual hex behind --navy,
+  // matching the dark charcoal-navy bars Boldin itself uses for this chart.
+  const series = [{ label: 'Current Plan — Savings', data: savingsByYear(baseRows), backgroundColor: '#132a3e' }];
+  if (scenarioRows) {
+    series.push({ label: scenarioName + ' — Savings', data: savingsByYear(scenarioRows), backgroundColor: CHART_COLORS[0] });
+  }
+  const key = 'whatif_savings';
+  const config = yearlyBarConfig(ages, series);
+  if (charts[key]) charts[key].destroy();
+  charts[key] = new Chart(canvas.getContext('2d'), config);
+  applyChartRange(key);
+}
+
+// ---------- Market Explorer (Explorers page, mimics Boldin's own Market Downturn tab) ----------
+// Builds a shocks object (same {pre:{...}, post:{...}} shape projectRun/runMonteCarlo already accept)
+// spanning `durationYears` starting at `startAge`, pinning the literal return for each of those years —
+// splitting across the pre-retirement/post-retirement buckets automatically depending on where each
+// year of the downturn actually falls relative to retirementAge.
+function buildDownturnShocks(inputs, startAge, durationYears, returnDuringDownturn) {
+  const shocks = { pre: {}, post: {} };
+  for (let i = 0; i < durationYears; i++) {
+    const age = startAge + i;
+    if (age < inputs.retirementAge) shocks.pre[age - inputs.currentAge] = returnDuringDownturn;
+    else shocks.post[age - inputs.retirementAge] = returnDuringDownturn;
+  }
+  return shocks;
+}
+function successBucketText(score) {
+  if (score < 15) return 'Under 15%';
+  if (score < 50) return '15–49%';
+  if (score < 75) return '50–74%';
+  if (score < 95) return '75–94%';
+  return '95%+';
+}
+const MARKET_EXPLORER_PRESETS = [
+  { key: 'decade', name: 'A decade of poor returns' },
+  { key: 'threeyear', name: 'A three year sequence of bad returns' },
+  { key: 'custom', name: 'Create a Downturn' }
+];
+let marketExplorerScenario = 'custom'; // matches Boldin's own default-selected card
+function selectMarketExplorerScenario(key) {
+  marketExplorerScenario = key;
+  render();
+}
+function renderMarketExplorerCards() {
+  const grid = els('marketExplorerCardGrid');
+  if (!grid) return;
+  grid.innerHTML = MARKET_EXPLORER_PRESETS.map(p => `
+    <div class="whatif-card ${marketExplorerScenario === p.key ? 'selected' : ''}" onclick="selectMarketExplorerScenario('${p.key}')">
+      <span>${p.name}</span>
+      <span class="whatif-radio"></span>
+    </div>
+  `).join('');
+  const panel = els('marketExplorerCustomPanel');
+  if (panel) panel.style.display = marketExplorerScenario === 'custom' ? 'block' : 'none';
+}
+// Turns whichever card is selected into a concrete shocks object + display metadata. "Three year
+// sequence" reuses the exact same shock shape as the Market Risk Scenarios table below, so the two
+// stay in sync rather than drifting into two slightly different definitions of the same stress test.
+function buildMarketExplorerShocksAndMeta(inputs) {
+  if (marketExplorerScenario === 'decade') {
+    const startAge = Math.max(inputs.currentAge, inputs.retirementAge);
+    return { shocks: buildDownturnShocks(inputs, startAge, 10, 0.01), name: 'A decade of poor returns' };
+  }
+  if (marketExplorerScenario === 'threeyear') {
+    return { shocks: MARKET_RISK_SCENARIOS[0].shocks, name: 'A three year sequence of bad returns' };
+  }
+  const startAgeEl = els('mktExplorerStartAge');
+  const durationEl = els('mktExplorerDuration');
+  const dropPctEl = els('mktExplorerDropPct');
+  const startAge = (startAgeEl && startAgeEl.value !== '') ? +startAgeEl.value : inputs.retirementAge;
+  const duration = Math.max(1, (durationEl && durationEl.value !== '') ? +durationEl.value : 3);
+  const dropPct = (dropPctEl && dropPctEl.value !== '' && !isNaN(+dropPctEl.value)) ? +dropPctEl.value : 25;
+  return {
+    shocks: buildDownturnShocks(inputs, startAge, duration, -dropPct / 100),
+    name: 'Create a Downturn', startAge, duration, dropPct
+  };
+}
+function renderMarketExplorerResult(score, meta) {
+  const el = els('marketExplorerResult');
+  if (!el) return;
+  const bucket = successBucketText(score);
+  const headline = marketExplorerScenario === 'custom'
+    ? `Based on a custom downturn your Chance of Success could be <b>${bucket}</b>`
+    : `Based on "${meta.name}" your Chance of Success could be <b>${bucket}</b>`;
+  let detail = '';
+  if (marketExplorerScenario === 'custom') {
+    detail = `<div class="market-explorer-detail">Start of downturn: Age <b>${meta.startAge}</b> &nbsp;&nbsp; Annual returns during downturn: <b>-${meta.dropPct}%/yr</b> &nbsp;&nbsp; Downturn duration: <b>${meta.duration} year${meta.duration===1?'':'s'}</b></div>`;
+  }
+  el.innerHTML = `<div class="market-explorer-headline">${headline}</div>${detail}`;
+}
+function marketExplorerChartConfig(ages, baseData, scenarioData) {
+  return {
+    type: 'bar',
+    data: {
+      labels: ages.map(a => 'Age ' + a),
+      datasets: [
+        { type: 'bar', label: 'Savings (current plan)', data: baseData, backgroundColor: '#132a3e', borderRadius: 3, order: 2 },
+        { type: 'line', label: 'New Projections with Market Risk', data: scenarioData, borderColor: '#1f7a6c', backgroundColor: '#1f7a6c', borderDash: [5,3], pointRadius: 2, pointBackgroundColor: '#1f7a6c', tension: 0, fill: false, order: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'index', axis: 'x', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 13 } } },
+        tooltip: { enabled: true, callbacks: { label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.y) } }
+      },
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: 13 } } },
+        y: { ticks: { callback: v => fmtMoneyK(v) } }
+      }
+    }
+  };
+}
+function renderMarketExplorerChart(inputs, ctx, shocks) {
+  const canvas = els('chart_market_explorer');
+  if (!canvas) return;
+  const baseRows = projectRun(inputs, ctx, false).rows;
+  const scenarioRows = projectRun(inputs, ctx, false, shocks).rows;
+  // Same defensive length-padding as the "What If I..." chart above — none of these scenarios change
+  // the horizon length today, but there's no reason to assume that stays true forever.
+  const longerRows = scenarioRows.length > baseRows.length ? scenarioRows : baseRows;
+  const ages = longerRows.map(r => r.age);
+  const savingsByYear = rows => ages.map((age, i) => rows[i] ? dv(rows[i].investable + rows[i].cash, rows[i].age, inputs) : null);
+  const key = 'market_explorer';
+  const config = marketExplorerChartConfig(ages, savingsByYear(baseRows), savingsByYear(scenarioRows));
+  if (charts[key]) charts[key].destroy();
+  charts[key] = new Chart(canvas.getContext('2d'), config);
+  applyChartRange(key);
+}
+function renderMarketExplorer(inputs, ctx) {
+  renderMarketExplorerCards();
+  const meta = buildMarketExplorerShocksAndMeta(inputs);
+  renderMarketExplorerChart(inputs, ctx, meta.shocks);
+  const score = runMonteCarlo(inputs, ctx, 1000, meta.shocks);
+  renderMarketExplorerResult(score, meta);
 }
 
 // ---------- Per-section chart configs ----------
@@ -3056,7 +3386,10 @@ function yearlyBarConfig(ages, series, opts) {
   const datasets = series.map((s, i) => ({
     label: s.label,
     data: s.data,
-    backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+    // A series can supply its own color (e.g. the "What If I..." Savings Projection chart, whose
+    // baseline bar is meant to look like a specific dark navy rather than the usual rotating palette);
+    // everything else keeps the plain rotating CHART_COLORS assignment it always had.
+    backgroundColor: s.backgroundColor || CHART_COLORS[i % CHART_COLORS.length],
     borderRadius: 3
   }));
   return {
@@ -3184,6 +3517,9 @@ function refreshSectionCharts(pageId, snap) {
 function renderExplorers() {
   const inputs = readInputs();
   const ctx = buildContext(inputs);
+  renderWhatIfCards();
+  renderWhatIfSavingsChart(inputs, ctx);
+  renderMarketExplorer(inputs, ctx);
   const whatIf = WHAT_IF_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
   // Survivorship (SBP/DIC) is a dynamically-named what-if, shown only once an assumed death age is set on the
   // Survivorship page. It's never enabled in the baseline plan or the Monte Carlo confidence score.
