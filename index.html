@@ -1402,7 +1402,7 @@ function renderSurvivorshipCharts(inputs, rows) {
   const dicMonthly = inputs.dicEligible ? inputs.dicMonthlyAmount : 0;
   const ssMonthly = inputs.ssMonthly || 0; // survivor benefit = the full amount of the deceased's own SS
   const incomeConfig = barConfig(
-    ['Social Security (survivor benefit)', 'SBP — Military Pension', 'Survivor annuity — Govt Civil Service', 'VA DIC'],
+    ['SS Survivor Benefit', 'SBP (Military Pension)', 'Survivor Annuity (Govt)', 'VA DIC'],
     [ssMonthly*12, sbp1Monthly*12, sbp2Monthly*12, dicMonthly*12],
     { horizontal: true }
   );
@@ -2351,7 +2351,7 @@ function runExplorerScenario(scenario, baseInputs, baseCtx) {
 // — this is what actually caused the cutoff, since a single long line has nowhere to go but
 // off the edge of the canvas, no matter how tall the chart is.
 function wrapChartLabel(label, maxChars) {
-  maxChars = maxChars || 26;
+  maxChars = maxChars || 20;
   const words = String(label).split(' ');
   const lines = [];
   let current = '';
