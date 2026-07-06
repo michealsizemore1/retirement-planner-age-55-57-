@@ -184,8 +184,8 @@
   .card.collapsed h3{ margin-bottom:0; }
   .card.collapsed h3::after{ transform:rotate(-90deg); }
   .card.collapsed > *:not(h3){ display:none; }
-  .field{margin-bottom:13px;}
-  .field label{display:flex; justify-content:space-between; font-size:16.5px; color:var(--muted); margin-bottom:5px;}
+  .field{margin-bottom:13px; min-width:0;}
+  .field label{display:flex; justify-content:space-between; font-size:16.5px; color:var(--muted); margin-bottom:5px; min-width:0; white-space:normal; word-break:break-word;}
   .field input[type="number"], .field input[type="date"], .field input[type="month"], .field input[type="text"], .field select{
     width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; font-size:18px; background:#fbfcfc;
   }
@@ -463,6 +463,16 @@
           <div id="retirementDateHint" style="font-size:16.5px;color:var(--muted);margin-top:4px;"></div>
         </div>
         <div class="field"><label>Plan until age (your life expectancy)</label><input type="number" id="lifeExpectancy" value="100" min="60" max="105"></div>
+        <div class="field">
+          <label>Your birth month</label>
+          <select id="birthMonth">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11" selected>November</option><option value="12">December</option>
+          </select>
+        </div>
+        <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">Used to prorate the first calendar year of any income that starts on your age (pension, VA disability, Social Security, annuity) — you only actually receive it from your birthday through year-end that first year, not a full 12 months.</p>
       </div>
 
       <div class="card">
@@ -471,6 +481,16 @@
           <div class="field"><label>Spouse's current age</label><input type="number" id="spouseAge" value="50" min="18" max="90"></div>
           <div class="field"><label>Spouse's life expectancy</label><input type="number" id="spouseLifeExpectancy" value="100" min="60" max="105"></div>
         </div>
+        <div class="field">
+          <label>Spouse's birth month</label>
+          <select id="spouseBirthMonth">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11" selected>November</option><option value="12">December</option>
+          </select>
+        </div>
+        <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">Used to prorate the first calendar year of the spousal Social Security benefit (and, in the Survivorship what-if, DIC/SBP) to whatever portion of that year falls after their birthday.</p>
         <div class="checkbox-row">
           <input type="checkbox" id="spouseWorks">
           <label for="spouseWorks">Spouse has their own earnings record / Social Security</label>
@@ -2118,6 +2138,7 @@ function readInputs() {
     currentAge: +els('currentAge').value,
     retirementAge: +els('retirementAge').value,
     lifeExpectancy: +els('lifeExpectancy').value,
+    birthMonth: +els('birthMonth').value || 1,
     currentIncome: +els('currentIncome').value,
     incomeGrowth: +els('incomeGrowth').value/100,
     tradTSPBalance: +els('tradTSPBalance').value,
@@ -2185,6 +2206,7 @@ function readInputs() {
     annuityGrowth: +els('annuityGrowth').value/100,
     spouseCurrentAge: +els('spouseAge').value,
     spouseLifeExpectancy: +els('spouseLifeExpectancy').value,
+    spouseBirthMonth: +els('spouseBirthMonth').value || 1,
     spouseWorks: els('spouseWorks').checked,
     spousalPct: +els('spousalPct').value/100,
     spousalStartAge: +els('spousalStartAge').value,
@@ -2223,6 +2245,19 @@ function readInputs() {
 }
 
 // ---------- Core projection engine (shared by deterministic run, Monte Carlo, and Explorer scenarios) ----------
+// Prorates the first calendar year a birthday-triggered income (pension, VA disability, SS, annuity, spousal
+// benefit) is received: the "age" loop advances one full year per row, but someone whose birthday falls partway
+// through the year (e.g. November) only actually collects that income from their birthday through Dec 31 in the
+// year they first become eligible — a fraction of the 12 months this engine would otherwise credit. A January
+// birthday (the default) computes to a full 12/12, so this is a no-op for anyone who doesn't set it.
+// Only applies to a milestone strictly in the future (eligibilityAge > currentAge) — anything whose eligibility
+// age is already at or before today's age (e.g. a pension already being drawn) is treated as already fully
+// active for the whole current year, not freshly starting, so it isn't clipped down to a couple months.
+function prorateFirstYear(age, eligibilityAge, fullAmount, birthMonth, currentAge) {
+  if (age < eligibilityAge) return 0;
+  if (age === eligibilityAge && eligibilityAge > currentAge) return fullAmount * ((13 - (birthMonth || 1)) / 12);
+  return fullAmount;
+}
 // ---------- Brokerage pie helpers: the pool is tracked as one balance per pie, not one lumped sum ----------
 function sumPies(arr) { return arr.reduce((s, b) => s + b, 0); }
 // Applies a pooled inflow/outflow across all pies proportionally to their current balance (a positive delta
@@ -2368,6 +2403,31 @@ function projectRun(inputs, ctx, randomize, shocks) {
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
     let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0;
 
+    // Guaranteed income streams each start on their own eligibility age (Pension/VA Disability/SS/etc.
+    // pages), independent of the "retirement age" used for the contribution-vs-withdrawal split below.
+    // A military pension and VA disability, in particular, routinely start well before someone actually
+    // stops working a second career — hoisted up here (computed every year, not just once age reaches
+    // retirementAge) so they show up on the Income chart and get put to use as soon as they're eligible,
+    // instead of being silently held at $0 until retirementAge is reached.
+    // Each stream is prorated for the single calendar year it first kicks in (see prorateFirstYear above),
+    // using whichever spouse's birthday actually governs that milestone — the spousal SS benefit follows the
+    // spouse's own birth month, everything else follows the primary's.
+    ssAmount = prorateFirstYear(age, inputs.ssAge, inputs.ssMonthly*12*ssInflator, inputs.birthMonth, inputs.currentAge);
+    spousalBenefit = !inputs.spouseWorks ? prorateFirstYear(age, ctx.effectiveSpousalStartAge, inputs.ssMonthly*inputs.spousalPct*12*ssInflator, inputs.spouseBirthMonth, inputs.currentAge) : 0;
+    pensionAmount = prorateFirstYear(age, inputs.pensionAge, inputs.pensionAnnual*pensionInflator, inputs.birthMonth, inputs.currentAge);
+    pension2Amount = prorateFirstYear(age, inputs.pension2Age, inputs.pension2Annual*pension2Inflator, inputs.birthMonth, inputs.currentAge);
+    vaDisabilityAmount = prorateFirstYear(age, inputs.vaDisabilityAge, inputs.vaDisabilityAnnual*vaInflator, inputs.birthMonth, inputs.currentAge);
+    annuityAmount = prorateFirstYear(age, inputs.annuityStartAge, inputs.annuityMonthly*12*annuityInflator, inputs.birthMonth, inputs.currentAge);
+    if (survivorshipActive) {
+      // Pension(s) and VA disability stopped with the primary member's death; the ~50% spousal SS rate is
+      // replaced by the full 100% survivor benefit (already what ssAmount computes, so it's left as-is and
+      // spousalBenefit is zeroed instead of double-counting both).
+      pensionAmount = 0; pension2Amount = 0; vaDisabilityAmount = 0; spousalBenefit = 0;
+      sbpAmount = (inputs.sbp1Enabled ? inputs.sbp1Annual*pensionInflator : 0) + (inputs.sbp2Enabled ? inputs.sbp2Annual*pension2Inflator : 0);
+      dicAmount = inputs.dicEligible ? inputs.dicMonthlyAmount*12*ssInflator : 0;
+    }
+    guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + pension2Amount + vaDisabilityAmount + annuityAmount + sbpAmount + dicAmount;
+
     if (age < inputs.retirementAge) {
       const preR = (shocks.pre && shocks.pre[y] !== undefined) ? shocks.pre[y]
         : (randomize ? randNormal(inputs.preReturn, inputs.preStdev) : inputs.preReturn);
@@ -2378,10 +2438,14 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // Brokerage pie contributions come from the same paycheck as the TSP %-based ones, so they grow with the same raise assumption.
       const pieContribsMonthly = inputs.brokeragePieContributionsMonthly || [];
       const brokerageContribThisYear = pieContribsMonthly.reduce((s,c) => s + (+c||0), 0) * 12 * Math.pow(1+inputs.incomeGrowth, y);
-      // Excess income savings: whatever's left of your paycheck after contributions and recurring living costs,
-      // times the chosen %, gets swept into Brokerage on top of the fixed contributions above.
+      // Excess income savings: whatever's left of your paycheck (plus any guaranteed income already
+      // flowing in, e.g. a military pension or VA disability that started before you actually retired)
+      // after contributions and recurring living costs, times the chosen %, gets swept into Brokerage
+      // on top of the fixed contributions above. Guaranteed income doesn't get a TSP-style elective
+      // contribution % applied to it — that only applies to actual paycheck income — so it's added
+      // here rather than into tradContrib/rothContrib/matchContrib above.
       const recurringLivingCostThisYear = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
-      const excessIncomeAvailable = Math.max(0, income - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
+      const excessIncomeAvailable = Math.max(0, income + guaranteedIncome - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
       excessIncomeSaved = excessIncomeAvailable * (inputs.excessIncomeSavingsPct || 0);
       tradContribOut = tradContrib; rothContribOut = rothContrib; matchContribOut = matchContrib;
       contributions = tradContrib+rothContrib+matchContrib+brokerageContribThisYear+excessIncomeSaved;
@@ -2453,21 +2517,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
       let totalSpending = expensesInflated + housingCost + debtPaymentThisYear + insurancePremiumAnnual + sbpPremiumAnnual;
       if (survivorshipActive && inputs.survivorSpendingPct) totalSpending *= inputs.survivorSpendingPct;
 
-      ssAmount = age >= inputs.ssAge ? inputs.ssMonthly*12*ssInflator : 0;
-      spousalBenefit = (!inputs.spouseWorks && age >= ctx.effectiveSpousalStartAge) ? inputs.ssMonthly*inputs.spousalPct*12*ssInflator : 0;
-      pensionAmount = age >= inputs.pensionAge ? inputs.pensionAnnual*pensionInflator : 0;
-      pension2Amount = age >= inputs.pension2Age ? inputs.pension2Annual*pension2Inflator : 0;
-      vaDisabilityAmount = age >= inputs.vaDisabilityAge ? inputs.vaDisabilityAnnual*vaInflator : 0;
-      annuityAmount = age >= inputs.annuityStartAge ? inputs.annuityMonthly*12*annuityInflator : 0;
-      if (survivorshipActive) {
-        // Pension(s) and VA disability stopped with the primary member's death; the ~50% spousal SS rate is
-        // replaced by the full 100% survivor benefit (already what ssAmount computes, so it's left as-is and
-        // spousalBenefit is zeroed instead of double-counting both).
-        pensionAmount = 0; pension2Amount = 0; vaDisabilityAmount = 0; spousalBenefit = 0;
-        sbpAmount = (inputs.sbp1Enabled ? inputs.sbp1Annual*pensionInflator : 0) + (inputs.sbp2Enabled ? inputs.sbp2Annual*pension2Inflator : 0);
-        dicAmount = inputs.dicEligible ? inputs.dicMonthlyAmount*12*ssInflator : 0;
-      }
-      guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + pension2Amount + vaDisabilityAmount + annuityAmount + sbpAmount + dicAmount;
+      // ssAmount/spousalBenefit/pensionAmount/pension2Amount/vaDisabilityAmount/annuityAmount/sbpAmount/
+      // dicAmount/guaranteedIncome are all computed once, above, before the retirement-age branch split —
+      // each stream starts on its own eligibility age regardless of retirementAge.
 
       // Real federal marginal brackets (2026 MFJ) + Idaho's flat state rate.
       // SS/spousal benefit treated as 85% taxable; VA disability and DIC excluded (tax-free); pensions/annuity/SBP fully taxable.
