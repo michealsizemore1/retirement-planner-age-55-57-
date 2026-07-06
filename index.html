@@ -600,12 +600,17 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Survivorship: Expense Adjustments<span class="sub-label">What changes about your spouse's costs once you're gone</span></h3>
-        <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Medicare/Tricare already adjust automatically: your own Part B premium stops, her Tricare keeps going the whole time (as a military retiree's surviving spouse she keeps Tricare For Life, which wraps around Medicare rather than being replaced by it), and her own Part B starts once she reaches Medicare age. But your FEDVIP (hearing/vision/dental) plan was your enrollment covering both of you — once you're gone, she'll need her own, so enter what that's likely to cost below rather than assuming it disappears. Use the second field for anything else that changes (a cost that goes away, or a new one like paid help).</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Medicare/Tricare already adjust automatically: your own Part B premium stops, her Tricare premium stops the moment she reaches Medicare age herself (Tricare For Life keeps her covered behind the scenes with no added premium beyond Part B, so there's no ongoing Tricare cost once she's on Medicare), and her own Part B starts at that same point. But your FEDVIP (hearing/vision/dental) plan was your enrollment covering both of you — once you're gone, she'll need her own, so enter what that's likely to cost below rather than assuming it disappears. Use the second field for anything else that changes (a cost that goes away, or a new one like paid help).</p>
         <div class="two-col">
           <div class="field"><label>Spouse's own FEDVIP once you're gone ($/mo, today's $)</label><input type="number" id="survivorFedvipMonthly" value="116" step="5"></div>
           <div class="field"><label>Other expense changes once you're gone (+/-, $/mo, today's $)</label><input type="number" id="survivorExpenseAdjMonthly" value="0" step="25"></div>
         </div>
         <p style="font-size:16px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Her own FEDVIP applies once she reaches Medicare age herself, same as the timing on the Medical page. The "other" field is a flat monthly add (positive) or cut (negative), starting the moment survivorship begins, and grows with General Inflation like the rest of her expenses.</p>
+        <hr class="divider">
+        <div class="mini-label" style="margin-bottom:2px;">Which expenses continue?</div>
+        <p style="font-size:16px;color:var(--muted);margin:0 0 8px;line-height:1.5;">Every recurring cost from the Expenses, Debt, and Insurance pages, all checked "continues" by default. Uncheck anything that goes away once you're gone (paid off by a life insurance payout, a debt that was solely yours, a subscription only you used) — this feeds both the numbers below and the real projection on the Explorers page.</p>
+        <div class="checkbox-row"><input type="checkbox" id="survivorHousingContinues" checked onchange="render()"><label for="survivorHousingContinues">Housing (rent or mortgage/property tax/insurance) continues</label></div>
+        <div id="survivorExpenseChecklistBody"></div>
       </div>
 
       <div class="card">
@@ -1392,31 +1397,35 @@ function renderSurvivorshipSummary(inputs, rows) {
   const guaranteedMonthly = sbp1Monthly + sbp2Monthly + dicMonthly + (inputs.ssMonthly || 0);
 
   // Same Tricare/Part B/FEDVIP logic the engine uses once survivorship is active, evaluated at the
-  // assumed death age so this "today's $" snapshot reflects the right coverage stage. Tricare itself
-  // never turns off here — as a military retiree's surviving spouse she keeps Tricare For Life, which
-  // wraps around Medicare (paid alongside Part B) rather than being replaced by it once she's 65+.
+  // assumed death age so this "today's $" snapshot reflects the right coverage stage. Tricare's premium
+  // drops to $0 once she reaches Medicare age herself — Tricare For Life continues as coverage behind
+  // the scenes (wrapping around Medicare), but it has no added premium beyond Part B, so there's no
+  // Tricare cost left to count once she's on Medicare.
   const ageGap = inputs.currentAge - inputs.spouseCurrentAge;
   const spouseAgeAtDeath = inputs.survivorshipDeathAge - ageGap;
   const spouseOnMedicareAtDeath = spouseAgeAtDeath >= inputs.medicareAge;
-  const medicalMonthly = inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly
+  const medicalMonthly = (spouseOnMedicareAtDeath ? 0 : (inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly))
     + (spouseOnMedicareAtDeath ? inputs.partBSpouseMonthly : 0)
     + (spouseOnMedicareAtDeath ? (inputs.survivorFedvipMonthly || 0) : 0);
   const adjMonthly = inputs.survivorExpenseAdjMonthly || 0;
 
   const pct = inputs.survivorSpendingPct || 1;
-  const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
-  const debtMonthly = debts.reduce((s,d) => s + (+d.payment || 0), 0);
-  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0);
-  const housingMonthly = (rows && rows.length ? rows[0].housingCost : 0) / 12;
+  // Only items still checked "continues" on the checklist above count here — matches the engine's
+  // survivor-filtered totals (ctx.expensesNonMedicalSurvivor/expensesMedicalSurvivor/debtSchedulesSurvivor
+  // and inputs.insurancePremiumMonthlySurvivor) instead of the full household lists.
+  const expensesMonthly = expenses.reduce((s,e) => s + (e.survivorContinues !== false ? (+e.amount || 0) : 0), 0);
+  const debtMonthly = debts.reduce((s,d) => s + (d.survivorContinues !== false ? (+d.payment || 0) : 0), 0);
+  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (p.survivorContinues !== false ? (+p.premium || 0) : 0), 0);
+  const housingMonthly = inputs.survivorHousingContinues === false ? 0 : (rows && rows.length ? rows[0].housingCost : 0) / 12;
   const totalExpensesMonthly = (expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly + medicalMonthly + adjMonthly) * pct;
   const drawdownMonthly = Math.max(0, totalExpensesMonthly - guaranteedMonthly);
 
   body.innerHTML = `
-    <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Starting at age <b>${inputs.survivorshipDeathAge}</b> in this scenario: both pensions and VA disability stop, Social Security drops to the survivor benefit, your own Medicare/FEDVIP costs stop while her Tricare continues as a Tricare-For-Life wraparound to Medicare (her own FEDVIP picks up once she's Medicare-age), and her spending is assumed at <b>${Math.round(inputs.survivorSpendingPct*100)}%</b> of normal.</p>
+    <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Starting at age <b>${inputs.survivorshipDeathAge}</b> in this scenario: both pensions and VA disability stop, Social Security drops to the survivor benefit, your own Medicare/FEDVIP costs stop, her Tricare premium stops once she reaches Medicare age herself (Tricare For Life keeps her covered at no added cost beyond Part B, and her own FEDVIP picks up at that point), and her spending is assumed at <b>${Math.round(inputs.survivorSpendingPct*100)}%</b> of normal.</p>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP — Military Pension</span><span>${inputs.sbp1Enabled ? fmtMoney(sbp1Monthly)+'/mo' : 'Not elected — $0'}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span>${inputs.sbp2Enabled ? fmtMoney(sbp2Monthly)+'/mo' : 'Not elected — $0'}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span>${inputs.dicEligible ? fmtMoney(dicMonthly)+'/mo' : 'Not eligible — $0'}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Her Tricare${spouseOnMedicareAtDeath ? ' (wraparound) + Part B + FEDVIP' : ', pre-Medicare'}</span><span>${fmtMoney(medicalMonthly)}/mo</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Her Tricare/Part B/FEDVIP (${spouseOnMedicareAtDeath ? 'on Medicare — Part B + FEDVIP only, no Tricare premium' : 'pre-Medicare, Tricare'})</span><span>${fmtMoney(medicalMonthly)}/mo</span></div>
     ${adjMonthly !== 0 ? `<div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Other expense changes</span><span>${adjMonthly > 0 ? '+' : ''}${fmtMoney(adjMonthly)}/mo</span></div>` : ''}
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Investment drawdown (covers the rest of spending)</span><span>${fmtMoney(drawdownMonthly)}/mo</span></div>
     <div class="total-row"><span>Total covering spouse's spending</span><span>${fmtMoney(guaranteedMonthly + drawdownMonthly)}/mo</span></div>
@@ -1442,21 +1451,23 @@ function renderSurvivorshipCharts(inputs, rows, ctx) {
   const guaranteedAnnual = ssMonthly*12 + sbp1Monthly*12 + sbp2Monthly*12 + dicMonthly*12;
 
   // Same Tricare/Part B/FEDVIP logic the engine uses once survivorship is active, evaluated at the
-  // assumed death age (see renderSurvivorshipSummary for the matching text-card version). Tricare
-  // never turns off here — Tricare For Life wraps around Medicare for a retiree's surviving spouse.
+  // assumed death age (see renderSurvivorshipSummary for the matching text-card version). Tricare's
+  // premium drops to $0 once she's on Medicare — TFL keeps her covered at no added cost beyond Part B.
   const ageGap = inputs.currentAge - inputs.spouseCurrentAge;
   const spouseAgeAtDeath = inputs.survivorshipDeathAge - ageGap;
   const spouseOnMedicareAtDeath = spouseAgeAtDeath >= inputs.medicareAge;
-  const medicalMonthly = inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly
+  const medicalMonthly = (spouseOnMedicareAtDeath ? 0 : (inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly))
     + (spouseOnMedicareAtDeath ? inputs.partBSpouseMonthly : 0)
     + (spouseOnMedicareAtDeath ? (inputs.survivorFedvipMonthly || 0) : 0);
   const adjMonthly = inputs.survivorExpenseAdjMonthly || 0;
 
   const pct = inputs.survivorSpendingPct || 1;
-  const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
-  const debtMonthly = debts.reduce((s,d) => s + (+d.payment || 0), 0);
-  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0);
-  const housingMonthly = (rows && rows.length ? rows[0].housingCost : 0) / 12;
+  // Only items still checked "continues" on the checklist count here — matches the engine's survivor-
+  // filtered totals instead of the full household lists.
+  const expensesMonthly = expenses.reduce((s,e) => s + (e.survivorContinues !== false ? (+e.amount || 0) : 0), 0);
+  const debtMonthly = debts.reduce((s,d) => s + (d.survivorContinues !== false ? (+d.payment || 0) : 0), 0);
+  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (p.survivorContinues !== false ? (+p.premium || 0) : 0), 0);
+  const housingMonthly = inputs.survivorHousingContinues === false ? 0 : (rows && rows.length ? rows[0].housingCost : 0) / 12;
   const expenseTotalAnnual = (expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly + medicalMonthly + adjMonthly) * 12 * pct;
 
   // Guaranteed income (SS/SBP/DIC) rarely covers 100% of expenses on its own — whatever's left
@@ -1509,6 +1520,38 @@ function renderSurvivorshipCharts(inputs, rows, ctx) {
       applyChartRange(key);
     }
   }
+}
+
+// Toggles whether a single expense/debt/insurance item continues after survivorship starts. Stored right
+// on the item itself (item.survivorContinues, default true/continues when unset) so it rides along with
+// that item's own array in saveState/loadState — no separate persistence plumbing needed.
+function setSurvivorContinues(arrName, i, checked) {
+  const arr = arrName === 'expenses' ? expenses : (arrName === 'debts' ? debts : insurancePolicies);
+  if (arr[i]) arr[i].survivorContinues = checked;
+  render();
+}
+
+// Itemized "which expenses continue" checklist on the Survivorship page — every recurring cost from the
+// Expenses, Debt, and Insurance pages, each with its own on/off toggle, instead of one lump adjustment
+// number. Read directly from the same arrays those pages edit, so it always matches what's there.
+function renderSurvivorExpenseChecklist() {
+  const body = els('survivorExpenseChecklistBody');
+  if (!body) return;
+  const itemRow = (arrName, i, item, label, amount) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;color:var(--muted);font-size:16px;gap:10px;">
+      <label style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;">
+        <input type="checkbox" ${item.survivorContinues===false?'':'checked'} onchange="setSurvivorContinues('${arrName}',${i},this.checked)">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</span>
+      </label>
+      <span style="flex:0 0 auto;">${fmtMoney(amount)}/mo</span>
+    </div>`;
+  const section = (title, arrName, arr, labelFn, amountFn) => `
+    <div class="mini-label" style="margin:10px 0 2px;">${title}</div>
+    ${arr.length ? arr.map((item,i) => itemRow(arrName, i, item, labelFn(item), amountFn(item))).join('') : `<p style="font-size:15px;color:var(--muted);margin:2px 0;">Nothing entered yet.</p>`}
+  `;
+  body.innerHTML = section('Expenses', 'expenses', expenses, e => e.name || e.category, e => +e.amount || 0)
+    + section('Debts', 'debts', debts, d => d.name || d.category || 'Debt', d => +d.payment || 0)
+    + section('Insurance premiums', 'insurancePolicies', insurancePolicies, p => p.name || p.type || 'Policy', p => +p.premium || 0);
 }
 
 // ---------- Future / one-time planned expenses (dynamic rows) ----------
@@ -1954,6 +1997,8 @@ function readInputs() {
     excessIncomeSavingsPct: +els('excessIncomeSavingsPct').value/100,
     excessIncomeDestinationPieName: excessIncomeDestinationPieName,
     insurancePremiumMonthly: insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0),
+    insurancePremiumMonthlySurvivor: insurancePolicies.filter(p => p.survivorContinues !== false).reduce((s,p) => s + (+p.premium || 0), 0),
+    survivorHousingContinues: els('survivorHousingContinues') ? els('survivorHousingContinues').checked : true,
     brokeragePieBalances: brokeragePies.map(p => +p.balance || 0),
     brokeragePieContributionsMonthly: brokeragePies.map(p => +p.contribution || 0),
     brokeragePieRiskTypes: brokeragePies.map(p => p.riskType || 'equity'),
@@ -2084,6 +2129,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
     const y = age - inputs.currentAge;
     const startInvestable = balTrad + balRoth + sumPies(balBrokeragePies);
     const spouseAgeThisYear = age - ctx.ageGap;
+    // Survivorship what-if (Explorers page only, gated on inputs.survivorshipEnabled which the main plan never
+    // sets): hoisted up here (rather than only inside the post-retirement branch below) so the debt/housing/
+    // insurance totals just below can also respect it.
+    const survivorshipActive = !!(inputs.survivorshipEnabled && inputs.survivorshipDeathAge && age >= inputs.survivorshipDeathAge);
 
     if (ctx.mortgageSchedule && y === ctx.mortgageSchedule.purchaseYearIdx) {
       let remaining = ctx.mortgageSchedule.downPayment;
@@ -2134,8 +2183,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
       }
     });
 
-    const debtBalanceThisYear = ctx.debtSchedules.reduce((s,d) => s + (d.balanceAtYearEnd[y] ?? 0), 0);
-    const debtPaymentThisYear = ctx.debtSchedules.reduce((s,d) => s + (d.paymentDuringYear[y] ?? 0), 0);
+    // Survivorship what-if: use the filtered debt schedules (only debts marked as continuing after you're
+    // gone) once survivorship is active, instead of the full household debt list.
+    const debtSchedulesForYear = survivorshipActive ? ctx.debtSchedulesSurvivor : ctx.debtSchedules;
+    const debtBalanceThisYear = debtSchedulesForYear.reduce((s,d) => s + (d.balanceAtYearEnd[y] ?? 0), 0);
+    const debtPaymentThisYear = debtSchedulesForYear.reduce((s,d) => s + (d.paymentDuringYear[y] ?? 0), 0);
     const homeValueThisYear = ctx.mortgageSchedule ? ctx.mortgageSchedule.homeValue[y] : 0;
     const homeEquityThisYear = ctx.mortgageSchedule ? ctx.mortgageSchedule.equity[y] : 0;
     const mortgagePmtThisYear = ctx.mortgageSchedule ? ctx.mortgageSchedule.annualPayment[y] : 0;
@@ -2152,8 +2204,12 @@ function projectRun(inputs, ctx, randomize, shocks) {
     } else {
       housingCost = inputs.rentMonthly*12*Math.pow(1+inputs.rentGrowth, y);
     }
-    // Insurance policy premiums (from the Insurance page) grow with General Inflation and apply in every year, not just retirement.
-    const insurancePremiumAnnual = (inputs.insurancePremiumMonthly || 0) * 12 * inflator;
+    // Survivorship what-if: housing can be marked as not continuing (e.g. the house is sold), zeroing the cost.
+    if (survivorshipActive && inputs.survivorHousingContinues === false) housingCost = 0;
+    // Insurance policy premiums (from the Insurance page) grow with General Inflation and apply in every year,
+    // not just retirement. In the survivorship what-if, only policies marked as continuing are counted.
+    const insurancePremiumMonthlyForYear = survivorshipActive ? inputs.insurancePremiumMonthlySurvivor : inputs.insurancePremiumMonthly;
+    const insurancePremiumAnnual = (insurancePremiumMonthlyForYear || 0) * 12 * inflator;
 
     let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, pension2Amount=0, vaDisabilityAmount=0, annuityAmount=0, sbpAmount=0, dicAmount=0;
     let fedMarginal=null, ltcgMarginal=null;
@@ -2204,19 +2260,21 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const spendMult = inputs.spendingMultiplier || 1;
       // Survivorship what-if (Explorers page only, gated on inputs.survivorshipEnabled which the main plan never sets):
       // once past the assumed age the primary member predeceases the spouse, pension(s)/VA disability/spousal SS stop
-      // and SBP/DIC (if configured) take over instead.
-      const survivorshipActive = !!(inputs.survivorshipEnabled && inputs.survivorshipDeathAge && age >= inputs.survivorshipDeathAge);
+      // and SBP/DIC (if configured) take over instead. (survivorshipActive itself is computed further up, before
+      // this branch, so the debt/housing/insurance totals above it can respect it too.)
       // Healthcare coverage: Tricare covers whichever of you hasn't yet reached Medicare age; each of you separately
-      // picks up a Part B premium once you individually reach Medicare age (no Part D for either of you).
-      // Survivorship what-if: once you've predeceased your spouse, your own Part B premium stops outright. Her
-      // Tricare doesn't stop when she reaches Medicare age — as a military retiree's surviving spouse she gets
-      // Tricare For Life, which wraps around Medicare (paid together with Part B) rather than being replaced by
-      // it, so Tricare keeps applying regardless of her Medicare status. Your FEDVIP plan (hearing/vision/dental)
-      // was your enrollment covering both of you, so it doesn't just disappear — she needs her own once she
-      // reaches Medicare age herself, using whatever's entered on the Survivorship page for that cost.
+      // picks up a Part B premium once you individually reach Medicare age (no Part D for either of you). Tricare
+      // itself stops costing anything once someone reaches Medicare age — Tricare For Life continues as coverage
+      // behind the scenes, but it has no separate premium beyond Part B, so there's nothing left to count once
+      // both of you are on Medicare (or, in the survivorship what-if, once your spouse individually is).
+      // Survivorship what-if: once you've predeceased your spouse, your own Part B premium stops outright, and
+      // her Tricare premium stops the moment she reaches Medicare age herself (same no-added-cost rule as above).
+      // Your FEDVIP plan (hearing/vision/dental) was your enrollment covering both of you, so it doesn't just
+      // disappear — she needs her own once she reaches Medicare age herself, using whatever's entered on the
+      // Survivorship page for that cost.
       const userOnMedicare = age >= inputs.medicareAge;
       const spouseOnMedicare = spouseAgeThisYear >= inputs.medicareAge;
-      const onTricare = survivorshipActive ? true : (!userOnMedicare || !spouseOnMedicare);
+      const onTricare = survivorshipActive ? !spouseOnMedicare : (!userOnMedicare || !spouseOnMedicare);
       const medicarePremiumBase = (
         (onTricare ? inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly : 0) +
         (survivorshipActive ? 0 : (userOnMedicare ? inputs.partBUserMonthly : 0)) +
@@ -2226,7 +2284,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
           : (userOnMedicare ? (inputs.hearingMonthly + inputs.visionMonthly + inputs.dentalMonthly) : 0))
       ) * 12;
       medicalCostAnnual = medicarePremiumBase * medicalInflator;
-      expensesCategoriesAnnual = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) * spendMult;
+      // Survivorship what-if: use only the expenses marked as continuing (toggled on the Survivorship page)
+      // instead of the full household expense list.
+      const expensesNonMedicalForYear = survivorshipActive ? ctx.expensesNonMedicalSurvivor : ctx.expensesNonMedical;
+      const expensesMedicalForYear = survivorshipActive ? ctx.expensesMedicalSurvivor : ctx.expensesMedical;
+      expensesCategoriesAnnual = (expensesNonMedicalForYear * inflator + expensesMedicalForYear * medicalInflator) * spendMult;
       // Any other expense the survivorship what-if assumes changes (a cost that goes away, or a new one),
       // entered as a flat today's-$ monthly amount on the Survivorship page and grown with General Inflation.
       const survivorExpenseAdjAnnual = survivorshipActive ? (inputs.survivorExpenseAdjMonthly || 0) * 12 * inflator : 0;
@@ -2376,7 +2438,18 @@ function buildContext(inputs) {
   const expensesTotal = expenses.reduce((s,e) => s + (+e.amount || 0), 0) * 12;
   const expensesMedical = expenses.filter(e => e.category === 'Healthcare').reduce((s,e) => s + (+e.amount || 0), 0) * 12;
   const expensesNonMedical = expensesTotal - expensesMedical;
-  return { maxYears, ageGap, effectiveLifeExpectancy, effectiveSpousalStartAge, debtSchedules, mortgageSchedule, expensesTotal, expensesMedical, expensesNonMedical };
+  // Survivorship what-if: a parallel set of totals that only include expenses/debts marked as continuing
+  // after you're gone (item.survivorContinues, toggled on the Survivorship page — defaults to continuing
+  // when unset). Used instead of the totals above only once survivorshipActive is true in projectRun().
+  const debtSchedulesSurvivor = debts.filter(d => d.survivorContinues !== false).map(d => buildDebtSchedule(d, maxYears));
+  const expensesTotalSurvivor = expenses.filter(e => e.survivorContinues !== false).reduce((s,e) => s + (+e.amount || 0), 0) * 12;
+  const expensesMedicalSurvivor = expenses.filter(e => e.category === 'Healthcare' && e.survivorContinues !== false).reduce((s,e) => s + (+e.amount || 0), 0) * 12;
+  const expensesNonMedicalSurvivor = expensesTotalSurvivor - expensesMedicalSurvivor;
+  return {
+    maxYears, ageGap, effectiveLifeExpectancy, effectiveSpousalStartAge, debtSchedules, mortgageSchedule,
+    expensesTotal, expensesMedical, expensesNonMedical,
+    debtSchedulesSurvivor, expensesTotalSurvivor, expensesMedicalSurvivor, expensesNonMedicalSurvivor
+  };
 }
 
 function runMonteCarlo(inputs, ctx, N, shocks) {
@@ -3242,6 +3315,7 @@ function render() {
 
   if (els('sbp1Computed')) els('sbp1Computed').textContent = fmtMoney(inputs.sbp1Annual/12);
   if (els('sbp2Computed')) els('sbp2Computed').textContent = fmtMoney(inputs.sbp2Annual/12);
+  renderSurvivorExpenseChecklist();
   renderSurvivorshipSummary(inputs, rows);
   renderSurvivorshipCharts(inputs, rows, ctx);
 
