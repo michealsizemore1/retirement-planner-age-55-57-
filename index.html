@@ -3191,6 +3191,19 @@ function render() {
   ['incomePageSurplusNote','expensesPageSurplusNote'].forEach(id => { if (els(id)) els(id).textContent = surplusText; });
   ['incomePageWithdrawalNote','expensesPageWithdrawalNote'].forEach(id => { if (els(id)) els(id).textContent = withdrawalText; });
 
+  // Survivorship tile: reuses the same what-if the Explorers page runs (never the baseline
+  // plan/main score) — a smaller 300-run Monte Carlo, only computed when an assumed age is
+  // actually set, so this doesn't add cost to every render for people not using the feature.
+  let survivorshipValue = 'Not set';
+  let survivorshipClass = '';
+  let survivorshipLabel = 'Survivorship confidence score';
+  if (inputs.survivorshipDeathAge > 0) {
+    const survivorshipScore = runMonteCarlo({ ...inputs, survivorshipEnabled: true }, ctx, 300);
+    survivorshipValue = Math.round(survivorshipScore) + '%';
+    survivorshipClass = survivorshipScore >= 80 ? 'ok' : (survivorshipScore < 60 ? 'warn' : '');
+    survivorshipLabel = `Survivorship confidence score (if age ${inputs.survivorshipDeathAge})`;
+  }
+
   els('statCards').innerHTML = `
     <div class="stat"><div class="label">Investable balance at retirement (age ${retirementAge})</div><div class="value">${fmtMoneyK(dv(investableAtRetirement, retirementAge, inputs))}</div></div>
     <div class="stat ${longevityClass}"><div class="label">Portfolio longevity (deterministic)</div><div class="value">${longevityLabel}</div></div>
@@ -3199,6 +3212,7 @@ function render() {
     <div class="stat"><div class="label">Cash reserves at retirement</div><div class="value">${fmtMoneyK(dv(cashAtRetirement, retirementAge, inputs))}</div></div>
     <div class="stat"><div class="label">Net worth today</div><div class="value">${fmtMoneyK(netWorthToday)}</div></div>
     <div class="stat"><div class="label">Net worth at retirement</div><div class="value">${fmtMoneyK(dv(netWorthAtRetirement, retirementAge, inputs))}</div></div>
+    <div class="stat ${survivorshipClass}"><div class="label">${survivorshipLabel}</div><div class="value">${survivorshipValue}</div></div>
   `;
 
   if (els('taxStats')) {
