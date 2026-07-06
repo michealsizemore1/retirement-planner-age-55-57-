@@ -605,6 +605,7 @@
 
       <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Income to spouse, today's $</div><canvas id="chart_survivorship_income"></canvas></div>
       <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Spouse's expenses, today's $</div><canvas id="chart_survivorship_expenses"></canvas></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income vs. expenses by year, if this happens</div><canvas id="chart_survivorship_yearly"></canvas><div class="chart-range-nav" data-chart="survivorship_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('survivorship_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('survivorship_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('survivorship_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="survivorship_yearly"></div></div>
     </div>
 
     <!-- ================= MONEY FLOWS ================= -->
@@ -1402,7 +1403,10 @@ function renderSurvivorshipSummary(inputs, rows) {
 // Two snapshot bar charts, styled the same way as the Income/Expenses page charts, showing
 // what the spouse would receive and spend under this what-if — in today's dollars, matching
 // the "If This Happens" text above (same numbers, just visualized like every other section).
-function renderSurvivorshipCharts(inputs, rows) {
+// Plus a "by year" chart (same style as the Income/Expenses/Gap pages) tracking both totals
+// across the whole projection, run through this scenario (survivorship kicks in at the
+// assumed age; before that, the numbers are identical to the baseline plan).
+function renderSurvivorshipCharts(inputs, rows, ctx) {
   const incomeCanvas = els('chart_survivorship_income');
   const expenseCanvas = els('chart_survivorship_expenses');
   if (!incomeCanvas || !expenseCanvas) return;
@@ -1449,6 +1453,28 @@ function renderSurvivorshipCharts(inputs, rows) {
         charts[key] = new Chart(canvas.getContext('2d'), config);
       }
     });
+
+  const yearlyCanvas = els('chart_survivorship_yearly');
+  if (yearlyCanvas && ctx) {
+    // Run the actual scenario (survivorshipEnabled: true) across every year, rather than just
+    // the snapshot math above — this reflects the real engine, including guardrails, taxes, and
+    // the age gate (numbers match the baseline plan before the assumed age, then diverge after).
+    const scenarioInputs = { ...inputs, survivorshipEnabled: true };
+    const scenarioRows = projectRun(scenarioInputs, ctx, false).rows;
+    const ages = scenarioRows.map(r => r.age);
+    const key = 'survivorship_yearly';
+    const config = yearlyBarConfig(ages, [
+      { label: 'Total income (guaranteed + withdrawals)', data: scenarioRows.map(r => dv((r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0)) + (r.grossWithdrawal || 0), r.age, inputs)) },
+      { label: 'Total expenses', data: scenarioRows.map(r => dv(r.spending || 0, r.age, inputs)) }
+    ]);
+    if (charts[key]) {
+      charts[key].data = config.data; charts[key].options = config.options; charts[key].update();
+      applyChartRange(key);
+    } else {
+      charts[key] = new Chart(yearlyCanvas.getContext('2d'), config);
+      applyChartRange(key);
+    }
+  }
 }
 
 // ---------- Future / one-time planned expenses (dynamic rows) ----------
@@ -3170,7 +3196,7 @@ function render() {
   if (els('sbp1Computed')) els('sbp1Computed').textContent = fmtMoney(inputs.sbp1Annual/12);
   if (els('sbp2Computed')) els('sbp2Computed').textContent = fmtMoney(inputs.sbp2Annual/12);
   renderSurvivorshipSummary(inputs, rows);
-  renderSurvivorshipCharts(inputs, rows);
+  renderSurvivorshipCharts(inputs, rows, ctx);
 
   renderDebtPayoffPlan(inputs, ctx);
   renderGapTable(rows, inputs, retirementAge);
