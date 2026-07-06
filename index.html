@@ -1422,13 +1422,7 @@ function renderSurvivorshipCharts(inputs, rows) {
     .forEach(([canvas, config, key]) => {
       // Same dynamic-height sizing used for every other horizontal bar chart, so a 4-bar
       // chart here looks the same as a 4-bar chart anywhere else in the tool.
-      const card = canvas.closest('.mini-chart-card');
-      if (card) {
-        const n = config.data.labels.length;
-        const fitHeight = Math.min(560, Math.max(230, n * 34 + 70));
-        card.style.height = fitHeight + 'px';
-        card.style.maxHeight = fitHeight + 'px';
-      }
+      sizeHorizontalChartCard(canvas, config.data.labels);
       if (charts[key]) {
         charts[key].data = config.data; charts[key].options = config.options; charts[key].update();
       } else {
@@ -2352,13 +2346,51 @@ function runExplorerScenario(scenario, baseInputs, baseCtx) {
 }
 
 // ---------- Per-section chart configs ----------
+// Wraps a long label into multiple lines (Chart.js renders an array label as stacked lines),
+// so scenario names and item names never get cut off in a horizontal bar chart's label gutter
+// — this is what actually caused the cutoff, since a single long line has nowhere to go but
+// off the edge of the canvas, no matter how tall the chart is.
+function wrapChartLabel(label, maxChars) {
+  maxChars = maxChars || 26;
+  const words = String(label).split(' ');
+  const lines = [];
+  let current = '';
+  words.forEach(word => {
+    const candidate = current ? current + ' ' + word : word;
+    if (candidate.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  });
+  if (current) lines.push(current);
+  return lines.length > 1 ? lines : label;
+}
+
+// Sizes a horizontal bar chart's card to fit however many bars it has AND how many lines its
+// (possibly wrapped) labels take up, so nothing is cramped, overlapping, or clipped regardless
+// of item count or label length. Used by every horizontal bar chart in the tool.
+function sizeHorizontalChartCard(canvas, labels) {
+  if (!canvas) return;
+  const card = canvas.closest('.mini-chart-card');
+  if (!card) return;
+  const n = (labels || []).length;
+  const maxLines = (labels || []).reduce((m, l) => Math.max(m, Array.isArray(l) ? l.length : 1), 1);
+  const perBar = 34 + (maxLines - 1) * 16;
+  const fitHeight = Math.min(620, Math.max(230, n * perBar + 70));
+  card.style.height = fitHeight + 'px';
+  card.style.maxHeight = fitHeight + 'px';
+}
+
 function barConfig(labels, values, opts) {
   opts = opts || {};
   const fmt = v => opts.percent ? (Math.round(v*10)/10)+'%' : (opts.plain ? Math.round(v)+(opts.suffix||'') : fmtMoneyK(v));
   const fmtFull = v => opts.percent ? (Math.round(v*10)/10)+'%' : (opts.plain ? Math.round(v)+(opts.suffix||'') : fmtMoney(v));
+  const chartLabels = opts.horizontal ? labels.map(l => wrapChartLabel(l)) : labels;
   return {
     type: 'bar',
-    data: { labels, datasets: [{ data: values, backgroundColor: labels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]), borderRadius: 4 }] },
+    data: { labels: chartLabels, datasets: [{ data: values, backgroundColor: labels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]), borderRadius: 4 }] },
     options: {
       indexAxis: opts.horizontal ? 'y' : 'x',
       responsive: true,
@@ -2611,17 +2643,11 @@ function ensureOrUpdateChart(pageId, snap) {
   if (!config) return;
   const canvas = els('chart_' + pageId);
   // Horizontal bar charts (Expenses, Debt, Transactions, etc.) can have anywhere from a
-  // couple of bars to a dozen named items. A single fixed card height either wastes space
-  // for short lists or crowds/clips a long one — so size the card to the actual bar count,
-  // with a sensible floor and ceiling (the ceiling still scrolls within the page).
+  // couple of bars to a dozen named items, each with a label that may or may not have needed
+  // wrapping onto multiple lines above — size the card to fit both the bar count and however
+  // tall the (possibly multi-line) labels ended up being.
   if (config.options.indexAxis === 'y' && canvas) {
-    const card = canvas.closest('.mini-chart-card');
-    if (card) {
-      const n = (config.data.labels || []).length;
-      const fitHeight = Math.min(560, Math.max(230, n * 34 + 70));
-      card.style.height = fitHeight + 'px';
-      card.style.maxHeight = fitHeight + 'px';
-    }
+    sizeHorizontalChartCard(canvas, config.data.labels);
   }
   if (charts[pageId]) {
     charts[pageId].data = config.data;
@@ -2750,12 +2776,13 @@ function ensureOrUpdatePieChart(pageId, snap) {
   const config = buildPieChartConfig(pageId);
   if (!config) return;
   const key = pageId + '_pies';
+  const canvas = els('chart_' + pageId + '_pies');
+  if (canvas) sizeHorizontalChartCard(canvas, config.data.labels);
   if (charts[key]) {
     charts[key].data = config.data;
     charts[key].options = config.options;
     charts[key].update();
   } else {
-    const canvas = els('chart_' + pageId + '_pies');
     if (!canvas) return;
     charts[key] = new Chart(canvas.getContext('2d'), config);
   }
@@ -2794,16 +2821,23 @@ function renderExplorers() {
   const whatIfConfig = barConfig(whatIf.map(r => r.name), whatIf.map(r => r.score), { percent:true, horizontal:true });
   const marketRiskConfig = barConfig(marketRisk.map(r => r.name), marketRisk.map(r => r.score), { percent:true, horizontal:true });
 
+  // These two charts have the longest labels in the whole tool (full scenario sentences like
+  // "You predecease your spouse at age 70 (SBP + DIC)"), which is exactly where cut-off text
+  // was worst — barConfig now wraps them onto multiple lines, so size the card to match.
+  const whatIfCanvas = els('chart_whatif');
+  if (whatIfCanvas) sizeHorizontalChartCard(whatIfCanvas, whatIfConfig.data.labels);
   if (charts.explorers_whatif) {
     charts.explorers_whatif.data = whatIfConfig.data; charts.explorers_whatif.options = whatIfConfig.options; charts.explorers_whatif.update();
   } else {
-    const c = els('chart_whatif'); if (c) charts.explorers_whatif = new Chart(c.getContext('2d'), whatIfConfig);
+    if (whatIfCanvas) charts.explorers_whatif = new Chart(whatIfCanvas.getContext('2d'), whatIfConfig);
   }
 
+  const marketRiskCanvas = els('chart_marketrisk');
+  if (marketRiskCanvas) sizeHorizontalChartCard(marketRiskCanvas, marketRiskConfig.data.labels);
   if (charts.explorers_marketrisk) {
     charts.explorers_marketrisk.data = marketRiskConfig.data; charts.explorers_marketrisk.options = marketRiskConfig.options; charts.explorers_marketrisk.update();
   } else {
-    const c = els('chart_marketrisk'); if (c) charts.explorers_marketrisk = new Chart(c.getContext('2d'), marketRiskConfig);
+    if (marketRiskCanvas) charts.explorers_marketrisk = new Chart(marketRiskCanvas.getContext('2d'), marketRiskConfig);
   }
 }
 
