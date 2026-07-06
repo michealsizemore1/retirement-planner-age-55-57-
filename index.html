@@ -590,6 +590,8 @@
     <div class="page" data-page="survivorship">
       <div class="page-header"><h2>Survivorship</h2><p>What-if only — this page never changes your main plan or Monte Carlo confidence score. It only feeds the dynamic survivorship scenario on the Explorers page.</p></div>
 
+      <div class="results-grid"><div class="stat" id="survivorshipConfidenceTile"><div class="label">Survivorship confidence score</div><div class="value">Not set</div></div></div>
+
       <div class="card">
         <h3 onclick="toggleCard(this)">Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
         <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
@@ -3588,6 +3590,12 @@ function render() {
     survivorshipValue = Math.round(survivorshipScore) + '%';
     survivorshipClass = survivorshipScore >= 80 ? 'ok' : (survivorshipScore < 60 ? 'warn' : '');
     survivorshipLabel = `Survivorship confidence score (if age ${inputs.survivorshipDeathAge})`;
+  }
+  // Same tile, same already-computed score, mirrored onto the Survivorship page itself so it's visible
+  // right there without having to go back to the Dashboard.
+  if (els('survivorshipConfidenceTile')) {
+    els('survivorshipConfidenceTile').className = 'stat ' + survivorshipClass;
+    els('survivorshipConfidenceTile').innerHTML = `<div class="label">${survivorshipLabel}</div><div class="value">${survivorshipValue}</div>`;
   }
 
   els('statCards').innerHTML = `
