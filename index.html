@@ -576,7 +576,9 @@
         <div class="three-col">
           <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="0" min="0" max="100"></div>
           <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="100" min="10" max="150" step="5"></div>
+          <div class="field"><label>Life insurance payout to spouse (VGLI, lump sum)</label><input type="number" id="survivorLifeInsuranceAmount" value="400000" min="0" step="1000"></div>
         </div>
+        <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">Paid out as a one-time lump sum the year this scenario starts, added straight to the brokerage pies as another resource to help fund your spouse's expenses. Set to $0 if not applicable.</p>
         <hr class="divider">
         <div class="mini-label">SBP on Military Pension</div>
         <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled" onchange="render()"><label for="sbp1Enabled">SBP elected on Military Pension</label></div>
@@ -619,9 +621,10 @@
         <div id="survivorshipSummaryBody"></div>
       </div>
 
-      <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Income to spouse, today's $</div><canvas id="chart_survivorship_income"></canvas></div>
-      <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Spouse's expenses, today's $</div><canvas id="chart_survivorship_expenses"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Income to spouse, at the assumed age</div><canvas id="chart_survivorship_income"></canvas></div>
+      <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Spouse's expenses, at the assumed age</div><canvas id="chart_survivorship_expenses"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income vs. expenses by year, if this happens</div><canvas id="chart_survivorship_yearly"></canvas><div class="chart-range-nav" data-chart="survivorship_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('survivorship_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('survivorship_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('survivorship_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="survivorship_yearly"></div></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Investment drawdown by year, if this happens</div><canvas id="chart_survivorship_drawdown"></canvas><div class="chart-range-nav" data-chart="survivorship_drawdown"><button class="range-nav-btn range-prev" onclick="chartRangeNav('survivorship_drawdown','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('survivorship_drawdown','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('survivorship_drawdown','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="survivorship_drawdown"></div></div>
     </div>
 
     <!-- ================= MONEY FLOWS ================= -->
@@ -1154,7 +1157,75 @@ function taxOwedFromBrackets(taxableIncome, brackets) {
 }
 
 // ---------- Page navigation (hamburger drawer) ----------
-if (typeof Chart !== 'undefined') { Chart.defaults.font.size = 13; Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"; }
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.font.size = 13; Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  // Draws the actual value on/next to each bar — opt-in per chart via a flag set directly on the
+  // dataset itself (dataset.showValues / dataset.valueFormatter, set from barConfig()'s opts.showValues)
+  // rather than through chart.options.plugins.barValueLabels. Reading it off the dataset sidesteps any
+  // question of whether Chart.js's options-merge machinery actually exposes a custom plugin's config
+  // object the way core options (scales, tooltip callbacks, etc.) are exposed — dataset properties are
+  // plain data, always intact, and pieContribution/pieBalance access already proves that works reliably.
+  Chart.register({
+    id: 'barValueLabels',
+    afterDatasetsDraw(chart) {
+      // Defensive: a draw-time error here must never be allowed to break the chart's own
+      // rendering/hover for the rest of Chart.js's render pipeline (afterDatasetsDraw runs
+      // for every registered plugin on every chart, so one bad plugin can otherwise poison
+      // the whole draw call).
+      try {
+        const { ctx } = chart;
+        const horizontal = chart.options && chart.options.indexAxis === 'y';
+        chart.data.datasets.forEach((dataset, di) => {
+          if (!dataset.showValues) return;
+          const formatter = dataset.valueFormatter;
+          const meta = chart.getDatasetMeta(di);
+          if (!meta || meta.hidden) return;
+          meta.data.forEach((bar, i) => {
+            if (!bar) return;
+            const value = dataset.data[i];
+            if (value == null || isNaN(value)) return;
+            const label = String(formatter ? formatter(value) : value);
+            const pos = bar.tooltipPosition ? bar.tooltipPosition() : bar;
+            if (pos.x == null || pos.y == null || isNaN(pos.x) || isNaN(pos.y)) return;
+            ctx.save();
+            ctx.font = "600 13px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+            // Black pill behind the label, white text on top — computed as one box centered on a
+            // single anchor point, so the same code handles both horizontal and vertical bars instead
+            // of juggling separate textAlign/textBaseline combinations for each orientation.
+            const textW = ctx.measureText(label).width;
+            const padX = 6, padY = 3, boxH = 13 + padY*2;
+            const boxW = textW + padX*2;
+            let boxX, boxY;
+            if (horizontal) {
+              boxY = pos.y - boxH/2;
+              boxX = value < 0 ? (pos.x - 6 - boxW) : (pos.x + 6);
+            } else {
+              boxX = pos.x - boxW/2;
+              boxY = value < 0 ? (pos.y + 4) : (pos.y - 4 - boxH);
+            }
+            const r = 4;
+            ctx.beginPath();
+            ctx.moveTo(boxX + r, boxY);
+            ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + boxH, r);
+            ctx.arcTo(boxX + boxW, boxY + boxH, boxX, boxY + boxH, r);
+            ctx.arcTo(boxX, boxY + boxH, boxX, boxY, r);
+            ctx.arcTo(boxX, boxY, boxX + boxW, boxY, r);
+            ctx.closePath();
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, boxX + boxW/2, boxY + boxH/2);
+            ctx.restore();
+          });
+        });
+      } catch (err) {
+        console.error('barValueLabels plugin error (ignored, chart rendering continues):', err);
+      }
+    }
+  });
+}
 let charts = {};
 let lastSnapshot = null;
 let dollarView = 'nominal'; // 'nominal' (future $) | 'real' (today's $)
@@ -1392,41 +1463,57 @@ function renderSurvivorshipSummary(inputs, rows) {
     body.innerHTML = `<p style="font-size:16.5px;color:var(--muted);margin:0;">Enter an assumed age above to see what this scenario would pay your spouse. Right now this is off — no age is set.</p>`;
     return;
   }
-  const sbp1Monthly = inputs.sbp1Enabled ? inputs.sbp1Annual/12 : 0;
-  const sbp2Monthly = inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0;
-  const dicMonthly = inputs.dicEligible ? inputs.dicMonthlyAmount : 0;
-  const guaranteedMonthly = sbp1Monthly + sbp2Monthly + dicMonthly + (inputs.ssMonthly || 0);
+  // Every figure in this card is grown from today's $ out to the assumed death age, so it reflects
+  // "what it would look like at that point" rather than a flat today's-$ estimate. Guaranteed income
+  // streams grow at their own rate (same as the engine): SBP with the underlying pension's growth
+  // rate, DIC and the SS survivor benefit with SS COLA. Expenses/insurance/medical use General
+  // Inflation / Medical Inflation (Assumptions page), same as the real yearly engine.
+  const yearsToDeath = Math.max(0, inputs.survivorshipDeathAge - inputs.currentAge);
+  const genInflatorToDeath = Math.pow(1 + inputs.inflation, yearsToDeath);
+  const medInflatorToDeath = Math.pow(1 + inputs.medicalInflation, yearsToDeath);
+  const sbp1Monthly = (inputs.sbp1Enabled ? inputs.sbp1Annual/12 : 0) * Math.pow(1 + inputs.pensionGrowth, yearsToDeath);
+  const sbp2Monthly = (inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0) * Math.pow(1 + inputs.pension2Growth, yearsToDeath);
+  const dicMonthly = (inputs.dicEligible ? inputs.dicMonthlyAmount : 0) * Math.pow(1 + inputs.ssCola, yearsToDeath);
+  const ssSurvivorMonthly = (inputs.ssMonthly || 0) * Math.pow(1 + inputs.ssCola, yearsToDeath);
+  const guaranteedMonthly = sbp1Monthly + sbp2Monthly + dicMonthly + ssSurvivorMonthly;
 
   // Same Tricare/Part B/FEDVIP logic the engine uses once survivorship is active, evaluated at the
-  // assumed death age so this "today's $" snapshot reflects the right coverage stage. Tricare's premium
-  // drops to $0 once she reaches Medicare age herself — Tricare For Life continues as coverage behind
-  // the scenes (wrapping around Medicare), but it has no added premium beyond Part B, so there's no
-  // Tricare cost left to count once she's on Medicare.
+  // assumed death age. Tricare's premium drops to $0 once she reaches Medicare age herself — Tricare
+  // For Life continues as coverage behind the scenes (wrapping around Medicare), but it has no added
+  // premium beyond Part B, so there's no Tricare cost left to count once she's on Medicare.
   const ageGap = inputs.currentAge - inputs.spouseCurrentAge;
   const spouseAgeAtDeath = inputs.survivorshipDeathAge - ageGap;
   const spouseOnMedicareAtDeath = spouseAgeAtDeath >= inputs.medicareAge;
   const medicalContinues = inputs.survivorMedicalContinues !== false;
-  const medicalMonthly = !medicalContinues ? 0 : (
+  const medicalMonthlyToday = !medicalContinues ? 0 : (
     (spouseOnMedicareAtDeath ? 0 : (inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly))
     + (spouseOnMedicareAtDeath ? inputs.partBSpouseMonthly : 0)
     + (spouseOnMedicareAtDeath ? (inputs.survivorFedvipMonthly || 0) : 0)
   );
+  const medicalMonthly = medicalMonthlyToday * medInflatorToDeath;
 
   const pct = inputs.survivorSpendingPct || 1;
   // Only items still checked "continues" on the checklist above count here, at each item's edited
   // override amount if one was set — matches the engine's survivor-filtered totals instead of the
-  // full household lists.
+  // full household lists. Healthcare-category expenses grow with Medical Inflation, like the engine;
+  // everything else (and insurance) grows with General Inflation. Debt payments are fixed loan
+  // payments and don't inflate, matching the engine. Housing uses the actual projected cost at that
+  // age (already grown at its own rent/appreciation rate) unless overridden, in which case the
+  // override grows with General Inflation.
   const survivorVal = (item, key) => (item.survivorAmount != null && item.survivorAmount !== '') ? (+item.survivorAmount || 0) : (+item[key] || 0);
-  const expensesMonthly = expenses.reduce((s,e) => s + (e.survivorContinues !== false ? survivorVal(e,'amount') : 0), 0);
+  const expensesMonthlyNonMedToday = expenses.reduce((s,e) => s + ((e.survivorContinues !== false && e.category !== 'Healthcare') ? survivorVal(e,'amount') : 0), 0);
+  const expensesMonthlyMedToday = expenses.reduce((s,e) => s + ((e.survivorContinues !== false && e.category === 'Healthcare') ? survivorVal(e,'amount') : 0), 0);
+  const expensesMonthly = expensesMonthlyNonMedToday * genInflatorToDeath + expensesMonthlyMedToday * medInflatorToDeath;
   const debtMonthly = debts.reduce((s,d) => s + (d.survivorContinues !== false ? survivorVal(d,'payment') : 0), 0);
-  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (p.survivorContinues !== false ? survivorVal(p,'premium') : 0), 0);
+  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (p.survivorContinues !== false ? survivorVal(p,'premium') : 0), 0) * genInflatorToDeath;
+  const deathAgeRow = rows && rows.length ? (rows.find(r => r.age === inputs.survivorshipDeathAge) || rows[rows.length-1]) : null;
   const housingMonthly = inputs.survivorHousingContinues === false ? 0
-    : (inputs.survivorHousingAmountOverride != null ? inputs.survivorHousingAmountOverride : (rows && rows.length ? rows[0].housingCost / 12 : 0));
+    : (inputs.survivorHousingAmountOverride != null ? inputs.survivorHousingAmountOverride * genInflatorToDeath : (deathAgeRow ? deathAgeRow.housingCost / 12 : 0));
   const totalExpensesMonthly = (expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly + medicalMonthly) * pct;
   const drawdownMonthly = Math.max(0, totalExpensesMonthly - guaranteedMonthly);
 
   body.innerHTML = `
-    <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Starting at age <b>${inputs.survivorshipDeathAge}</b> in this scenario: both pensions and VA disability stop, Social Security drops to the survivor benefit, your own Medicare/FEDVIP costs stop, her Tricare premium stops once she reaches Medicare age herself (Tricare For Life keeps her covered at no added cost beyond Part B, and her own FEDVIP picks up at that point), and her spending is assumed at <b>${Math.round(inputs.survivorSpendingPct*100)}%</b> of normal.</p>
+    <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Starting at age <b>${inputs.survivorshipDeathAge}</b>${yearsToDeath > 0 ? ` (${yearsToDeath} year${yearsToDeath===1?'':'s'} from now)` : ''} in this scenario: both pensions and VA disability stop, Social Security drops to the survivor benefit, your own Medicare/FEDVIP costs stop, her Tricare premium stops once she reaches Medicare age herself (Tricare For Life keeps her covered at no added cost beyond Part B, and her own FEDVIP picks up at that point), and her spending is assumed at <b>${Math.round(inputs.survivorSpendingPct*100)}%</b> of normal. Expense figures below are grown to that age using General Inflation and Medical Inflation (Assumptions page); guaranteed income figures use their own growth rates.</p>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>SBP — Military Pension</span><span>${inputs.sbp1Enabled ? fmtMoney(sbp1Monthly)+'/mo' : 'Not elected — $0'}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>Survivor annuity — Government Civil Service</span><span>${inputs.sbp2Enabled ? fmtMoney(sbp2Monthly)+'/mo' : 'Not elected — $0'}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--muted);font-size:16.5px;"><span>VA DIC</span><span>${inputs.dicEligible ? fmtMoney(dicMonthly)+'/mo' : 'Not eligible — $0'}</span></div>
@@ -1448,34 +1535,46 @@ function renderSurvivorshipCharts(inputs, rows, ctx) {
   const expenseCanvas = els('chart_survivorship_expenses');
   if (!incomeCanvas || !expenseCanvas) return;
 
-  const sbp1Monthly = inputs.sbp1Enabled ? inputs.sbp1Annual/12 : 0;
-  const sbp2Monthly = inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0;
-  const dicMonthly = inputs.dicEligible ? inputs.dicMonthlyAmount : 0;
-  const ssMonthly = inputs.ssMonthly || 0; // survivor benefit = the full amount of the deceased's own SS
+  // Every figure below is grown from today's $ out to the assumed death age (see renderSurvivorshipSummary
+  // for the matching text-card version). Guaranteed income streams grow at their own rate, same as the
+  // engine: SBP with the underlying pension's growth rate, DIC and the SS survivor benefit with SS COLA.
+  const yearsToDeath = Math.max(0, inputs.survivorshipDeathAge - inputs.currentAge);
+  const genInflatorToDeath = Math.pow(1 + inputs.inflation, yearsToDeath);
+  const medInflatorToDeath = Math.pow(1 + inputs.medicalInflation, yearsToDeath);
+  const sbp1Monthly = (inputs.sbp1Enabled ? inputs.sbp1Annual/12 : 0) * Math.pow(1 + inputs.pensionGrowth, yearsToDeath);
+  const sbp2Monthly = (inputs.sbp2Enabled ? inputs.sbp2Annual/12 : 0) * Math.pow(1 + inputs.pension2Growth, yearsToDeath);
+  const dicMonthly = (inputs.dicEligible ? inputs.dicMonthlyAmount : 0) * Math.pow(1 + inputs.ssCola, yearsToDeath);
+  const ssMonthly = (inputs.ssMonthly || 0) * Math.pow(1 + inputs.ssCola, yearsToDeath); // survivor benefit = the full amount of the deceased's own SS
   const guaranteedAnnual = ssMonthly*12 + sbp1Monthly*12 + sbp2Monthly*12 + dicMonthly*12;
 
-  // Same Tricare/Part B/FEDVIP logic the engine uses once survivorship is active, evaluated at the
-  // assumed death age (see renderSurvivorshipSummary for the matching text-card version). Tricare's
-  // premium drops to $0 once she's on Medicare — TFL keeps her covered at no added cost beyond Part B.
+  // Tricare's premium drops to $0 once she's on Medicare — TFL keeps her covered at no added cost
+  // beyond Part B. Medical/expense figures use General Inflation / Medical Inflation, matching the
+  // real yearly engine, instead of staying flat at today's $.
   const ageGap = inputs.currentAge - inputs.spouseCurrentAge;
   const spouseAgeAtDeath = inputs.survivorshipDeathAge - ageGap;
   const spouseOnMedicareAtDeath = spouseAgeAtDeath >= inputs.medicareAge;
   const medicalContinues = inputs.survivorMedicalContinues !== false;
-  const medicalMonthly = !medicalContinues ? 0 : (
+  const medicalMonthlyToday = !medicalContinues ? 0 : (
     (spouseOnMedicareAtDeath ? 0 : (inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly))
     + (spouseOnMedicareAtDeath ? inputs.partBSpouseMonthly : 0)
     + (spouseOnMedicareAtDeath ? (inputs.survivorFedvipMonthly || 0) : 0)
   );
+  const medicalMonthly = medicalMonthlyToday * medInflatorToDeath;
 
   const pct = inputs.survivorSpendingPct || 1;
   // Only items still checked "continues" on the checklist count here, at each item's edited override
-  // amount if one was set — matches the engine's survivor-filtered totals instead of the full household lists.
+  // amount if one was set. Healthcare-category expenses grow with Medical Inflation; everything else
+  // (and insurance) grows with General Inflation. Debt payments don't inflate (fixed loan payments).
+  // Housing uses the actual projected cost at that age unless overridden.
   const survivorVal = (item, key) => (item.survivorAmount != null && item.survivorAmount !== '') ? (+item.survivorAmount || 0) : (+item[key] || 0);
-  const expensesMonthly = expenses.reduce((s,e) => s + (e.survivorContinues !== false ? survivorVal(e,'amount') : 0), 0);
+  const expensesMonthlyNonMedToday = expenses.reduce((s,e) => s + ((e.survivorContinues !== false && e.category !== 'Healthcare') ? survivorVal(e,'amount') : 0), 0);
+  const expensesMonthlyMedToday = expenses.reduce((s,e) => s + ((e.survivorContinues !== false && e.category === 'Healthcare') ? survivorVal(e,'amount') : 0), 0);
+  const expensesMonthly = expensesMonthlyNonMedToday * genInflatorToDeath + expensesMonthlyMedToday * medInflatorToDeath;
   const debtMonthly = debts.reduce((s,d) => s + (d.survivorContinues !== false ? survivorVal(d,'payment') : 0), 0);
-  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (p.survivorContinues !== false ? survivorVal(p,'premium') : 0), 0);
+  const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (p.survivorContinues !== false ? survivorVal(p,'premium') : 0), 0) * genInflatorToDeath;
+  const deathAgeRow = rows && rows.length ? (rows.find(r => r.age === inputs.survivorshipDeathAge) || rows[rows.length-1]) : null;
   const housingMonthly = inputs.survivorHousingContinues === false ? 0
-    : (inputs.survivorHousingAmountOverride != null ? inputs.survivorHousingAmountOverride : (rows && rows.length ? rows[0].housingCost / 12 : 0));
+    : (inputs.survivorHousingAmountOverride != null ? inputs.survivorHousingAmountOverride * genInflatorToDeath : (deathAgeRow ? deathAgeRow.housingCost / 12 : 0));
   const expenseTotalAnnual = (expensesMonthly + housingMonthly + debtMonthly + insuranceMonthly + medicalMonthly) * 12 * pct;
 
   // Guaranteed income (SS/SBP/DIC) rarely covers 100% of expenses on its own — whatever's left
@@ -1487,43 +1586,59 @@ function renderSurvivorshipCharts(inputs, rows, ctx) {
   const incomeConfig = barConfig(
     ['SS Survivor Benefit', 'SBP (Military Pension)', 'Survivor Annuity (Govt)', 'VA DIC', 'Investment Drawdown'],
     [ssMonthly*12, sbp1Monthly*12, sbp2Monthly*12, dicMonthly*12, investmentDrawdownAnnual],
-    { horizontal: true }
+    { horizontal: true, showValues: true }
   );
 
   const expenseLabels = ['Recurring expenses', 'Housing', 'Debt payments', 'Insurance premiums', 'Medical (Tricare/Part B/FEDVIP)'];
   const expenseValues = [expensesMonthly*12*pct, housingMonthly*12*pct, debtMonthly*12*pct, insuranceMonthly*12*pct, medicalMonthly*12*pct];
-  const expenseConfig = barConfig(expenseLabels, expenseValues, { horizontal: true });
+  const expenseConfig = barConfig(expenseLabels, expenseValues, { horizontal: true, showValues: true });
 
   [[incomeCanvas, incomeConfig, 'survivorship_income'], [expenseCanvas, expenseConfig, 'survivorship_expenses']]
     .forEach(([canvas, config, key]) => {
       // Same dynamic-height sizing used for every other horizontal bar chart, so a 4-bar
       // chart here looks the same as a 4-bar chart anywhere else in the tool.
       sizeHorizontalChartCard(canvas, config.data.labels);
-      if (charts[key]) {
-        charts[key].data = config.data; charts[key].options = config.options; charts[key].update();
-      } else {
-        charts[key] = new Chart(canvas.getContext('2d'), config);
-      }
+      // Destroy + recreate rather than mutating .data/.options in place: Chart.js only reliably
+      // picks up a changed plugin config (like barValueLabels here) on construction, so an
+      // in-place update on an existing instance can leave it stuck on the options object from
+      // whenever the chart was first built — silently dropping both the value labels and, if the
+      // interaction/tooltip config also came along for the ride, hover as well.
+      if (charts[key]) charts[key].destroy();
+      charts[key] = new Chart(canvas.getContext('2d'), config);
     });
 
   const yearlyCanvas = els('chart_survivorship_yearly');
-  if (yearlyCanvas && ctx) {
+  const drawdownCanvas = els('chart_survivorship_drawdown');
+  if ((yearlyCanvas || drawdownCanvas) && ctx) {
     // Run the actual scenario (survivorshipEnabled: true) across every year, rather than just
     // the snapshot math above — this reflects the real engine, including guardrails, taxes, and
     // the age gate (numbers match the baseline plan before the assumed age, then diverge after).
     const scenarioInputs = { ...inputs, survivorshipEnabled: true };
     const scenarioRows = projectRun(scenarioInputs, ctx, false).rows;
     const ages = scenarioRows.map(r => r.age);
-    const key = 'survivorship_yearly';
-    const config = yearlyBarConfig(ages, [
-      { label: 'Total income (guaranteed + withdrawals)', data: scenarioRows.map(r => dv((r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0)) + (r.grossWithdrawal || 0), r.age, inputs)) },
-      { label: 'Total expenses', data: scenarioRows.map(r => dv(r.spending || 0, r.age, inputs)) }
-    ]);
-    if (charts[key]) {
-      charts[key].data = config.data; charts[key].options = config.options; charts[key].update();
-      applyChartRange(key);
-    } else {
+
+    if (yearlyCanvas) {
+      const key = 'survivorship_yearly';
+      const config = yearlyBarConfig(ages, [
+        { label: 'Total income (guaranteed + withdrawals)', data: scenarioRows.map(r => dv((r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0)) + (r.grossWithdrawal || 0), r.age, inputs)) },
+        { label: 'Total expenses', data: scenarioRows.map(r => dv(r.spending || 0, r.age, inputs)) }
+      ]);
+      if (charts[key]) charts[key].destroy();
       charts[key] = new Chart(yearlyCanvas.getContext('2d'), config);
+      applyChartRange(key);
+    }
+
+    if (drawdownCanvas) {
+      // Investment drawdown = grossWithdrawal, the actual amount pulled from TSP/brokerage/HYSA that
+      // year to cover whatever total expenses aren't already covered by guaranteed income (SS survivor
+      // benefit, SBP, DIC). The VGLI lump sum entered above lands in the brokerage pies the year this
+      // scenario starts, so its effect shows up here as smaller (or zero) drawdown for as long as it lasts.
+      const key = 'survivorship_drawdown';
+      const config = yearlyBarConfig(ages, [
+        { label: 'Investment drawdown', data: scenarioRows.map(r => dv(r.grossWithdrawal || 0, r.age, inputs)) }
+      ]);
+      if (charts[key]) charts[key].destroy();
+      charts[key] = new Chart(drawdownCanvas.getContext('2d'), config);
       applyChartRange(key);
     }
   }
@@ -2047,6 +2162,7 @@ function readInputs() {
     pension2Age: +els('pension2Age').value,
     survivorshipDeathAge: +els('survivorshipDeathAge').value || 0,
     survivorSpendingPct: +els('survivorSpendingPct').value/100 || 1,
+    survivorLifeInsuranceAmount: +els('survivorLifeInsuranceAmount').value || 0,
     sbp1Enabled: els('sbp1Enabled').checked,
     sbp1Pct: +els('sbp1Pct').value/100,
     sbp1Annual: (+els('pensionAnnual').value) * (+els('sbp1Pct').value/100),
@@ -2204,6 +2320,15 @@ function projectRun(inputs, ctx, randomize, shocks) {
         else applyPooledDelta(balBrokeragePies, +w.amount || 0);
       }
     });
+
+    // Survivorship what-if: the life insurance lump sum (e.g. VGLI, entered on the Survivorship page)
+    // pays out the year this scenario starts, landing in the brokerage pies as another resource that
+    // helps fund the surviving spouse's expenses — same one-time-inflow treatment as a windfall above.
+    // Gated on survivorshipEnabled, which the main plan/Monte Carlo run never sets, so this never affects
+    // the baseline plan.
+    if (inputs.survivorshipEnabled && inputs.survivorshipDeathAge && age === inputs.survivorshipDeathAge) {
+      applyPooledDelta(balBrokeragePies, +inputs.survivorLifeInsuranceAmount || 0);
+    }
 
     // Survivorship what-if: use the filtered debt schedules (only debts marked as continuing after you're
     // gone) once survivorship is active, instead of the full household debt list.
@@ -2590,7 +2715,14 @@ function barConfig(labels, values, opts) {
   const chartLabels = opts.horizontal ? labels.map(l => wrapChartLabel(l)) : labels;
   return {
     type: 'bar',
-    data: { labels: chartLabels, datasets: [{ data: values, backgroundColor: labels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]), borderRadius: 4 }] },
+    data: { labels: chartLabels, datasets: [{
+      data: values, backgroundColor: labels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]), borderRadius: 4,
+      // Read directly by the barValueLabels plugin (see Chart.register above) — opt-in per chart so
+      // charts with lots of bars (Expenses, Explorers, etc.) don't get cluttered. Set on the dataset
+      // itself rather than in options.plugins so the plugin doesn't depend on Chart.js's options-merge
+      // exposing a custom key.
+      showValues: !!opts.showValues, valueFormatter: fmtFull
+    }] },
     options: {
       indexAxis: opts.horizontal ? 'y' : 'x',
       responsive: true,
@@ -2606,11 +2738,12 @@ function barConfig(labels, values, opts) {
         }
       },
       scales: {
-        x: opts.horizontal ? { ticks: { callback: fmt } } : { ticks: { autoSkip: false, font:{size:13} } },
+        // "grace" adds headroom past the longest bar so its value label isn't clipped at the chart edge.
+        x: opts.horizontal ? { ticks: { callback: fmt }, grace: opts.showValues ? '15%' : 0 } : { ticks: { autoSkip: false, font:{size:13} } },
         // autoSkip:false on the category axis guarantees every bar gets its own visible label —
         // without it, Chart.js silently drops labels (and makes bars look "missing") once there
         // isn't quite enough room, which is exactly what happened with 10 named expense items.
-        y: opts.horizontal ? { ticks: { autoSkip: false, font:{size:13} } } : { ticks: { callback: fmt } }
+        y: opts.horizontal ? { ticks: { autoSkip: false, font:{size:13} } } : { ticks: { callback: fmt }, grace: opts.showValues ? '15%' : 0 }
       }
     }
   };
@@ -2619,59 +2752,59 @@ function barConfig(labels, values, opts) {
 function buildChartConfig(pageId, snap) {
   switch (pageId) {
     case 'personal':
-      return barConfig(['Years to retirement','Years in retirement'], [snap.yearsToRetirement, snap.yearsInRetirement], { plain:true, suffix:' yrs' });
+      return barConfig(['Years to retirement','Years in retirement'], [snap.yearsToRetirement, snap.yearsInRetirement], { plain:true, suffix:' yrs', showValues:true });
     case 'moneyflows':
       return barConfig(['Traditional TSP','Roth TSP','Agency Match','Brokerage (all pies)'],
-        [snap.tradContribFirstYear, snap.rothContribFirstYear, snap.matchContribFirstYear, snap.brokerageContribution]);
+        [snap.tradContribFirstYear, snap.rothContribFirstYear, snap.matchContribFirstYear, snap.brokerageContribution], { showValues:true });
     case 'investments':
       return barConfig(['Traditional TSP','Roth TSP','Brokerage (all pies)','Cash (bank)'],
-        [snap.tradTSPBalance, snap.rothTSPBalance, snap.brokerageBalance, snap.cashTotal]);
+        [snap.tradTSPBalance, snap.rothTSPBalance, snap.brokerageBalance, snap.cashTotal], { showValues:true });
     case 'housing':
-      return barConfig(['Current annual rent','Housing cost at retirement'], [snap.currentRentAnnual, snap.housingCostAtRetirement]);
+      return barConfig(['Current annual rent','Housing cost at retirement'], [snap.currentRentAnnual, snap.housingCostAtRetirement], { showValues:true });
     case 'expenses':
       // Utilities/Subscriptions have several named items each (Verizon, Idaho Power, YouTube
       // Premium, etc.) — show the item name alone (shorter, fits the chart) rather than
       // repeating the category, which is what made every "Utilities" bar look the same before.
       return barConfig(
         expenses.map(e => (e.category==='Utilities' || e.category==='Subscriptions') ? (e.name||'Unnamed') : e.category),
-        expenses.map(e=>+e.amount||0), { horizontal:true }
+        expenses.map(e=>+e.amount||0), { horizontal:true, showValues:true }
       );
     case 'debt':
-      return barConfig(debts.map(d=>d.name||d.category), debts.map(d=>+d.balance||0), { horizontal:true });
+      return barConfig(debts.map(d=>d.name||d.category), debts.map(d=>+d.balance||0), { horizontal:true, showValues:true });
     case 'transactions': {
       const byCat = {};
       transactions.filter(t=>t.type==='Expense').forEach(t => { byCat[t.category] = (byCat[t.category]||0) + (+t.amount||0); });
       const labels = Object.keys(byCat);
-      return barConfig(labels.length?labels:['No expenses logged'], labels.length?labels.map(l=>byCat[l]):[0], { horizontal:true });
+      return barConfig(labels.length?labels:['No expenses logged'], labels.length?labels.map(l=>byCat[l]):[0], { horizontal:true, showValues:true });
     }
     case 'income':
       return barConfig(["Job income (today's $)",'Your Social Security','Spousal Benefit','Military Pension','Govt Civil Service','VA Disability','Annuity'],
-        [snap.inputs.currentIncome, snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.pension2AtRetirement, snap.vaDisabilityAtRetirement, snap.annuityAtRetirement], { horizontal:true });
+        [snap.inputs.currentIncome, snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.pension2AtRetirement, snap.vaDisabilityAtRetirement, snap.annuityAtRetirement], { horizontal:true, showValues:true });
     case 'taxes':
-      return barConfig(['Gross withdrawn from accounts','Net spending covered'], [snap.grossWithdrawalFirstYear, snap.netSpendingFirstYear]);
+      return barConfig(['Gross withdrawn from accounts','Net spending covered'], [snap.grossWithdrawalFirstYear, snap.netSpendingFirstYear], { showValues:true });
     case 'gap':
       return barConfig(['Guaranteed income','Total spending','Surplus / (Gap)','Portfolio withdrawal (gross)'],
-        [snap.guaranteedIncomeAtRetirement, snap.spendingAtRetirement, snap.surplusAtRetirement, snap.grossWithdrawalFirstYear]);
+        [snap.guaranteedIncomeAtRetirement, snap.spendingAtRetirement, snap.surplusAtRetirement, snap.grossWithdrawalFirstYear], { showValues:true });
     case 'medical':
       return barConfig(['Tricare (annual)','Tricare HVD (annual)','Your Part B (annual)',"Spouse's Part B (annual)",'Medicare HVD (annual)'],
         [(+els('tricareMonthly').value||0)*12,
          ((+els('tricareHearingMonthly').value||0)+(+els('tricareVisionMonthly').value||0)+(+els('tricareDentalMonthly').value||0))*12,
          (+els('partBUserMonthly').value||0)*12, (+els('partBSpouseMonthly').value||0)*12,
-         ((+els('hearingMonthly').value||0)+(+els('visionMonthly').value||0)+(+els('dentalMonthly').value||0))*12]);
+         ((+els('hearingMonthly').value||0)+(+els('visionMonthly').value||0)+(+els('dentalMonthly').value||0))*12], { showValues:true });
     case 'estate': {
       const items = [
         ['Will', 'estateWill'], ['POA', 'estatePOA'], ['Healthcare Directive', 'estateHealthcareDirective'],
         ['Trust', 'estateTrust'], ['Beneficiaries reviewed', 'estateBeneficiaries']
       ];
-      return barConfig(items.map(i=>i[0]), items.map(i => els(i[1]).checked ? 100 : 0), { percent:true, horizontal:true });
+      return barConfig(items.map(i=>i[0]), items.map(i => els(i[1]).checked ? 100 : 0), { percent:true, horizontal:true, showValues:true });
     }
     case 'insurance':
-      return barConfig(insurancePolicies.map(p=>p.name||'Policy'), insurancePolicies.map(p=>+p.premium||0), { horizontal:true });
+      return barConfig(insurancePolicies.map(p=>p.name||'Policy'), insurancePolicies.map(p=>+p.premium||0), { horizontal:true, showValues:true });
     case 'assumptions': {
       const labels = ['Pre-retirement return','Post-retirement return','General Inflation','Medical Inflation','SS COLA'];
       const values = [snap.preReturnPct, snap.postReturnPct, snap.inflationPct, snap.medicalInflationPct, snap.ssColaPct];
       if (snap.buyHome) { labels.push('Housing Appreciation'); values.push(snap.homeAppreciationPct); }
-      return barConfig(labels, values, { percent:true, horizontal:true });
+      return barConfig(labels, values, { percent:true, horizontal:true, showValues:true });
     }
     default:
       return null;
@@ -2963,10 +3096,10 @@ function buildPieChartConfig(pageId) {
   if (!brokeragePies.length) return null;
   const labels = brokeragePies.map(p => p.name || 'Pie');
   if (pageId === 'moneyflows') {
-    return barConfig(labels, brokeragePies.map(p => (+p.contribution || 0) * 12), { horizontal: true });
+    return barConfig(labels, brokeragePies.map(p => (+p.contribution || 0) * 12), { horizontal: true, showValues: true });
   }
   if (pageId === 'investments') {
-    return barConfig(labels, brokeragePies.map(p => +p.balance || 0), { horizontal: true });
+    return barConfig(labels, brokeragePies.map(p => +p.balance || 0), { horizontal: true, showValues: true });
   }
   return null;
 }
@@ -3018,8 +3151,8 @@ function renderExplorers() {
   if (els('whatIfRows')) els('whatIfRows').innerHTML = rowsHtml(whatIf);
   if (els('marketRiskRows')) els('marketRiskRows').innerHTML = rowsHtml(marketRisk);
 
-  const whatIfConfig = barConfig(whatIf.map(r => r.name), whatIf.map(r => r.score), { percent:true, horizontal:true });
-  const marketRiskConfig = barConfig(marketRisk.map(r => r.name), marketRisk.map(r => r.score), { percent:true, horizontal:true });
+  const whatIfConfig = barConfig(whatIf.map(r => r.name), whatIf.map(r => r.score), { percent:true, horizontal:true, showValues:true });
+  const marketRiskConfig = barConfig(marketRisk.map(r => r.name), marketRisk.map(r => r.score), { percent:true, horizontal:true, showValues:true });
 
   // These two charts have the longest labels in the whole tool (full scenario sentences like
   // "You predecease your spouse at age 70 (SBP + DIC)"), which is exactly where cut-off text
