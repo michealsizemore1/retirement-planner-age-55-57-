@@ -252,6 +252,9 @@
   .total-row{display:flex; justify-content:space-between; font-size:17px; font-weight:700; color:var(--navy); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);}
 
   .results-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:14px;}
+  /* Dashboard (home screen) tiles: always two side by side, even on narrow screens where the
+     auto-fit rule above would otherwise fall back to one per row. */
+  #statCards{grid-template-columns:repeat(2, 1fr);}
   .stat{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px;}
   .stat .label{font-size:16px; color:var(--muted); margin-bottom:8px;}
   .stat .value{font-size:28px; font-weight:700; color:var(--navy);}
