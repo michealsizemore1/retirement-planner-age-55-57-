@@ -408,7 +408,6 @@
   <div class="nav-item" data-page="housing" onclick="showPage('housing')">Housing</div>
   <div class="nav-item" data-page="expenses" onclick="showPage('expenses')">Expenses</div>
   <div class="nav-item" data-page="debt" onclick="showPage('debt')">Debt</div>
-  <div class="nav-item" data-page="transactions" onclick="showPage('transactions')">Transactions</div>
   <div class="nav-item" data-page="gap" onclick="showPage('gap')">Income Gap &amp; Withdrawals</div>
   <div class="nav-item" data-page="medical" onclick="showPage('medical')">Medical</div>
   <div class="nav-item" data-page="estate" onclick="showPage('estate')">Estate Planning</div>
@@ -670,6 +669,7 @@
         <div class="mini-label" style="margin-bottom:2px;">Medical (Tricare / Part B / FEDVIP)</div>
         <div class="checkbox-row"><input type="checkbox" id="survivorMedicalContinues" checked onchange="render()"><label for="survivorMedicalContinues">Her Tricare/Part B/FEDVIP continues</label></div>
         <div class="field"><label>Her own FEDVIP once she's on Medicare ($/mo, today's $)</label><input type="number" id="survivorFedvipMonthly" value="116" step="5"></div>
+        <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">Her Part B (from Medical page): <span id="survivorPartBReadout">$0</span>/mo + FEDVIP above = <b><span id="survivorMedicalCombinedReadout">$0</span>/mo</b> combined, once she's on Medicare</p>
         <p style="font-size:16px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Her Tricare (pre-Medicare) and her own Part B (once she reaches Medicare age) come from the Medical page automatically and adjust with her age — Tricare's premium drops to $0 at that point too (Tricare For Life keeps her covered at no added cost beyond Part B). The one thing that isn't automatic is FEDVIP: your plan covered both of you, so she'll need her own once she's on Medicare — enter what that's likely to cost above.</p>
         <hr class="divider">
         <div class="mini-label" style="margin-bottom:2px;">Expenses, Debts &amp; Insurance</div>
@@ -785,7 +785,7 @@
       </div>
       <div class="card no-autocollapse">
         <h3 onclick="toggleCard(this)">Credit Card Spending Breakdown<span class="sub-label">All-time expenses by category and by merchant</span></h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div style="display:grid;grid-template-columns:1fr;gap:24px;">
           <div>
             <div style="text-align:center;font-weight:600;margin-bottom:8px;">By Category</div>
             <div style="position:relative;height:320px;"><canvas id="ccCategoryChart"></canvas></div>
@@ -902,21 +902,6 @@
         <div class="total-row"><span>Debt-free by</span><span id="debtFreeAge">—</span></div>
         <div class="total-row" id="debtExtraSummaryRow" style="display:none;"><span>With the extra payment</span><span id="debtExtraSummary">—</span></div>
         <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Each debt is paid off independently at its own current payment — this isn't a snowball/avalanche redirect strategy where freed-up payments roll onto the next debt. The extra payment column shows what happens if you add that amount on top of the highest-APR debt's payment only; the other debts stay on their normal schedule.</p>
-      </div>
-    </div>
-
-    <!-- ================= TRANSACTIONS ================= -->
-    <div class="page" data-page="transactions">
-      <div class="page-header"><h2>Transactions</h2><p>A log of actual account activity. This is a standalone ledger — it doesn't feed the projection, which runs on your Expenses assumptions instead.</p></div>
-      <div class="mini-chart-card chart-horizontal"><canvas id="chart_transactions"></canvas></div>
-
-      <div class="card">
-        <h3 onclick="toggleCard(this)">Recent Transactions</h3>
-        <div class="row-list" id="transactionRows"></div>
-        <button class="add-btn" onclick="addTransaction()">+ Add transaction</button>
-        <div class="total-row"><span>Income logged</span><span id="txIncomeTotal">$0</span></div>
-        <div class="total-row"><span>Expenses logged</span><span id="txExpenseTotal">$0</span></div>
-        <div class="total-row"><span>Net</span><span id="txNetTotal">$0</span></div>
       </div>
     </div>
 
@@ -3851,7 +3836,7 @@ function setDollarView(mode) {
 const PAGE_LABELS = {
   dashboard:'Dashboard', personal:'Personal & Family', income:'Income', survivorship:'Survivorship', moneyflows:'Money Flows',
   investments:'Investments', accounts:'Accounts & Cards', housing:'Housing', expenses:'Expenses', debt:'Debt',
-  transactions:'Transactions', gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', insurance:'Insurance',
+  gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', insurance:'Insurance',
   taxes:'Taxes', assumptions:'Assumptions & Guardrails',
   explorers:'Explorers', coach:'Coach', settings:'Settings'
 };
@@ -4167,7 +4152,7 @@ function saveState() {
     if (!el.id) return;
     fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   });
-  const state = { fields, expenses, brokeragePies, debts, transactions, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, excessIncomeDestinationPieName };
+  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, excessIncomeDestinationPieName };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, ignore */ }
   return state;
 }
@@ -4177,7 +4162,6 @@ function applyState(state) {
   if (Array.isArray(state.expenses)) expenses = state.expenses;
   if (Array.isArray(state.brokeragePies)) brokeragePies = state.brokeragePies;
   if (Array.isArray(state.debts)) debts = state.debts;
-  if (Array.isArray(state.transactions)) transactions = state.transactions;
   if (Array.isArray(state.futureExpenses)) futureExpenses = state.futureExpenses;
   if (Array.isArray(state.windfalls)) windfalls = state.windfalls;
   if (Array.isArray(state.insurancePolicies)) insurancePolicies = state.insurancePolicies;
@@ -4807,51 +4791,6 @@ function updateDebt(i, field, value) {
 }
 function addDebt() { debts.push({ name:'New debt', category:'Other', balance:5000, apr:10, payment:150 }); renderDebtRows(); render(); }
 function removeDebt(i) { debts.splice(i,1); renderDebtRows(); render(); }
-
-// ---------- Transactions (dynamic rows, standalone ledger) ----------
-const TX_TYPES = ['Expense','Income'];
-let transactions = [
-  { date:'2026-06-01', description:'Paycheck', type:'Income', category:'Other', amount:3200 },
-  { date:'2026-06-03', description:'Grocery Store', type:'Expense', category:'Food & Groceries', amount:145 },
-  { date:'2026-06-05', description:'Electric Bill', type:'Expense', category:'Utilities', amount:210 },
-  { date:'2026-06-10', description:'Gas Station', type:'Expense', category:'Transportation', amount:60 }
-];
-function renderTransactionRows() {
-  const container = els('transactionRows');
-  container.innerHTML = transactions.map((t,i) => `
-    <div class="row-item tx-row">
-      <input type="date" value="${t.date}" oninput="updateTransaction(${i},'date',this.value)">
-      <input type="text" value="${t.description}" placeholder="Description" oninput="updateTransaction(${i},'description',this.value)">
-      <select onchange="updateTransaction(${i},'type',this.value)">
-        ${TX_TYPES.map(c => `<option value="${c}" ${c===t.type?'selected':''}>${c}</option>`).join('')}
-      </select>
-      <select onchange="updateTransaction(${i},'category',this.value)">
-        ${EXPENSE_CATEGORIES.map(c => `<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}
-      </select>
-      <input type="number" value="${t.amount}" step="10" title="Amount ($)" oninput="updateTransaction(${i},'amount',this.value)">
-      <button class="remove-btn" onclick="removeTransaction(${i})" title="Remove">×</button>
-    </div>
-  `).join('');
-  updateTransactionTotals();
-}
-function updateTransactionTotals() {
-  const income = transactions.filter(t=>t.type==='Income').reduce((s,t)=>s+(+t.amount||0),0);
-  const expense = transactions.filter(t=>t.type==='Expense').reduce((s,t)=>s+(+t.amount||0),0);
-  els('txIncomeTotal').textContent = fmtMoney(income);
-  els('txExpenseTotal').textContent = fmtMoney(expense);
-  els('txNetTotal').textContent = fmtMoney(income-expense);
-}
-function updateTransaction(i, field, value) {
-  transactions[i][field] = field==='amount' ? +value : value;
-  updateTransactionTotals();
-  render();
-}
-function addTransaction() {
-  transactions.push({ date: new Date().toISOString().slice(0,10), description:'New transaction', type:'Expense', category:'Other', amount:50 });
-  renderTransactionRows();
-  render();
-}
-function removeTransaction(i) { transactions.splice(i,1); renderTransactionRows(); render(); }
 
 // ---------- Debt amortization schedule (return-independent, computed once per render) ----------
 function buildDebtSchedule(debt, maxYears) {
@@ -5866,12 +5805,6 @@ function buildChartConfig(pageId, snap) {
       );
     case 'debt':
       return barConfig(debts.map(d=>d.name||d.category), debts.map(d=>+d.balance||0), { horizontal:true, showValues:true });
-    case 'transactions': {
-      const byCat = {};
-      transactions.filter(t=>t.type==='Expense').forEach(t => { byCat[t.category] = (byCat[t.category]||0) + (+t.amount||0); });
-      const labels = Object.keys(byCat);
-      return barConfig(labels.length?labels:['No expenses logged'], labels.length?labels.map(l=>byCat[l]):[0], { horizontal:true, showValues:true });
-    }
     case 'income':
       return barConfig(["Job income (today's $)",'Your Social Security','Spousal Benefit','Military Pension','Govt Civil Service','VA Disability','Annuity'],
         [snap.inputs.currentIncome, snap.ssAtRetirement, snap.spousalAtRetirement, snap.pensionAtRetirement, snap.pension2AtRetirement, snap.vaDisabilityAtRetirement, snap.annuityAtRetirement], { horizontal:true, showValues:true });
@@ -6445,7 +6378,7 @@ function restoreFromFile(file) {
       const state = JSON.parse(e.target.result);
       applyState(state);
       renderExpenseRows(); renderBrokeragePieRows(); renderPieContributionRows(); renderDebtRows();
-      renderTransactionRows(); renderFutureExpenseRows(); renderWindfallRows(); renderInsuranceRows();
+      renderFutureExpenseRows(); renderWindfallRows(); renderInsuranceRows();
       saveState();
       render();
       alert('Backup restored.');
@@ -6586,6 +6519,12 @@ function render() {
 
   if (els('sbp1Computed')) els('sbp1Computed').textContent = fmtMoney(inputs.sbp1Annual/12);
   if (els('sbp2Computed')) els('sbp2Computed').textContent = fmtMoney(inputs.sbp2Annual/12);
+  if (els('survivorPartBReadout') || els('survivorMedicalCombinedReadout')) {
+    const partBSpouseVal = +els('partBSpouseMonthly').value || 0;
+    const fedvipVal = +els('survivorFedvipMonthly').value || 0;
+    if (els('survivorPartBReadout')) els('survivorPartBReadout').textContent = fmtMoney(partBSpouseVal);
+    if (els('survivorMedicalCombinedReadout')) els('survivorMedicalCombinedReadout').textContent = fmtMoney(partBSpouseVal + fedvipVal);
+  }
   renderSurvivorExpenseChecklist();
   renderSurvivorshipSummary(inputs, rows);
   renderSurvivorshipCharts(inputs, rows, ctx);
@@ -6808,25 +6747,24 @@ try {
   const savedDollarView = localStorage.getItem(DOLLAR_VIEW_KEY);
   if (savedDollarView === 'real' || savedDollarView === 'nominal') {
     dollarView = savedDollarView;
-    document.querySelectorAll('.dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === dollarView));
+    document.querySelectorAll('.dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === savedDollarView));
   }
 } catch (e) { /* storage unavailable, ignore */ }
+
 renderExpenseRows();
 renderBrokeragePieRows();
 renderPieContributionRows();
 renderDebtRows();
-renderTransactionRows();
 renderFutureExpenseRows();
 renderWindfallRows();
 renderInsuranceRows();
-document.querySelectorAll('.page input, .page select').forEach(el => el.addEventListener('input', render));
-document.getElementById('anthropicApiKey').addEventListener('input', renderCoachAiGate);
-syncRetirementDate(!hadSavedState);
-render();
-let savedActivePage = null;
-try { savedActivePage = localStorage.getItem(ACTIVE_PAGE_KEY); } catch (e) {}
-showPage(savedActivePage || 'dashboard');
-</script>
 
+render();
+
+try {
+  const savedActivePage = localStorage.getItem(ACTIVE_PAGE_KEY);
+  if (savedActivePage) showPage(savedActivePage);
+} catch (e) { /* storage unavailable, ignore */ }
+</script>
 </body>
 </html>
