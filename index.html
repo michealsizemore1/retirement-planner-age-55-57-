@@ -985,7 +985,7 @@
         </div>
         <div class="sub-fields" id="ltcFields">
           <div class="two-col">
-            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="97" min="60" max="105">
+            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="92" min="60" max="105">
               <input type="month" id="ltcStartAgeDate" class="age-date-input" oninput="syncAgeDate('ltcStartAgeDate','ltcStartAge','ltcStartAgeDateHint','spouseAge')">
               <div id="ltcStartAgeDateHint" class="age-date-hint"></div>
             </div>
@@ -7003,6 +7003,22 @@ renderDebtRows();
 renderFutureExpenseRows();
 renderWindfallRows();
 renderInsuranceRows();
+
+// Plain top-level fields (currentAge, preReturn, ltcStartAge, stdDeduction, etc.) were never wired to
+// an individual oninput/onchange handler the way checkboxes, row-item fields, and date pickers are —
+// editing one directly updated the DOM but never called render()/saveState(), so the edit silently
+// vanished on the next reload (reverting to whatever was last actually saved, e.g. a stale default).
+// It only looked like it "worked" when some other action nearby (a checkbox, a row edit, a pill
+// click) happened to trigger render() shortly after and incidentally picked up the live DOM value.
+// One delegated listener on .shell, covering every plain input/select inside the main planner
+// (not the Shadow DOM tracker, whose native change/input events don't cross the shadow boundary
+// anyway), fixes every field at once instead of just the one that got reported.
+const shellEl = document.querySelector('.shell');
+if (shellEl) {
+  shellEl.addEventListener('change', function(e) {
+    if (e.target && e.target.matches && e.target.matches('input, select')) render();
+  });
+}
 
 render();
 
