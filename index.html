@@ -134,6 +134,13 @@
   .mini-chart-card .chart-range-nav{flex:0 0 auto;}
   .mini-chart-card canvas{flex:1 1 auto; min-height:0; max-height:none;}
   .mini-chart-card.chart-horizontal{height:230px; max-height:230px;}
+  /* Wraps just the canvas (see ensureChartHorizontalScroll() in JS) so a bar-heavy or label-heavy
+     chart can be given a guaranteed minimum pixel width on narrow screens. When that width is wider
+     than the card, .chart-scroll-outer's overflow-x lets the user scroll to it horizontally instead
+     of Chart.js squeezing every bar/label down to an illegible sliver. On desktop the card is already
+     wide enough, so this never engages and nothing changes. */
+  .mini-chart-card.chart-scroll-outer{overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;}
+  .chart-scroll-inner{flex:1 1 auto; min-height:0;}
 
   .chart-range-nav{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
   .range-nav-btn{
@@ -3801,12 +3808,18 @@ if (typeof Chart !== 'undefined') {
             const pos = bar.tooltipPosition ? bar.tooltipPosition() : bar;
             if (pos.x == null || pos.y == null || isNaN(pos.x) || isNaN(pos.y)) return;
             ctx.save();
-            ctx.font = "600 13px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+            // Smaller font + tighter padding on mobile — the pill is drawn at a fixed pixel size
+            // regardless of canvas width, so on a narrow phone viewport (where bars are already
+            // thinner and closer together) the full-size desktop pill is disproportionately large
+            // and collides with its neighbors.
+            const mobile = isMobile();
+            const fontPx = mobile ? 11 : 13;
+            ctx.font = "600 " + fontPx + "px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
             // Black pill behind the label, white text on top — computed as one box centered on a
             // single anchor point, so the same code handles both horizontal and vertical bars instead
             // of juggling separate textAlign/textBaseline combinations for each orientation.
             const textW = ctx.measureText(label).width;
-            const padX = 6, padY = 3, boxH = 13 + padY*2;
+            const padX = mobile ? 4 : 6, padY = mobile ? 2 : 3, boxH = fontPx + padY*2;
             const boxW = textW + padX*2;
             let boxX, boxY;
             if (horizontal) {
@@ -3863,7 +3876,7 @@ if (typeof Chart !== 'undefined') {
             if (pos.x == null || pos.y == null || isNaN(pos.x) || isNaN(pos.y)) return;
             const { ctx } = chart;
             ctx.save();
-            ctx.font = "600 12px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+            ctx.font = "600 " + (isMobile() ? 10 : 12) + "px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -3878,6 +3891,32 @@ if (typeof Chart !== 'undefined') {
       }
     }
   });
+}
+// ---------- Mobile-aware chart sizing ----------
+// The chart CSS/canvas system below was tuned on a wide desktop screen: fixed pixel font sizes for
+// axis ticks and the value-label pills, and container heights (not widths) that adapt to item count.
+// On a narrow phone viewport none of that adapts — the canvas width shrinks to the screen, but bar
+// count, label text, and font sizes stay exactly the same, so bars/labels that had comfortable room
+// on desktop visually collide on mobile. isMobile() drives smaller fonts/labels below; the
+// ensureChartHorizontalScroll() helper gives bar-heavy or label-heavy charts a guaranteed minimum
+// pixel width and lets the card scroll horizontally instead of squeezing bars to unreadable thinness.
+function isMobile() {
+  return window.innerWidth <= 700;
+}
+function ensureChartHorizontalScroll(canvas, desiredWidthPx) {
+  if (!canvas) return;
+  const card = canvas.closest('.mini-chart-card');
+  if (!card) return;
+  let inner = canvas.parentElement;
+  if (!inner.classList || !inner.classList.contains('chart-scroll-inner')) {
+    inner = document.createElement('div');
+    inner.className = 'chart-scroll-inner';
+    canvas.parentElement.insertBefore(inner, canvas);
+    inner.appendChild(canvas);
+  }
+  card.classList.add('chart-scroll-outer');
+  const cardWidth = card.clientWidth || 0;
+  inner.style.width = (desiredWidthPx > cardWidth ? desiredWidthPx : cardWidth) + 'px';
 }
 let charts = {};
 let lastSnapshot = null;
@@ -4482,6 +4521,7 @@ function renderSurvivorshipCharts(inputs, rows, ctx) {
       // Same dynamic-height sizing used for every other horizontal bar chart, so a 4-bar
       // chart here looks the same as a 4-bar chart anywhere else in the tool.
       sizeHorizontalChartCard(canvas, config.data.labels);
+      ensureChartHorizontalScroll(canvas, 460);
       // Destroy + recreate rather than mutating .data/.options in place: Chart.js only reliably
       // picks up a changed plugin config (like barValueLabels here) on construction, so an
       // in-place update on an existing instance can leave it stuck on the options object from
@@ -4508,6 +4548,7 @@ function renderSurvivorshipCharts(inputs, rows, ctx) {
         { label: 'Total expenses', data: scenarioRows.map(r => dv(r.spending || 0, r.age, inputs)) }
       ]);
       if (charts[key]) charts[key].destroy();
+      ensureChartHorizontalScroll(yearlyCanvas, ages.length * 13);
       charts[key] = new Chart(yearlyCanvas.getContext('2d'), config);
       applyChartRange(key);
     }
@@ -4522,6 +4563,7 @@ function renderSurvivorshipCharts(inputs, rows, ctx) {
         { label: 'Investment drawdown', data: scenarioRows.map(r => dv(r.grossWithdrawal || 0, r.age, inputs)) }
       ]);
       if (charts[key]) charts[key].destroy();
+      ensureChartHorizontalScroll(drawdownCanvas, ages.length * 13);
       charts[key] = new Chart(drawdownCanvas.getContext('2d'), config);
       applyChartRange(key);
     }
@@ -5703,6 +5745,7 @@ function renderWhatIfSavingsChart(inputs, ctx) {
   const key = 'whatif_savings';
   const config = yearlyBarConfig(ages, series);
   if (charts[key]) charts[key].destroy();
+  ensureChartHorizontalScroll(canvas, ages.length * 13);
   charts[key] = new Chart(canvas.getContext('2d'), config);
   applyChartRange(key);
 }
@@ -5839,7 +5882,10 @@ function renderMarketExplorer(inputs, ctx) {
 // — this is what actually caused the cutoff, since a single long line has nowhere to go but
 // off the edge of the canvas, no matter how tall the chart is.
 function wrapChartLabel(label, maxChars) {
-  maxChars = maxChars || 20;
+  // Narrower wrap on mobile — the y-axis label column has much less real pixel width to work with
+  // there than on a wide desktop screen, so the same 20-char line that fit fine on desktop can still
+  // run into the plot area on a phone.
+  maxChars = maxChars || (isMobile() ? 14 : 20);
   const words = String(label).split(' ');
   const lines = [];
   let current = '';
@@ -5902,11 +5948,11 @@ function barConfig(labels, values, opts) {
       },
       scales: {
         // "grace" adds headroom past the longest bar so its value label isn't clipped at the chart edge.
-        x: opts.horizontal ? { ticks: { callback: fmt }, grace: opts.showValues ? '15%' : 0 } : { ticks: { autoSkip: false, font:{size:13} } },
+        x: opts.horizontal ? { ticks: { callback: fmt }, grace: opts.showValues ? '15%' : 0 } : { ticks: { autoSkip: false, font:{size:isMobile()?11:13} } },
         // autoSkip:false on the category axis guarantees every bar gets its own visible label —
         // without it, Chart.js silently drops labels (and makes bars look "missing") once there
         // isn't quite enough room, which is exactly what happened with 10 named expense items.
-        y: opts.horizontal ? { ticks: { autoSkip: false, font:{size:13} } } : { ticks: { callback: fmt }, grace: opts.showValues ? '15%' : 0 }
+        y: opts.horizontal ? { ticks: { autoSkip: false, font:{size:isMobile()?11:13} } } : { ticks: { callback: fmt }, grace: opts.showValues ? '15%' : 0 }
       }
     }
   };
@@ -6138,6 +6184,15 @@ function ensureOrUpdateChart(pageId, snap) {
   // tall the (possibly multi-line) labels ended up being.
   if (config.options.indexAxis === 'y' && canvas) {
     sizeHorizontalChartCard(canvas, config.data.labels);
+    // On a narrow phone viewport the category-label column and the plot area both get squeezed
+    // into whatever's left of a much narrower canvas — give the chart a guaranteed minimum width
+    // (label column + room for bars/value labels) and let it scroll horizontally instead.
+    ensureChartHorizontalScroll(canvas, 460);
+  } else if (canvas) {
+    // Vertical bar charts (Personal & Family's "Years to retirement", Housing, Taxes snapshot,
+    // etc.) usually have very few bars, but their value-label pills are still a fixed pixel size —
+    // on a very narrow phone a couple of bars can still crowd together without a small width floor.
+    ensureChartHorizontalScroll(canvas, 280);
   }
   if (charts[pageId]) {
     charts[pageId].data = config.data;
@@ -6174,7 +6229,7 @@ function yearlyBarConfig(ages, series, opts) {
       animation: false,
       interaction: { mode: 'index', axis: 'x', intersect: false },
       plugins: {
-        legend: { display: series.length > 1, position: 'bottom', labels: { boxWidth: 12, font: { size: 13 } } },
+        legend: { display: series.length > 1, position: 'bottom', labels: { boxWidth: 12, font: { size: isMobile()?11:13 } } },
         tooltip: {
           enabled: true,
           callbacks: {
@@ -6187,8 +6242,8 @@ function yearlyBarConfig(ages, series, opts) {
         }
       },
       scales: {
-        x: { stacked: !!opts.stacked, ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: 13 } } },
-        y: { stacked: !!opts.stacked, ticks: { callback: v => fmtMoneyK(v) } }
+        x: { stacked: !!opts.stacked, ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: isMobile()?11:13 } } },
+        y: { stacked: !!opts.stacked, ticks: { callback: v => fmtMoneyK(v), font: { size: isMobile()?11:13 } } }
       }
     }
   };
@@ -6260,14 +6315,20 @@ function ensureOrUpdateYearlyChart(pageId, snap) {
   const config = buildYearlyChartConfig(pageId, snap);
   if (!config) return;
   const key = pageId + '_yearly';
+  // One bar per projected year (often 40-50 years, "Lifetime" view shows them all at once) — on a
+  // narrow phone viewport that's not enough pixels for every bar to stay legible, so give the chart
+  // a guaranteed minimum width and let the card scroll horizontally instead of squeezing bars thin.
+  const numBars = (config.data.labels || []).length;
   if (charts[key]) {
     charts[key].data = config.data;
     charts[key].options = config.options;
+    ensureChartHorizontalScroll(charts[key].canvas, numBars * 13);
     charts[key].update();
     applyChartRange(key);
   } else {
     const canvas = els('chart_' + pageId + '_yearly');
     if (!canvas) return;
+    ensureChartHorizontalScroll(canvas, numBars * 13);
     charts[key] = new Chart(canvas.getContext('2d'), config);
     applyChartRange(key);
   }
@@ -6294,7 +6355,10 @@ function ensureOrUpdatePieChart(pageId, snap) {
   if (!config) return;
   const key = pageId + '_pies';
   const canvas = els('chart_' + pageId + '_pies');
-  if (canvas) sizeHorizontalChartCard(canvas, config.data.labels);
+  if (canvas) {
+    sizeHorizontalChartCard(canvas, config.data.labels);
+    ensureChartHorizontalScroll(canvas, 460);
+  }
   if (charts[key]) {
     charts[key].data = config.data;
     charts[key].options = config.options;
@@ -6345,7 +6409,7 @@ function renderExplorers() {
   // "You predecease your spouse at age 70 (SBP + DIC)"), which is exactly where cut-off text
   // was worst — barConfig now wraps them onto multiple lines, so size the card to match.
   const whatIfCanvas = els('chart_whatif');
-  if (whatIfCanvas) sizeHorizontalChartCard(whatIfCanvas, whatIfConfig.data.labels);
+  if (whatIfCanvas) { sizeHorizontalChartCard(whatIfCanvas, whatIfConfig.data.labels); ensureChartHorizontalScroll(whatIfCanvas, 460); }
   if (charts.explorers_whatif) {
     charts.explorers_whatif.data = whatIfConfig.data; charts.explorers_whatif.options = whatIfConfig.options; charts.explorers_whatif.update();
   } else {
@@ -6353,7 +6417,7 @@ function renderExplorers() {
   }
 
   const marketRiskCanvas = els('chart_marketrisk');
-  if (marketRiskCanvas) sizeHorizontalChartCard(marketRiskCanvas, marketRiskConfig.data.labels);
+  if (marketRiskCanvas) { sizeHorizontalChartCard(marketRiskCanvas, marketRiskConfig.data.labels); ensureChartHorizontalScroll(marketRiskCanvas, 460); }
   if (charts.explorers_marketrisk) {
     charts.explorers_marketrisk.data = marketRiskConfig.data; charts.explorers_marketrisk.options = marketRiskConfig.options; charts.explorers_marketrisk.update();
   } else {
