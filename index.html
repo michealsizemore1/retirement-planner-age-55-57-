@@ -4639,7 +4639,7 @@ function renderFutureExpenseRows() {
         <input type="number" value="${f.age}" step="1" title="Your age when it hits" oninput="updateFutureExpense(${i},'age',this.value)">
         <input type="month" value="${f.dateValue||''}" title="Or pick a month/year" onchange="setFutureExpenseAgeFromDate(${i}, this.value)">
       </div>
-      <input type="number" value="${f.amount}" step="100" title="Amount ($, today's $)" oninput="updateFutureExpense(${i},'amount',this.value)">
+      <input type="number" value="${f.amount}" step="100" title="${f.recurring ? 'Amount PER YEAR, today\u2019s $ (recurring rows are annual, not monthly)' : 'Amount, today\u2019s $ (one-time)'}" oninput="updateFutureExpense(${i},'amount',this.value)">
       <select onchange="updateFutureExpense(${i},'recurring',this.value)">
         <option value="false" ${!f.recurring?'selected':''}>One-time</option>
         <option value="true" ${f.recurring?'selected':''}>Yearly until...</option>
