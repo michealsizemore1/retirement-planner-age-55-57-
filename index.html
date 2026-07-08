@@ -1042,6 +1042,18 @@
 
       <div class="results-grid" id="taxStats"></div>
 
+      <div class="card no-autocollapse">
+        <h3 onclick="toggleCard(this)">Estimated Taxes<span class="sub-label">Federal income tax, Idaho state tax, and FICA payroll tax, by year</span></h3>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start;">
+          <div>
+            <div style="position:relative;height:320px;"><canvas id="chart_taxes_yearly"></canvas></div>
+            <div class="chart-range-nav" data-chart="taxes_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('taxes_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('taxes_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('taxes_yearly','next')"><span class="range-nav-label">Age</span> »</button></div>
+            <div class="range-readout" data-chart="taxes_yearly"></div>
+          </div>
+          <div id="estimatedTaxesLifetimeTable"></div>
+        </div>
+      </div>
+
       <div class="card">
         <h3 onclick="toggleCard(this)">Federal<span class="sub-label">2026 brackets, Married Filing Jointly (10/12/22/24/32/35/37%)</span></h3>
         <div class="field"><label>Standard deduction ($/yr, MFJ)</label><input type="number" id="stdDeduction" value="32200" step="100"></div>
@@ -1051,6 +1063,12 @@
       <div class="card">
         <h3 onclick="toggleCard(this)">Idaho State Tax<span class="sub-label">Flat rate, applies to all taxable ordinary income and capital gains</span></h3>
         <div class="field"><label>Idaho flat income tax rate (%)</label><input type="number" id="idahoRate" value="5.3" step="0.1"></div>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">FICA (Payroll Tax)<span class="sub-label">Social Security + Medicare tax withheld from job income, working years only</span></h3>
+        <div class="field"><label>Social Security wage base ($/yr, 2026 taxable maximum)</label><input type="number" id="ssWageBase" value="184500" step="100"></div>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Social Security tax is 6.2% of job income up to the wage base above (grown here with General Inflation as a stand-in for real wage-base growth). Medicare tax is 1.45% with no cap, plus an additional 0.9% Medicare surtax on income above $250,000 (a fixed threshold that doesn't get inflated). None of this applies to pension, Social Security, or investment withdrawal income — FICA only applies to job wages.</p>
       </div>
 
       <div class="card">
@@ -5049,6 +5067,7 @@ function readInputs() {
     homeAppreciation: +els('homeAppreciation').value/100,
     stdDeduction: +els('stdDeduction').value,
     idahoRate: +els('idahoRate').value/100,
+    ssWageBase: +els('ssWageBase').value,
     ruleOf55Applies: els('ruleOf55Applies').checked,
     guardrailsEnabled: els('guardrailsEnabled').checked,
     guardBand: +els('guardBand').value/100,
@@ -5222,6 +5241,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
     let fedMarginal=null, ltcgMarginal=null;
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
     let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0;
+    // Taxes page ("Estimated Taxes" chart) — Federal income tax + Idaho state tax (split back out of the
+    // blended withdrawal rate below) plus FICA payroll tax (Social Security + Medicare, working years only).
+    let federalTaxAnnual=0, stateTaxAnnual=0, ficaTaxAnnual=0;
 
     // Guaranteed income streams each start on their own eligibility age (Pension/VA Disability/SS/etc.
     // pages), independent of the "retirement age" used for the contribution-vs-withdrawal split below.
@@ -5252,9 +5274,28 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const preR = (shocks.pre && shocks.pre[y] !== undefined) ? shocks.pre[y]
         : (randomize ? randNormal(inputs.preReturn, inputs.preStdev) : inputs.preReturn);
       if (y > 0) income *= (1+inputs.incomeGrowth);
+      // FICA payroll tax on job income (working years only — pension/SS/withdrawals aren't FICA-taxable).
+      // Social Security's 6.2% share is capped at the wage base (grown here with General Inflation as a
+      // stand-in for real wage-base growth, since it isn't itself an input); Medicare's 1.45% has no cap,
+      // plus the additional 0.9% Medicare surtax above $250k (MFJ) — a fixed statutory threshold that
+      // doesn't get inflated, unlike the wage base.
+      const ssWageBaseThisYear = inputs.ssWageBase * Math.pow(1+inputs.inflation, y);
+      const ssTaxThisYear = Math.min(income, ssWageBaseThisYear) * 0.062;
+      const medicareTaxThisYear = income * 0.0145 + Math.max(0, income - 250000) * 0.009;
+      ficaTaxAnnual = ssTaxThisYear + medicareTaxThisYear;
       const tradContrib = income*inputs.tradPct;
       const rothContrib = income*inputs.rothPct;
       const matchContrib = income*Math.min(inputs.tradPct+inputs.rothPct, inputs.matchCapPct);
+      // Federal + Idaho income tax on working-years income, for the Taxes page's Estimated Taxes chart —
+      // wages minus the pre-tax Traditional TSP contribution (Roth isn't pre-tax, so it stays in the taxable
+      // base), plus any guaranteed income already flowing before retirementAge (a military pension or VA
+      // disability routinely starts mid-career), same 85%-taxable/tax-free treatment as the post-retirement
+      // calc below. Purely informational for the chart — doesn't feed back into contributions or spending,
+      // matching how FICA above is handled, so it can't disturb the rest of the projection.
+      const taxableWorkingYears = Math.max(0, (income - tradContrib) + 0.85*(ssAmount+spousalBenefit) + pensionAmount + pension2Amount + annuityAmount - inputs.stdDeduction);
+      federalTaxAnnual += taxOwedFromBrackets(taxableWorkingYears, FEDERAL_BRACKETS_MFJ);
+      stateTaxAnnual += taxableWorkingYears * inputs.idahoRate;
+      fedMarginal = marginalRateFromBrackets(taxableWorkingYears, FEDERAL_BRACKETS_MFJ);
       // Brokerage pie contributions come from the same paycheck as the TSP %-based ones, so they grow with the same raise assumption.
       const pieContribsMonthly = inputs.brokeragePieContributionsMonthly || [];
       const brokerageContribThisYear = pieContribsMonthly.reduce((s,c) => s + (+c||0), 0) * 12 * Math.pow(1+inputs.incomeGrowth, y);
@@ -5371,6 +5412,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const fedTaxOnGuaranteed = taxOwedFromBrackets(taxableBeforeWithdrawal, FEDERAL_BRACKETS_MFJ);
       const idahoTaxOnGuaranteed = taxableBeforeWithdrawal * inputs.idahoRate;
       guaranteedIncomeAfterTax = Math.max(0, guaranteedIncome - fedTaxOnGuaranteed - idahoTaxOnGuaranteed);
+      // Seed this year's Federal/State totals with the guaranteed-income tax computed above; takeFrom()
+      // (withdrawal loop, further down) adds each account's share on top as it runs.
+      federalTaxAnnual += fedTaxOnGuaranteed;
+      stateTaxAnnual += idahoTaxOnGuaranteed;
 
       const need0 = Math.max(0, totalSpending - guaranteedIncomeAfterTax);
       if (initialWithdrawalRate === null && startInvestable > 0) initialWithdrawalRate = need0/startInvestable;
@@ -5420,6 +5465,14 @@ function projectRun(inputs, ctx, randomize, shocks) {
         bal[key] -= grossTaken;
         remaining -= netTaken;
         grossWithdrawal += grossTaken;
+        // Split this withdrawal's blended tax rate back into Federal vs Idaho-state shares for the Taxes
+        // page's Estimated Taxes chart — Idaho's flat rate is always the state slice; whatever's left
+        // (ordinary federal marginal + early-withdrawal penalty for Traditional TSP, or the federal LTCG
+        // rate for brokerage pie sales) is the federal slice.
+        const taxAmt = grossTaken - netTaken;
+        const stateShare = rate > 0 ? (inputs.idahoRate / rate) : 0;
+        stateTaxAnnual += taxAmt * stateShare;
+        federalTaxAnnual += taxAmt * (1 - stateShare);
       };
 
       if (inputs.withdrawalSimultaneous) {
@@ -5461,7 +5514,8 @@ function projectRun(inputs, ctx, randomize, shocks) {
         guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, pension2Amount, vaDisabilityAmount, annuityAmount, sbpAmount, dicAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
         medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual,
-        fedMarginalRate: age >= inputs.retirementAge ? fedMarginal : null, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null
+        fedMarginalRate: fedMarginal, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null,
+        federalTaxAnnual, stateTaxAnnual, ficaTaxAnnual
       });
     }
   }
@@ -6098,7 +6152,7 @@ function ensureOrUpdateChart(pageId, snap) {
 // ---------- Per-section "by year" charts, for sections with inflation-adjusted dollar items ----------
 // Each series pulls straight from the deterministic projection rows, so bars reflect that item's own
 // growth assumption (General/Medical Inflation, SS COLA, or its own yearly-increase %) compounding over time.
-const YEARLY_CHART_PAGES = ['income', 'moneyflows', 'housing', 'expenses', 'medical', 'gap'];
+const YEARLY_CHART_PAGES = ['income', 'moneyflows', 'housing', 'expenses', 'medical', 'gap', 'taxes'];
 
 function yearlyBarConfig(ages, series, opts) {
   opts = opts || {};
@@ -6121,7 +6175,16 @@ function yearlyBarConfig(ages, series, opts) {
       interaction: { mode: 'index', axis: 'x', intersect: false },
       plugins: {
         legend: { display: series.length > 1, position: 'bottom', labels: { boxWidth: 12, font: { size: 13 } } },
-        tooltip: { enabled: true, callbacks: { label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.y) } }
+        tooltip: {
+          enabled: true,
+          callbacks: {
+            label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.y),
+            // Opt-in per chart via opts.bracketLabels (one string per age/bar, e.g. the Taxes page's
+            // Estimated Taxes chart showing "22% federal bracket") — printed once per hovered bar,
+            // below the per-series $ lines above, instead of repeating on every dataset row.
+            footer: items => (opts.bracketLabels && items.length) ? opts.bracketLabels[items[0].dataIndex] : undefined
+          }
+        }
       },
       scales: {
         x: { stacked: !!opts.stacked, ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: 13 } } },
@@ -6167,6 +6230,21 @@ function buildYearlyChartConfig(pageId, snap) {
         { label: 'Tricare + Part B + FEDVIP (Medical Inflation)', data: rows.map(r => d(r.medicalCostAnnual, r.age)) },
         { label: 'LTC cost (spouse, Medical Inflation)', data: rows.map(r => d(r.ltcCost, r.age)) }
       ]);
+    case 'taxes': {
+      // One bracket readout per year for the tooltip footer — federal marginal bracket always applies
+      // (working-years wages or withdrawal-time ordinary income); the LTCG bracket only ever applies
+      // once withdrawals start, so it's appended only for years that actually have one.
+      const bracketLabels = rows.map(r => {
+        const fedPct = r.fedMarginalRate != null ? Math.round(r.fedMarginalRate*100) + '% federal bracket' : null;
+        const ltcgPct = r.ltcgMarginalRate != null ? Math.round(r.ltcgMarginalRate*100) + '% LTCG bracket' : null;
+        return [fedPct, ltcgPct].filter(Boolean).join(' · ') || null;
+      });
+      return yearlyBarConfig(ages, [
+        { label: 'Federal Income Tax', data: rows.map(r => d(r.federalTaxAnnual, r.age)) },
+        { label: 'State Income Tax', data: rows.map(r => d(r.stateTaxAnnual, r.age)) },
+        { label: 'FICA', data: rows.map(r => d(r.ficaTaxAnnual, r.age)) }
+      ], { stacked: true, bracketLabels });
+    }
     case 'gap':
       return yearlyBarConfig(ages, [
         { label: 'Surplus / (Gap), after tax', data: rows.map(r => d((r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0)) - (r.spending || 0), r.age)) },
@@ -6674,7 +6752,7 @@ function render() {
   `;
 
   if (els('taxStats')) {
-    const taxRow = rows.find(r => r.fedMarginalRate !== null) || rows[rows.length-1];
+    const taxRow = rows.find(r => r.ltcgMarginalRate !== null) || rows[rows.length-1];
     const fedPct = taxRow && taxRow.fedMarginalRate !== null ? (taxRow.fedMarginalRate*100).toFixed(0) : '—';
     const ltcgPct = taxRow && taxRow.ltcgMarginalRate !== null ? (taxRow.ltcgMarginalRate*100).toFixed(0) : '—';
     const idahoPct = (inputs.idahoRate*100).toFixed(1);
@@ -6682,6 +6760,26 @@ function render() {
       <div class="stat"><div class="label">Federal marginal rate (Traditional TSP)</div><div class="value">${fedPct}%</div></div>
       <div class="stat"><div class="label">Federal LTCG rate (Brokerage)</div><div class="value">${ltcgPct}%</div></div>
       <div class="stat"><div class="label">Idaho flat rate (both)</div><div class="value">${idahoPct}%</div></div>
+    `;
+  }
+
+  // "Estimated Taxes" lifetime totals table (Taxes page) — same three series as the stacked bar chart
+  // above it, summed across every projected year and respecting the Today's $/Future $ toggle like the
+  // chart does, via dv().
+  if (els('estimatedTaxesLifetimeTable')) {
+    const lifetimeFederal = rows.reduce((s,r) => s + dv(r.federalTaxAnnual || 0, r.age, inputs), 0);
+    const lifetimeState = rows.reduce((s,r) => s + dv(r.stateTaxAnnual || 0, r.age, inputs), 0);
+    const lifetimeFica = rows.reduce((s,r) => s + dv(r.ficaTaxAnnual || 0, r.age, inputs), 0);
+    const lifetimeTotal = lifetimeFederal + lifetimeState + lifetimeFica;
+    const swatch = color => `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:7px;vertical-align:middle;"></span>`;
+    els('estimatedTaxesLifetimeTable').innerHTML = `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+        <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:10px;">Lifetime</div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:15.5px;"><span>${swatch(CHART_COLORS[0])}Federal Income Tax</span><span>${fmtMoney(lifetimeFederal)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:15.5px;"><span>${swatch(CHART_COLORS[1])}State Income Tax</span><span>${fmtMoney(lifetimeState)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:15.5px;"><span>${swatch(CHART_COLORS[2])}FICA</span><span>${fmtMoney(lifetimeFica)}</span></div>
+        <div class="total-row"><span>Total</span><span>${fmtMoney(lifetimeTotal)}</span></div>
+      </div>
     `;
   }
 
