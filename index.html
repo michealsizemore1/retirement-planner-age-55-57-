@@ -384,9 +384,15 @@
       <h1>Michael &amp; Cynthia's Planner</h1>
       <p>Tap the menu to jump to a section. <span class="current-page-label" id="currentPageLabel">Dashboard</span></p>
     </div>
-    <div class="dollar-toggle" id="dollarToggle">
-      <span class="dollar-toggle-btn" data-mode="real" onclick="setDollarView('real')">Today's $</span>
-      <span class="dollar-toggle-btn active" data-mode="nominal" onclick="setDollarView('nominal')">Future $</span>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+      <div class="dollar-toggle" id="dollarToggle">
+        <span class="dollar-toggle-btn" data-mode="real" onclick="setDollarView('real')">Today's $</span>
+        <span class="dollar-toggle-btn active" data-mode="nominal" onclick="setDollarView('nominal')">Future $</span>
+      </div>
+      <div class="dollar-toggle" id="spendingBasisToggle" title="Which expense column (Expenses page) drives the whole projection, guardrails, and Monte Carlo">
+        <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')">Like to Spend</span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')">Must Spend</span>
+      </div>
     </div>
   </div>
 </header>
@@ -866,7 +872,7 @@
         <button class="add-btn" onclick="addExpense()">+ Add expense</button>
         <div class="total-row"><span>Must Spend total (excl. housing)</span><span id="expenseMustSpendTotal">$0</span></div>
         <div class="total-row"><span>Like to Spend total (excl. housing)</span><span id="expenseTotal">$0</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">"Like to Spend" is the baseline number the projection uses every year. "Must Spend" is your bare-minimum essential floor: when dynamic spending guardrails (Assumptions page) cut spending in a down market, the cut never pushes recurring expenses below this total — housing, debt, insurance, and medical premiums are already treated as 100% essential and are never cut.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">The <b>Like to Spend / Must Spend</b> toggle in the header picks which of these two columns actually drives the whole projection — the dashboard, guardrails, the Gap page, Explorers, and every Monte Carlo run all switch together. Whichever one ISN'T selected still matters: when dynamic spending guardrails (Assumptions page) cut spending in a down market, the cut never pushes recurring expenses below the Must Spend total — housing, debt, insurance, and medical premiums are already treated as 100% essential and are never cut.</p>
       </div>
 
       <div class="card">
@@ -3859,6 +3865,13 @@ let charts = {};
 let lastSnapshot = null;
 let dollarView = 'nominal'; // 'nominal' (future $) | 'real' (today's $)
 const DOLLAR_VIEW_KEY = 'retirementPlannerDollarView_v1';
+// Which Expenses-page column ('liketo' or 'mustspend') drives the actual baseline spending used
+// every year by projectRun() — and therefore the guardrails, the dashboard, the Gap page, Explorers,
+// and every Monte Carlo run, since they all flow through buildContext()/projectRun(). The Must Spend
+// *floor* (guardrails never cutting below it) is unaffected by this toggle either way — it's always
+// the true essential-only total; this only changes what spending STARTS at before any guardrail cut.
+let spendingBasis = 'liketo'; // 'liketo' | 'mustspend'
+const SPENDING_BASIS_KEY = 'retirementPlannerSpendingBasis_v1';
 
 // Deflates a value anchored at a given future age back to today's purchasing power, using General Inflation.
 // No-op when dollarView is 'nominal'.
@@ -3870,8 +3883,17 @@ function dv(value, age, inputs) {
 
 function setDollarView(mode) {
   dollarView = mode;
-  document.querySelectorAll('.dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.querySelectorAll('#dollarToggle .dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   try { localStorage.setItem(DOLLAR_VIEW_KEY, mode); } catch (e) { /* storage unavailable, ignore */ }
+  render();
+  const activePage = document.querySelector('.page.active');
+  if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
+}
+
+function setSpendingBasis(mode) {
+  spendingBasis = mode;
+  document.querySelectorAll('#spendingBasisToggle .dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  try { localStorage.setItem(SPENDING_BASIS_KEY, mode); } catch (e) { /* storage unavailable, ignore */ }
   render();
   const activePage = document.querySelector('.page.active');
   if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
@@ -4268,7 +4290,7 @@ function renderExpenseRows() {
 }
 function updateExpenseTotals() {
   els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0)) + '/mo';
-  els('expenseMustSpendTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.mustSpend||0), 0)) + '/mo';
+  els('expenseMustSpendTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (e.mustSpend != null ? +e.mustSpend : (+e.amount || 0)), 0)) + '/mo';
 }
 function updateExpense(i, field, value) {
   expenses[i][field] = (field==='amount' || field==='mustSpend') ? +value : value;
@@ -5304,8 +5326,16 @@ function projectRun(inputs, ctx, randomize, shocks) {
       medicalCostAnnual = medicarePremiumBase * medicalInflator;
       // Survivorship what-if: use only the expenses marked as continuing (toggled on the Survivorship page),
       // at each item's edited override amount if one was set, instead of the full household expense list.
-      const expensesNonMedicalForYear = survivorshipActive ? ctx.expensesNonMedicalSurvivor : ctx.expensesNonMedical;
-      const expensesMedicalForYear = survivorshipActive ? ctx.expensesMedicalSurvivor : ctx.expensesMedical;
+      // spendingBasis ('liketo' default, or 'mustspend' via the header toggle) picks which Expenses-page
+      // column this year's baseline spending starts from, BEFORE any guardrail cut runs. The Must Spend
+      // *floor* two lines below is intentionally left alone either way — it's always the true essential-only
+      // total regardless of which basis is currently selected.
+      const expensesNonMedicalForYear = survivorshipActive
+        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedicalSurvivor : ctx.expensesNonMedicalSurvivor)
+        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedical : ctx.expensesNonMedical);
+      const expensesMedicalForYear = survivorshipActive
+        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedicalSurvivor : ctx.expensesMedicalSurvivor)
+        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedical : ctx.expensesMedical);
       expensesCategoriesAnnual = (expensesNonMedicalForYear * inflator + expensesMedicalForYear * medicalInflator) * spendMult;
       const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
       // Must Spend floor for this year's recurring expenses only (housing/debt/insurance/Tricare-Medicare
@@ -6436,7 +6466,7 @@ function restoreFromFile(file) {
 
 function resetAllData() {
   if (!confirm('This clears everything saved in this browser and reloads the page with defaults. Continue?')) return;
-  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); } catch (e) {}
+  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); localStorage.removeItem(SPENDING_BASIS_KEY); } catch (e) {}
   location.reload();
 }
 
@@ -6792,7 +6822,15 @@ try {
   const savedDollarView = localStorage.getItem(DOLLAR_VIEW_KEY);
   if (savedDollarView === 'real' || savedDollarView === 'nominal') {
     dollarView = savedDollarView;
-    document.querySelectorAll('.dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === savedDollarView));
+    document.querySelectorAll('#dollarToggle .dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === savedDollarView));
+  }
+} catch (e) { /* storage unavailable, ignore */ }
+
+try {
+  const savedSpendingBasis = localStorage.getItem(SPENDING_BASIS_KEY);
+  if (savedSpendingBasis === 'liketo' || savedSpendingBasis === 'mustspend') {
+    spendingBasis = savedSpendingBasis;
+    document.querySelectorAll('#spendingBasisToggle .dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === savedSpendingBasis));
   }
 } catch (e) { /* storage unavailable, ignore */ }
 
