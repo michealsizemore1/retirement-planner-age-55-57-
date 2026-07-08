@@ -783,6 +783,20 @@
       <div class="card" style="padding:0;overflow:hidden;">
         <div id="trackerHost" style="width:100%;height:82vh;min-height:560px;overflow:hidden;background:#fff;"></div>
       </div>
+      <div class="card no-autocollapse">
+        <h3 onclick="toggleCard(this)">Credit Card Spending Breakdown<span class="sub-label">All-time expenses by category and by merchant</span></h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div>
+            <div style="text-align:center;font-weight:600;margin-bottom:8px;">By Category</div>
+            <div style="position:relative;height:320px;"><canvas id="ccCategoryChart"></canvas></div>
+          </div>
+          <div>
+            <div style="text-align:center;font-weight:600;margin-bottom:8px;">By Merchant</div>
+            <div style="position:relative;height:320px;"><canvas id="ccMerchantChart"></canvas></div>
+          </div>
+        </div>
+        <p id="ccChartsEmptyNote" style="display:none;color:var(--muted);text-align:center;padding:20px 0 4px;">No credit card expenses recorded yet — add some on the register above and this will fill in.</p>
+      </div>
     </div>
 
     <!-- ================= HOUSING ================= -->
@@ -3868,11 +3882,11 @@ function showPage(pageId) {
   // meant to always stay open, and must NOT get the .collapsed class: the CSS rule that hides a
   // collapsed card's body (.card.collapsed > *:not(h3){display:none}) would hide literally everything
   // in them, since they have no h3 to spare.
-  document.querySelectorAll(`.page[data-page="${pageId}"] .card`).forEach(c => { if (c.querySelector(':scope > h3')) c.classList.add('collapsed'); });
+  document.querySelectorAll(`.page[data-page="${pageId}"] .card`).forEach(c => { if (c.querySelector(':scope > h3') && !c.classList.contains('no-autocollapse')) c.classList.add('collapsed'); });
   if (lastSnapshot) refreshSectionCharts(pageId, lastSnapshot);
   if (pageId === 'explorers') renderExplorers();
   if (pageId === 'coach') { renderCoachTips(); renderCoachAiGate(); }
-  if (pageId === 'accounts') loadTrackerFrame();
+  if (pageId === 'accounts') { loadTrackerFrame(); renderCCSpendingCharts(); }
   try { localStorage.setItem(ACTIVE_PAGE_KEY, pageId); } catch (e) { /* storage unavailable, ignore */ }
   closeMenu();
 }
@@ -3980,10 +3994,101 @@ function syncTrackerBalances() {
   ids.forEach(id => { if (els(id)) els(id).readOnly = true; });
   if (note) note.style.display = 'block';
 }
-// The 'storage' event fires on this (parent) window whenever a DIFFERENT document sharing the same
-// storage — i.e. the tracker iframe — writes to localStorage, giving genuinely live updates while
-// both are open, not just "next time you happen to touch an input."
+// The 'storage' event only fires in OTHER windows/tabs than the one that made the change — so it
+// won't fire for edits made in the tracker below (same window now that it's a Shadow DOM embed,
+// not an iframe), but it still helps if this planner is ever open in two browser tabs at once.
 window.addEventListener('storage', () => { syncTrackerBalances(); render(); });
+
+// ---------- Credit Card spending breakdown (category / merchant pie charts) ----------
+// Reads straight from the 'cc-register' localStorage key the embedded tracker itself reads and
+// writes — same document, same storage, so this is always the true current data with no dependency
+// on the tracker's own render cycle or any cross-context event.
+function readCCExpenses() {
+  let txns = [];
+  try { txns = JSON.parse(localStorage.getItem('cc-register') || '[]'); } catch (e) { txns = []; }
+  return txns.filter(t => t.type === 'expense');
+}
+// Groups a list of expense transactions by whatever keyFn returns (category text, or merchant/
+// description text), summing amounts per group, sorted largest-first. Caps the slice count at
+// maxSlices by folding the smallest groups into a single "Other" slice, since merchant names in
+// particular can vary a lot and a 20-slice pie chart isn't readable.
+function groupSum(items, keyFn, maxSlices) {
+  const totals = {};
+  items.forEach(t => {
+    const raw = (keyFn(t) || '').trim();
+    const k = raw || 'Uncategorized';
+    totals[k] = (totals[k] || 0) + (+t.amount || 0);
+  });
+  let entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  if (maxSlices && entries.length > maxSlices) {
+    const head = entries.slice(0, maxSlices - 1);
+    const otherTotal = entries.slice(maxSlices - 1).reduce((s, e) => s + e[1], 0);
+    entries = head.concat([['Other', otherTotal]]);
+  }
+  return entries;
+}
+function ccPieConfig(entries) {
+  return {
+    type: 'pie',
+    data: {
+      labels: entries.map(e => e[0]),
+      datasets: [{
+        data: entries.map(e => e[1]),
+        backgroundColor: entries.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+        borderWidth: 1,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const total = ctx.dataset.data.reduce((s, v) => s + v, 0);
+              const pct = total ? Math.round(ctx.parsed / total * 100) : 0;
+              return ' ' + ctx.label + ': ' + fmtMoney(ctx.parsed) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  };
+}
+function renderCCSpendingCharts() {
+  const catCanvas = els('ccCategoryChart');
+  const merchCanvas = els('ccMerchantChart');
+  const emptyNote = els('ccChartsEmptyNote');
+  if (!catCanvas || !merchCanvas) return;
+  const expenses = readCCExpenses();
+  const hasData = expenses.length > 0;
+  catCanvas.parentElement.style.display = hasData ? '' : 'none';
+  merchCanvas.parentElement.style.display = hasData ? '' : 'none';
+  if (emptyNote) emptyNote.style.display = hasData ? 'none' : 'block';
+  if (!hasData) return;
+
+  const catEntries = groupSum(expenses, t => t.cat, 8);
+  const merchEntries = groupSum(expenses, t => t.desc, 8);
+
+  if (charts.ccCategory) charts.ccCategory.destroy();
+  charts.ccCategory = new Chart(catCanvas.getContext('2d'), ccPieConfig(catEntries));
+  if (charts.ccMerchant) charts.ccMerchant.destroy();
+  charts.ccMerchant = new Chart(merchCanvas.getContext('2d'), ccPieConfig(merchEntries));
+}
+// Transactions added/edited inside the embedded tracker don't fire any event this page can listen
+// for, so while the Accounts & Cards page is the one on screen, re-check every couple seconds and
+// redraw if anything changed — cheap, and means the pies stay current without a manual refresh.
+let lastCCExpenseSnapshot = '';
+setInterval(() => {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage || activePage.dataset.page !== 'accounts') return;
+  const snapshot = localStorage.getItem('cc-register') || '';
+  if (snapshot === lastCCExpenseSnapshot) return;
+  lastCCExpenseSnapshot = snapshot;
+  renderCCSpendingCharts();
+}, 1500);
 
 function setRetirementAge(age) {
   els('retirementAge').value = age;
