@@ -380,6 +380,43 @@
   @media (max-width:600px){
     .two-col, .three-col{grid-template-columns:1fr;}
   }
+  /* Dynamic row-lists (Future Expenses, Windfalls, Insurance, Brokerage Pies, Debt, etc.) use a tight
+     multi-column grid (e.g. 1.4fr 0.6fr 0.7fr 0.8fr 26px) sized for desktop. On a phone in portrait that
+     squeezes every field down to a sliver, which is why fields were only readable in landscape. Below
+     700px, switch every row from a single-line grid to a wrapping flex layout: the first field (name/
+     description) gets its own full-width line, the remaining fields wrap two-per-line at roughly half
+     width each (still comfortably tappable), and the small remove (×) button stays right-sized instead
+     of stretching. This applies uniformly to every row-item/row-header variant since they all share the
+     same "text field, then a few more fields, then a remove button" shape. */
+  @media (max-width:700px){
+    .row-item, .row-header{
+      display:flex !important;
+      flex-wrap:wrap;
+      row-gap:8px;
+      column-gap:8px;
+    }
+    .row-item > *:first-child, .row-header > *:first-child{
+      flex:1 1 100%;
+    }
+    .row-item > *:not(:first-child):not(.remove-btn),
+    .row-header > *:not(:first-child){
+      flex:1 1 calc(50% - 4px);
+      min-width:0;
+    }
+    .row-item .age-cell{
+      flex:1 1 calc(50% - 4px);
+    }
+    .row-item .remove-btn{
+      flex:0 0 auto;
+      margin-left:auto;
+    }
+    .row-header{
+      row-gap:2px;
+    }
+    .row-header > *{
+      font-size:13px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -1051,14 +1088,12 @@
 
       <div class="card no-autocollapse">
         <h3 onclick="toggleCard(this)">Estimated Taxes<span class="sub-label">Federal income tax, Idaho state tax, and FICA payroll tax, by year</span></h3>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start;">
-          <div>
-            <div style="position:relative;height:320px;"><canvas id="chart_taxes_yearly"></canvas></div>
-            <div class="chart-range-nav" data-chart="taxes_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('taxes_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('taxes_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('taxes_yearly','next')"><span class="range-nav-label">Age</span> »</button></div>
-            <div class="range-readout" data-chart="taxes_yearly"></div>
-          </div>
-          <div id="estimatedTaxesLifetimeTable"></div>
+        <div>
+          <div style="position:relative;height:320px;"><canvas id="chart_taxes_yearly"></canvas></div>
+          <div class="chart-range-nav" data-chart="taxes_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('taxes_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('taxes_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('taxes_yearly','next')"><span class="range-nav-label">Age</span> »</button></div>
+          <div class="range-readout" data-chart="taxes_yearly"></div>
         </div>
+        <div id="estimatedTaxesLifetimeTable" style="margin-top:16px;"></div>
       </div>
 
       <div class="card">
