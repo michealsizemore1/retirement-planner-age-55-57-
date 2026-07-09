@@ -5204,7 +5204,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
       if (ltcRemaining > 0.01) shortfallEver = true;
     }
 
-    // Future / one-time planned expenses: hit at a specific age (or a recurring range), drawn from cash first then brokerage.
+    // Future / one-time planned expenses: hit at a specific age (or a recurring range), drawn from cash first, then
+    // brokerage, then (if still short) Roth TSP, then Traditional TSP — same fallback order as Long-Term Care below,
+    // so a big planned expense can't be flagged a "failure" just because the small liquid/brokerage buckets are thin
+    // while six-figure TSP balances sit untouched.
     // Survivorship what-if: only items still checked "continues" on the Survivorship page's checklist count,
     // at each item's edited override amount if one was set — same per-item pattern as expenses/debts/insurance.
     // Explorers "What If I..." cards (e.g. "an unexpected $50k expense in 5 years") inject a synthetic entry
@@ -5224,8 +5227,14 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const f2 = Math.min(feRemaining, balSavings); balSavings -= f2; feRemaining -= f2;
       const f3 = Math.min(feRemaining, balChecking); balChecking -= f3; feRemaining -= f3;
       if (feRemaining > 0) {
-        if (feRemaining - sumPies(balBrokeragePies) > 0.01) shortfallEver = true;
-        applyPooledDelta(balBrokeragePies, -feRemaining);
+        const feBrokerageAvailable = sumPies(balBrokeragePies);
+        const fromFeBrokerage = Math.min(feRemaining, feBrokerageAvailable);
+        applyPooledDelta(balBrokeragePies, -fromFeBrokerage); feRemaining -= fromFeBrokerage;
+        if (feRemaining > 0) {
+          const fromFeRoth = Math.min(feRemaining, balRoth); balRoth -= fromFeRoth; feRemaining -= fromFeRoth;
+          const fromFeTrad = Math.min(feRemaining, balTrad); balTrad -= fromFeTrad; feRemaining -= fromFeTrad;
+        }
+        if (feRemaining > 0.01) shortfallEver = true;
       }
     }
 
