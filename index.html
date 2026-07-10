@@ -44,6 +44,12 @@
   .dollar-toggle-btn{padding:8px 14px; font-size:16.5px; color:#cfe6e0; cursor:pointer; white-space:nowrap;}
   .dollar-toggle-btn.active{background:var(--teal); color:#fff; font-weight:600;}
   .mc-mini-score{font-size:11px; font-weight:700; margin-left:4px; opacity:0.88;}
+  /* Left-aligned (not flex-end) so the date picker below the toggle lines up under "Job Loss" (the
+     first/leftmost button), not under whichever button happens to be widest/last. */
+  .header-toggle-group{display:flex; flex-direction:column; gap:6px; align-items:flex-start; max-width:100%;}
+  .job-loss-date-wrap{display:flex; flex-direction:column; gap:2px; align-items:flex-start;}
+  .job-loss-date-wrap input[type="date"]{font-size:12px; padding:3px 6px; border-radius:6px; border:1px solid var(--border,#ccc);}
+  .job-loss-date-wrap span{font-size:11px; color:#cfe6e0;}
   .hamburger-btn{
     background:rgba(255,255,255,0.12);
     border:1px solid rgba(255,255,255,0.25);
@@ -379,6 +385,16 @@
     header h1{font-size:20px;}
     header p{font-size:14px;}
   }
+  /* The spending-basis toggle (3 buttons, each now with an appended Monte Carlo % score) is too wide
+     for phone-width viewports at full desktop size — left unchecked it forces the whole page to scroll
+     horizontally, which is what was cutting the title/menu off-screen. Shrinking the buttons/scores and
+     letting the toggle itself wrap onto two lines keeps everything inside the viewport instead. */
+  @media (max-width:700px){
+    .header-toggle-group{width:100%; max-width:100%;}
+    .dollar-toggle{flex-wrap:wrap; flex-shrink:1; max-width:100%;}
+    .dollar-toggle-btn{font-size:13px; padding:6px 9px;}
+    .mc-mini-score{font-size:9px; margin-left:2px;}
+  }
   /* .two-col/.three-col never adapted to phone widths — cramming 2 or 3 fields side by side left each
      one too narrow for its own contents (e.g. the "Retire at 55/56/57" pill row, which has no room to
      wrap sideways and was getting pushed off the right edge of the screen). Stacking every field to a
@@ -453,7 +469,7 @@
       <h1>Michael &amp; Cynthia's Planner</h1>
       <p>Tap the menu to jump to a section. <span class="current-page-label" id="currentPageLabel">Dashboard</span></p>
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+    <div class="header-toggle-group">
       <div class="dollar-toggle" id="dollarToggle">
         <span class="dollar-toggle-btn" data-mode="real" onclick="setDollarView('real')">Today's $</span>
         <span class="dollar-toggle-btn active" data-mode="nominal" onclick="setDollarView('nominal')">Future $</span>
@@ -463,9 +479,9 @@
         <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')">Must Spend<span class="mc-mini-score" id="mcMiniMustspend"></span></span>
         <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')">Like to Spend<span class="mc-mini-score" id="mcMiniLiketo"></span></span>
       </div>
-      <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-end;" title="If Job Loss is selected above, the projection stays on normal income/Like to Spend until this date, then switches to zero income, zero TSP/brokerage contributions, and the Job Loss expense column">
-        <input type="date" id="jobLossDate" onchange="setJobLossDate(this.value)" style="font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--border,#ccc);">
-        <span id="jobLossDateHint" style="font-size:11px;color:var(--muted,#888);"></span>
+      <div class="job-loss-date-wrap" title="If Job Loss is selected above, the projection stays on normal income/Like to Spend until this date, then switches to zero income, zero TSP/brokerage contributions, and the Job Loss expense column">
+        <input type="date" id="jobLossDate" onchange="setJobLossDate(this.value)">
+        <span id="jobLossDateHint"></span>
       </div>
     </div>
   </div>
@@ -4014,6 +4030,18 @@ function setSpendingBasis(mode) {
   const activePage = document.querySelector('.page.active');
   if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
 }
+// Which per-item dollar value a single expense row contributes, given whichever basis is currently
+// selected in the header toggle — same fallback chain the engine itself uses in buildContext (Must
+// Spend falls back to Like to Spend if left blank; Job Loss falls back to Must Spend, then Like to
+// Spend). Used by every UI element on the Expenses page (chart, combined-total card) so they all switch
+// together with the toggle instead of the chart/totals staying frozen on Like to Spend regardless of
+// which basis is actually selected.
+function expenseValForBasis(e) {
+  const mustSpend = e.mustSpend != null ? +e.mustSpend : (+e.amount || 0);
+  if (spendingBasis === 'mustspend') return mustSpend;
+  if (spendingBasis === 'jobloss') return e.jobLoss != null ? +e.jobLoss : mustSpend;
+  return +e.amount || 0;
+}
 
 // Job Loss test: the specific calendar date the header toggle's Job Loss basis actually kicks in on —
 // lives outside .page like dollarView/spendingBasis above, so it gets its own dedicated localStorage key
@@ -4566,7 +4594,7 @@ function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render();
 // rent or an already-purchased mortgage + property tax/insurance, whichever applies right now.
 function renderCombinedExpensesCard(rows, inputs) {
   if (!els('combinedGrandTotal')) return;
-  const expensesMonthly = expenses.reduce((s,e) => s + (+e.amount || 0), 0);
+  const expensesMonthly = expenses.reduce((s,e) => s + expenseValForBasis(e), 0);
   const debtMonthly = debts.reduce((s,d) => s + (+d.payment || 0), 0);
   const insuranceMonthly = insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0);
   const housingMonthly = (rows && rows.length ? rows[0].housingCost : 0) / 12;
@@ -6287,9 +6315,11 @@ function buildChartConfig(pageId, snap) {
       // Utilities/Subscriptions have several named items each (Verizon, Idaho Power, YouTube
       // Premium, etc.) — show the item name alone (shorter, fits the chart) rather than
       // repeating the category, which is what made every "Utilities" bar look the same before.
+      // Values follow the header's Job Loss / Must Spend / Like to Spend toggle, same as everything
+      // else the toggle drives, instead of always plotting the Like to Spend column.
       return barConfig(
         expenses.map(e => (e.category==='Utilities' || e.category==='Subscriptions') ? (e.name||'Unnamed') : e.category),
-        expenses.map(e=>+e.amount||0), { horizontal:true, showValues:true }
+        expenses.map(expenseValForBasis), { horizontal:true, showValues:true }
       );
     case 'debt':
       return barConfig(debts.map(d=>d.name||d.category), debts.map(d=>+d.balance||0), { horizontal:true, showValues:true });
@@ -6752,7 +6782,7 @@ function generateCoachSuggestions(inputs, ctx, result, score) {
   const highInterestDebt = debts.filter(d => (+d.apr||0) > 15);
   if (highInterestDebt.length) add('high', '⚠', `You're carrying ${highInterestDebt.length} debt${highInterestDebt.length>1?'s':''} above 15% APR (${highInterestDebt.map(d=>d.name).join(', ')}). Paying these down first usually beats any investment return.`);
 
-  const totalMonthlyExpenses = expenses.reduce((s,e)=>s+(+e.amount||0),0) + inputs.rentMonthly;
+  const totalMonthlyExpenses = expenses.reduce((s,e)=>s+expenseValForBasis(e),0) + inputs.rentMonthly;
   const cashOnHand = inputs.checkingBalance + inputs.savingsBalance;
   if (cashOnHand < totalMonthlyExpenses*3) add('medium', '!', `Checking + savings (${fmtMoney(cashOnHand)}) covers less than 3 months of your recurring monthly bills (${fmtMoney(totalMonthlyExpenses)}/mo). Consider building a bigger cash cushion before retirement, separate from the HYSA.`);
 
@@ -6771,7 +6801,7 @@ function generateCoachSuggestions(inputs, ctx, result, score) {
 
   if (result.depletionAge) add('high', '⚠', `The deterministic projection runs out of investable money at age ${result.depletionAge}. Check the Explorers page for what-if scenarios (retire later, spend less, delay Social Security) that might close the gap.`);
 
-  const bigExpenses = expenses.filter(e => (+e.amount||0) > totalMonthlyExpenses*0.25);
+  const bigExpenses = expenses.filter(e => expenseValForBasis(e) > totalMonthlyExpenses*0.25);
   if (bigExpenses.length) add('low', 'i', `${bigExpenses.map(e=>e.name).join(', ')} make up a large share of your monthly expenses. Worth double-checking these are modeled at the right amount since they move the plan a lot.`);
 
   if (!tips.length) add('good', '✓', "Nothing stands out. Your plan looks internally consistent based on the checks this Coach runs.");
@@ -6830,7 +6860,7 @@ function buildPlanSummaryForAI() {
 Investable balance at retirement: ${fmtMoney(result.investableAtRetirement)}. Confidence score: ${Math.round(score)}%. ${result.depletionAge ? 'Portfolio depletes at age '+result.depletionAge+'.' : 'Portfolio lasts through age '+ctx.effectiveLifeExpectancy+'.'}
 Traditional TSP: ${fmtMoney(inputs.tradTSPBalance)}, Roth TSP: ${fmtMoney(inputs.rothTSPBalance)}, Brokerage: ${fmtMoney(inputs.brokerageBalance)}, Cash: ${fmtMoney(inputs.checkingBalance+inputs.savingsBalance+inputs.hysaBalance)}.
 Guaranteed income: SS $${inputs.ssMonthly}/mo at ${inputs.ssAge}, military pension $${inputs.pensionAnnual}/yr, Government Civil Service pension $${inputs.pension2Annual}/yr, VA disability $${inputs.vaDisabilityAnnual}/yr (tax-free), annuity $${inputs.annuityMonthly}/mo at ${inputs.annuityStartAge}.
-Monthly recurring expenses total: ${fmtMoney(expenses.reduce((s,e)=>s+(+e.amount||0),0))}. Rent: $${inputs.rentMonthly}/mo. Debt: ${debts.map(d=>`${d.name} $${d.balance} at ${d.apr}% APR, $${d.payment}/mo`).join('; ') || 'none'}.
+Monthly recurring expenses total (${spendingBasis === 'jobloss' ? 'Job Loss' : spendingBasis === 'mustspend' ? 'Must Spend' : 'Like to Spend'} basis): ${fmtMoney(expenses.reduce((s,e)=>s+expenseValForBasis(e),0))}. Rent: $${inputs.rentMonthly}/mo. Debt: ${debts.map(d=>`${d.name} $${d.balance} at ${d.apr}% APR, $${d.payment}/mo`).join('; ') || 'none'}.
 Rule of 55 assumption: ${inputs.ruleOf55Applies ? 'on (no early withdrawal penalty)' : 'off (10% penalty before 59.5)'}.`;
 }
 
