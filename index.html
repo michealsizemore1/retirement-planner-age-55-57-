@@ -5695,7 +5695,15 @@ const WHAT_IF_SCENARIOS = [
   { name: 'Claim Social Security at 62', apply: inp => ({ ...inp, ssAge: 62, ssMonthly: inp.ssMonthly * 0.7 }) },
   { name: 'Delay Social Security to 70', apply: inp => ({ ...inp, ssAge: 70, ssMonthly: inp.ssMonthly * 1.24 }) },
   { name: 'Contribute 5% more to TSP', apply: inp => ({ ...inp, tradPct: inp.tradPct + 0.05 }) },
-  { name: 'Pay off all debt today', special: 'payoffDebt' }
+  { name: 'Pay off all debt today', special: 'payoffDebt' },
+  // Job income stops for good starting right now — TSP employee contributions and the agency match
+  // are both computed as a % of income (see projectRun), so zeroing currentIncome already zeroes those
+  // automatically. Fixed-dollar brokerage pie contributions aren't tied to income the same way, though
+  // (they're a flat $/mo per pie), so those need to be zeroed explicitly too, or the scenario would
+  // wrongly assume the same paycheck-funded contributions keep happening with no paycheck. Guaranteed
+  // income already flowing (military pension, VA disability) is untouched — neither depends on this job.
+  { name: 'Lose my job today', apply: inp => ({ ...inp, currentIncome: 0, incomeGrowth: 0,
+    brokeragePieContributionsMonthly: inp.brokeragePieContributionsMonthly.map(() => 0) }) }
 ];
 
 const MARKET_RISK_SCENARIOS = [
@@ -5758,7 +5766,10 @@ const WHATIF_CARDS = [
       return { inputs: { ...inputs, hysaBalance: inputs.hysaBalance + 50000 }, ctx: { ...ctx, debtSchedules: [...ctx.debtSchedules, loanSchedule] } };
     } },
   { name: 'Have an unexpected $50k expense in 5 years',
-    build: (inputs, ctx) => ({ inputs, ctx: { ...ctx, futureExpensesOverride: [...futureExpenses, { name: 'Unexpected expense', age: inputs.currentAge + 5, amount: 50000, recurring: false }] } }) }
+    build: (inputs, ctx) => ({ inputs, ctx: { ...ctx, futureExpensesOverride: [...futureExpenses, { name: 'Unexpected expense', age: inputs.currentAge + 5, amount: 50000, recurring: false }] } }) },
+  { name: 'Lose my job today',
+    build: (inputs, ctx) => ({ inputs: { ...inputs, currentIncome: 0, incomeGrowth: 0,
+      brokeragePieContributionsMonthly: inputs.brokeragePieContributionsMonthly.map(() => 0) }, ctx }) }
 ];
 let selectedWhatIfCard = null;
 function selectWhatIfCard(idx) {
