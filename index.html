@@ -613,6 +613,8 @@
               <span class="pill" id="pill55" onclick="setRetirementAge(55)">Retire at 55</span>
               <span class="pill" id="pill56" onclick="setRetirementAge(56)">Retire at 56</span>
               <span class="pill" id="pill57" onclick="setRetirementAge(57)">Retire at 57</span>
+              <span class="pill" id="pill58" onclick="setRetirementAge(58)">Retire at 58</span>
+              <span class="pill" id="pill59" onclick="setRetirementAge(59)">Retire at 59</span>
             </div>
           </div>
         </div>
@@ -1069,6 +1071,13 @@
         <div class="two-col">
           <div class="field"><label>Your Part B premium ($/mo, today's $)</label><input type="number" id="partBUserMonthly" value="185" step="5"></div>
           <div class="field"><label>Spouse's Part B premium ($/mo, today's $)</label><input type="number" id="partBSpouseMonthly" value="185" step="5"></div>
+        </div>
+        <hr class="divider">
+        <div class="mini-label" style="margin-bottom:2px;">RMDs &amp; IRMAA</div>
+        <div class="field">
+          <label>Required Minimum Distribution start age</label>
+          <input type="number" id="rmdAge" value="75" min="70" max="85">
+          <div style="font-size:16.5px;color:var(--muted);margin-top:4px;line-height:1.5;">75 for anyone born 1960 or later under current law (73 for 1951–1959). Once you reach this age, a mandatory % of your Traditional TSP is withdrawn and taxed every year whether you need it or not — modeled automatically using the IRS Uniform Lifetime Table, with any amount beyond that year's spending swept into Brokerage. Also drives the automatic IRMAA (Medicare Part B surcharge) estimate below each Part B premium once your income crosses the published thresholds — both are projection estimates only, not tax advice.</div>
         </div>
         <hr class="divider">
         <div class="mini-label" style="margin-bottom:2px;">FEDVIP</div>
@@ -5372,6 +5381,7 @@ function readInputs() {
     ltcAnnualCost: +els('ltcAnnualCost').value,
     ltcCareType: els('ltcCareType') ? els('ltcCareType').value : 'custom',
     medicareAge: +els('medicareAge').value,
+    rmdAge: +els('rmdAge').value || 75,
     tricareMonthly: +els('tricareMonthly').value,
     tricareHearingMonthly: +els('tricareHearingMonthly').value,
     tricareVisionMonthly: +els('tricareVisionMonthly').value,
@@ -5444,6 +5454,43 @@ function applyPooledDelta(pieBalances, delta) {
   }
 }
 
+// ---------- RMD (Required Minimum Distribution) ----------
+// IRS Uniform Lifetime Table (effective 2022+, Pub 590-B) — divides a Traditional-account balance by the
+// factor for your current age to get the minimum amount that must come out that year. Only applies to
+// Traditional TSP; Roth TSP is exempt. Floors at the age-120 factor for any age beyond the published table.
+const RMD_UNIFORM_LIFETIME_TABLE = {
+  72:27.4, 73:26.5, 74:25.5, 75:24.6, 76:23.7, 77:22.9, 78:22.0, 79:21.1, 80:20.2,
+  81:19.4, 82:18.5, 83:17.7, 84:16.8, 85:16.0, 86:15.2, 87:14.4, 88:13.7, 89:12.9, 90:12.2,
+  91:11.5, 92:10.8, 93:10.1, 94:9.5, 95:8.9, 96:8.4, 97:7.8, 98:7.3, 99:6.8, 100:6.4,
+  101:6.0, 102:5.6, 103:5.2, 104:4.9, 105:4.6, 106:4.3, 107:4.1, 108:3.9, 109:3.7, 110:3.5,
+  111:3.4, 112:3.3, 113:3.1, 114:3.0, 115:2.9, 116:2.8, 117:2.7, 118:2.5, 119:2.3, 120:2.0
+};
+function rmdDivisor(age) {
+  const a = Math.min(120, Math.max(72, Math.round(age)));
+  return RMD_UNIFORM_LIFETIME_TABLE[a] || 2.0;
+}
+
+// ---------- IRMAA (Income-Related Monthly Adjustment Amount) ----------
+// Approximate 2025-published CMS Part B surcharge tiers for Married Filing Jointly — both the MAGI
+// thresholds and the surcharge dollar amounts are estimates, not authoritative tax figures, and should be
+// checked against current IRS/CMS guidance as RMD/IRMAA-relevant ages actually approach. Returns the
+// today's-$ monthly surcharge for a given (already inflation-adjusted-for-comparison) MAGI; the caller
+// applies medicalInflator on top, same as the Part B premium fields it's added to.
+const IRMAA_BRACKETS_MFJ_BASE = [
+  { magi: 206000, surcharge: 74 },
+  { magi: 258000, surcharge: 185 },
+  { magi: 322000, surcharge: 296 },
+  { magi: 386000, surcharge: 407 },
+  { magi: 750000, surcharge: 444 }
+];
+function irmaaMonthlySurcharge(magiNominal, thresholdInflator) {
+  let surcharge = 0;
+  for (const tier of IRMAA_BRACKETS_MFJ_BASE) {
+    if (magiNominal > tier.magi * thresholdInflator) surcharge = tier.surcharge;
+  }
+  return surcharge;
+}
+
 function projectRun(inputs, ctx, randomize, shocks) {
   shocks = shocks || {};
   let balTrad = inputs.tradTSPBalance, balRoth = inputs.rothTSPBalance;
@@ -5453,6 +5500,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
   let depletionAge = null, shortfallEver = false;
   let investableAtRetirement = null, cashAtRetirement = null;
   let initialWithdrawalRate = null;
+  // IRMAA lookback proxy: last iteration's approximate MAGI, used as this year's IRMAA basis (see the
+  // comment above medicarePremiumBase below) — starts at 0 since there's no prior year before the plan begins.
+  let prevYearMagi = 0;
   const rows = [];
 
   for (let age = inputs.currentAge; age <= ctx.effectiveLifeExpectancy; age++) {
@@ -5708,6 +5758,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
       if (excessDestIdx >= 0 && excessDestIdx < balBrokeragePies.length) balBrokeragePies[excessDestIdx] += excessIncomeSaved;
       else applyPooledDelta(balBrokeragePies, excessIncomeSaved);
       balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate); balHYSA *= (1+inputs.hysaRate);
+      // IRMAA lookback proxy: this year's approximate MAGI (taxable wages after the pre-tax Traditional TSP
+      // contribution, plus the taxable share of any guaranteed income already flowing), carried forward as
+      // next year's IRMAA basis — see the post-retirement branch below for why a 1-year lookback is used
+      // instead of computing IRMAA off the same year's own income.
+      prevYearMagi = Math.max(0, (income - tradContrib) + 0.85*(ssAmount+spousalBenefit) + pensionAmount + pension2Amount + annuityAmount);
     } else {
       if (investableAtRetirement === null) {
         investableAtRetirement = startInvestable;
@@ -5738,10 +5793,25 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // "Her Tricare/Part B/FEDVIP continues" checkbox on the Survivorship page (an escape hatch for an
       // edge case like being fully covered another way) — checked by default, so this normally has no effect.
       const medicalContinuesForSurvivor = !survivorshipActive || inputs.survivorMedicalContinues !== false;
+      // IRMAA (Income-Related Monthly Adjustment Amount): a Medicare Part B surcharge above certain household
+      // MAGI thresholds. Real IRMAA uses a 2-year-old MAGI figure (this year's premium is set from tax return
+      // data from two years ago); this engine approximates that lag with a 1-year lookback instead (prevYearMagi,
+      // carried over from the end of the previous loop iteration — see below) both to avoid circularity (this
+      // year's own withdrawal amount isn't known until after the spending/withdrawal waterfall runs later on)
+      // and because a full 2-year rolling window isn't worth the added complexity for an estimate. Bracket
+      // thresholds and surcharge dollar amounts are both approximate, based on published 2025 CMS figures for
+      // Married Filing Jointly — not authoritative tax figures; verify against current IRS/CMS guidance as
+      // RMD/IRMAA-relevant ages actually approach. Thresholds grow with General Inflation (same simplification
+      // used for the Social Security wage base elsewhere); the surcharge itself is left in today's $ and rides
+      // along with medicalInflator below, same as the Part B premium fields it's added to. Applied per spouse
+      // who is actually on Medicare that year, since IRMAA is assessed per Medicare enrollee off the shared
+      // household MAGI.
+      const irmaaThresholdInflator = Math.pow(1+inputs.inflation, y);
+      const irmaaSurchargeMonthly = irmaaMonthlySurcharge(prevYearMagi, irmaaThresholdInflator);
       const medicarePremiumBase = !medicalContinuesForSurvivor ? 0 : (
         (onTricare ? inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly : 0) +
-        (survivorshipActive ? 0 : (userOnMedicare ? inputs.partBUserMonthly : 0)) +
-        (spouseOnMedicare ? inputs.partBSpouseMonthly : 0) +
+        (survivorshipActive ? 0 : (userOnMedicare ? inputs.partBUserMonthly + irmaaSurchargeMonthly : 0)) +
+        (spouseOnMedicare ? inputs.partBSpouseMonthly + irmaaSurchargeMonthly : 0) +
         (survivorshipActive
           ? (spouseOnMedicare ? inputs.survivorFedvipMonthly : 0)
           : (userOnMedicare ? (inputs.hearingMonthly + inputs.visionMonthly + inputs.dentalMonthly) : 0))
@@ -5860,6 +5930,35 @@ function projectRun(inputs, ctx, randomize, shocks) {
         federalTaxAnnual += taxAmt * (1 - stateShare);
       };
 
+      // Required Minimum Distributions (RMD): once you reach rmdAge, the IRS forces a withdrawal from
+      // Traditional TSP every year — whether you actually need the money for spending or not — computed off
+      // balTrad as it stood at the start of this year (before this year's growth, i.e. the prior year-end
+      // balance), divided by the IRS Uniform Lifetime Table factor for your current age (rmdDivisor above).
+      // Roth TSP is never subject to RMDs. Taxed at the same ordinary rate as any other Traditional withdrawal
+      // and tracked in withdrawalByAccount the same way a normal takeFrom() call would, but — unlike a normal
+      // need-driven withdrawal — it isn't capped by how much you actually need this year: any leftover after
+      // covering spending is swept into Brokerage (the same destination pie excess income savings uses)
+      // instead of just sitting there or vanishing from the projection.
+      if (inputs.rmdAge && age >= inputs.rmdAge && balTrad > 0.01) {
+        const rmdRequiredGross = Math.min(bal.trad, balTrad / rmdDivisor(age));
+        const rmdRequiredNet = rmdRequiredGross * (1 - t2);
+        bal.trad -= rmdRequiredGross;
+        grossWithdrawal += rmdRequiredGross;
+        withdrawalByAccount.trad = (withdrawalByAccount.trad || 0) + rmdRequiredGross;
+        const rmdTaxAmt = rmdRequiredGross - rmdRequiredNet;
+        const rmdStateShare = t2 > 0 ? (inputs.idahoRate / t2) : 0;
+        stateTaxAnnual += rmdTaxAmt * rmdStateShare;
+        federalTaxAnnual += rmdTaxAmt * (1 - rmdStateShare);
+        const rmdAppliedToNeed = Math.min(rmdRequiredNet, remaining);
+        remaining -= rmdAppliedToNeed;
+        const rmdSurplusNet = rmdRequiredNet - rmdAppliedToNeed;
+        if (rmdSurplusNet > 0.01) {
+          const rmdDestIdx = brokeragePies.findIndex(p => p.name === inputs.excessIncomeDestinationPieName);
+          if (rmdDestIdx >= 0 && bal['pie_'+rmdDestIdx] !== undefined) bal['pie_'+rmdDestIdx] += rmdSurplusNet;
+          else { const pk = Object.keys(bal).find(k => k.startsWith('pie_')); if (pk) bal[pk] += rmdSurplusNet; }
+        }
+      }
+
       if (inputs.withdrawalSimultaneous) {
         // Split the need proportionally (by current balance) across the checked accounts, "water-filling"
         // over a few rounds so accounts that run dry hand off their unmet share to the others still selected.
@@ -5883,6 +5982,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
       balTrad = Math.max(0, bal.trad); balRoth = Math.max(0, bal.roth); balHYSA = Math.max(0, bal.hysa);
       balBrokeragePies = balBrokeragePies.map((_, i) => Math.max(0, bal['pie_'+i]));
       balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate);
+
+      // IRMAA lookback proxy (see the comment above medicarePremiumBase): carry this year's approximate MAGI
+      // — taxable guaranteed income plus this year's actual gross Traditional TSP withdrawal, which now
+      // includes any RMD forced out above — forward as the basis for next year's IRMAA tier.
+      prevYearMagi = Math.max(0, taxableGuaranteed + (withdrawalByAccount.trad || 0));
 
       const endInvestable = balTrad + balRoth + sumPies(balBrokeragePies);
       if (endInvestable <= 0 && depletionAge === null && startInvestable > 0) depletionAge = age;
@@ -7117,6 +7221,8 @@ function render() {
   els('pill55').classList.toggle('active', +els('retirementAge').value === 55);
   els('pill56').classList.toggle('active', +els('retirementAge').value === 56);
   els('pill57').classList.toggle('active', +els('retirementAge').value === 57);
+  els('pill58').classList.toggle('active', +els('retirementAge').value === 58);
+  els('pill59').classList.toggle('active', +els('retirementAge').value === 59);
 
   const inputs = readInputs();
   const ctx = buildContext(inputs);
@@ -7275,14 +7381,14 @@ function render() {
     `;
   }
 
-  const ageOptions = [55, 56, 57];
+  const ageOptions = [55, 56, 57, 58, 59];
   const ageRuns = ageOptions.map(age => ({
     age,
     det: projectRun({...inputs, retirementAge:age}, ctx, false),
     score: runMonteCarlo({...inputs, retirementAge:age}, ctx, 1000)
   }));
   els('compareBox').innerHTML = `
-    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; text-align:center;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; text-align:center;">
       ${ageRuns.map(r => `
         <div>
           <b style="font-size:17px;">Retire at ${r.age}</b>
