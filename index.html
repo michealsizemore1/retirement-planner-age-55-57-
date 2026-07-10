@@ -44,8 +44,11 @@
   .dollar-toggle-btn{padding:8px 14px; font-size:16.5px; color:#cfe6e0; cursor:pointer; white-space:nowrap;}
   .dollar-toggle-btn.active{background:var(--teal); color:#fff; font-weight:600;}
   /* The score sits above the label (not inline beside it) so each button reads as one compact stacked
-     unit instead of a long "Label NN%" strip — three of those side by side is what was crowding the row. */
-  .spending-basis-toggle-btn{display:flex; flex-direction:column; align-items:center; gap:3px;}
+     unit instead of a long "Label NN%" strip — three of those side by side is what was crowding the row.
+     A shared min-width keeps all 3 pills the same size instead of "Job Loss" (shortest label) rendering
+     noticeably narrower than "Must Spend"/"Like to Spend" — that width mismatch, combined with
+     align-items:center centering a narrow pill's content, was reading as lopsided empty space on one side. */
+  .spending-basis-toggle-btn{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:96px;}
   .mc-mini-score{display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:22px; padding:0 7px; border-radius:11px; font-size:13px; font-weight:800; color:#fff; line-height:1;}
   /* Left-aligned (not flex-end) so the date picker below the toggle lines up under "Job Loss" (the
      first/leftmost button), not under whichever button happens to be widest/last. */
