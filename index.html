@@ -416,6 +416,15 @@
     .row-header > *{
       font-size:13px;
     }
+    /* Recurring Monthly Expenses (expense-row: name, category, Must Spend, Like to Spend, remove) —
+       the generic rule above pairs fields 2-and-3 together (category + Must Spend), which visually
+       separates Must Spend from Like to Spend even though they're meant to be compared side by side.
+       Give category its own full-width line instead, so Must Spend and Like to Spend end up paired
+       together on the line below, same as they were before — matches the desktop column order. */
+    .row-item.expense-row > *:nth-child(2),
+    .row-header.cols-expense > *:nth-child(2){
+      flex:1 1 100%;
+    }
   }
 </style>
 </head>
@@ -3885,6 +3894,14 @@ if (typeof Chart !== 'undefined') {
     id: 'pieValueLabels',
     afterDatasetsDraw(chart) {
       try {
+        // This plugin computes "value (percent of the whole)" — only meaningful for a pie/doughnut,
+        // where every slice really is a share of one total. It used to be gated on dataset.showValues
+        // alone, which every bar chart ALSO sets (via barConfig's opts.showValues) to get its own
+        // barValueLabels pill — so this plugin was firing on every bar chart too, drawing a second,
+        // unboxed white "value (N%)" label directly on top of barValueLabels' solid black pill at the
+        // same position. Against a light chart background that second label was nearly invisible and
+        // just muddied the real one. Restricting to actual pie charts fixes both problems at once.
+        if (chart.config.type !== 'pie' && chart.config.type !== 'doughnut') return;
         chart.data.datasets.forEach((dataset, di) => {
           if (!dataset.showValues) return;
           const formatter = dataset.valueFormatter;
