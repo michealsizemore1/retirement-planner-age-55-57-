@@ -552,7 +552,7 @@
           <div class="field"><label>Current age</label><input type="number" id="currentAge" value="52" min="18" max="90"></div>
           <div class="field">
             <label>Retirement age</label>
-            <input type="number" id="retirementAge" value="55" min="40" max="90">
+            <input type="number" id="retirementAge" value="55" min="40" max="90" oninput="syncRetirementDateFromAge()">
             <div class="pill-row">
               <span class="pill" id="pill55" onclick="setRetirementAge(55)">Retire at 55</span>
               <span class="pill" id="pill56" onclick="setRetirementAge(56)">Retire at 56</span>
@@ -622,7 +622,7 @@
         <div class="mini-label">Military Pension</div>
         <div class="three-col">
           <div class="field"><label>Military Pension ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
-          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90">
+          <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90" oninput="syncDateFromAge('pensionAge','pensionAgeDate','pensionAgeDateHint','currentAge')">
             <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
             <div id="pensionAgeDateHint" class="age-date-hint"></div>
           </div>
@@ -631,7 +631,7 @@
         <div class="mini-label">Government Civil Service</div>
         <div class="three-col">
           <div class="field"><label>Government Civil Service Pension ($/yr, today's $)</label><input type="number" id="pension2Annual" value="11148" step="1"></div>
-          <div class="field"><label>Government Civil Service Pension start age</label><input type="number" id="pension2Age" value="62" min="40" max="90">
+          <div class="field"><label>Government Civil Service Pension start age</label><input type="number" id="pension2Age" value="62" min="40" max="90" oninput="syncDateFromAge('pension2Age','pension2AgeDate','pension2AgeDateHint','currentAge')">
             <input type="month" id="pension2AgeDate" class="age-date-input" value="2035-11" oninput="syncAgeDate('pension2AgeDate','pension2Age','pension2AgeDateHint','currentAge')">
             <div id="pension2AgeDateHint" class="age-date-hint"></div>
           </div>
@@ -641,7 +641,7 @@
         <div class="mini-label">VA Disability</div>
         <div class="three-col">
           <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
-          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90">
+          <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90" oninput="syncDateFromAge('vaDisabilityAge','vaDisabilityAgeDate','vaDisabilityAgeDateHint','currentAge')">
             <input type="month" id="vaDisabilityAgeDate" class="age-date-input" oninput="syncAgeDate('vaDisabilityAgeDate','vaDisabilityAge','vaDisabilityAgeDateHint','currentAge')">
             <div id="vaDisabilityAgeDateHint" class="age-date-hint"></div>
           </div>
@@ -656,14 +656,14 @@
         <h3 onclick="toggleCard(this)">Guaranteed Income</h3>
         <div class="two-col">
           <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2200" step="50"></div>
-          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70">
+          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70" oninput="syncDateFromAge('ssAge','ssAgeDate','ssAgeDateHint','currentAge')">
             <input type="month" id="ssAgeDate" class="age-date-input" oninput="syncAgeDate('ssAgeDate','ssAge','ssAgeDateHint','currentAge')">
             <div id="ssAgeDateHint" class="age-date-hint"></div>
           </div>
         </div>
         <div class="two-col" id="spousalBenefitFields">
           <div class="field"><label>Spousal benefit (% of your benefit)</label><input type="number" id="spousalPct" value="50" min="0" max="50" step="1"></div>
-          <div class="field"><label>Spousal benefit start age (spouse's age)</label><input type="number" id="spousalStartAge" value="67" min="62" max="70">
+          <div class="field"><label>Spousal benefit start age (spouse's age)</label><input type="number" id="spousalStartAge" value="67" min="62" max="70" oninput="syncDateFromAge('spousalStartAge','spousalStartAgeDate','spousalStartAgeDateHint','spouseAge')">
             <input type="month" id="spousalStartAgeDate" class="age-date-input" oninput="syncAgeDate('spousalStartAgeDate','spousalStartAge','spousalStartAgeDateHint','spouseAge')">
             <div id="spousalStartAgeDateHint" class="age-date-hint"></div>
           </div>
@@ -672,7 +672,7 @@
         <div class="mini-label">Annuity</div>
         <div class="three-col">
           <div class="field"><label>Annuity payout ($/mo, today's $)</label><input type="number" id="annuityMonthly" value="0" step="50"></div>
-          <div class="field"><label>Annuity start age</label><input type="number" id="annuityStartAge" value="65" min="40" max="95">
+          <div class="field"><label>Annuity start age</label><input type="number" id="annuityStartAge" value="65" min="40" max="95" oninput="syncDateFromAge('annuityStartAge','annuityStartAgeDate','annuityStartAgeDateHint','currentAge')">
             <input type="month" id="annuityStartAgeDate" class="age-date-input" oninput="syncAgeDate('annuityStartAgeDate','annuityStartAge','annuityStartAgeDateHint','currentAge')">
             <div id="annuityStartAgeDateHint" class="age-date-hint"></div>
           </div>
@@ -886,7 +886,7 @@
         </div>
         <div class="sub-fields" id="buyHomeFields" style="display:none;">
           <div class="two-col">
-            <div class="field"><label>Purchase age</label><input type="number" id="purchaseAge" value="60" min="18" max="95">
+            <div class="field"><label>Purchase age</label><input type="number" id="purchaseAge" value="60" min="18" max="95" oninput="syncDateFromAge('purchaseAge','purchaseAgeDate','purchaseAgeDateHint','currentAge')">
               <input type="month" id="purchaseAgeDate" class="age-date-input" oninput="syncAgeDate('purchaseAgeDate','purchaseAge','purchaseAgeDateHint','currentAge')">
               <div id="purchaseAgeDateHint" class="age-date-hint"></div>
             </div>
@@ -1038,7 +1038,7 @@
         </div>
         <div class="sub-fields" id="ltcFields">
           <div class="two-col">
-            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="92" min="60" max="105">
+            <div class="field"><label>LTC start age (spouse's age)</label><input type="number" id="ltcStartAge" value="92" min="60" max="105" oninput="syncDateFromAge('ltcStartAge','ltcStartAgeDate','ltcStartAgeDateHint','spouseAge')">
               <input type="month" id="ltcStartAgeDate" class="age-date-input" oninput="syncAgeDate('ltcStartAgeDate','ltcStartAge','ltcStartAgeDateHint','spouseAge')">
               <div id="ltcStartAgeDateHint" class="age-date-hint"></div>
             </div>
@@ -4251,9 +4251,36 @@ setInterval(() => {
 
 function setRetirementAge(age) {
   els('retirementAge').value = age;
-  render();
+  syncRetirementDateFromAge();
 }
 
+// Reverse of syncRetirementDate below: fires when the Retirement age field itself (or one of the
+// 55/56/57 quick pills) is edited, so "Planned last working day" and its hint stay in step instead
+// of sitting frozen at whatever date was last set (or the page default) while the age moves on.
+// Defaults to the last calendar day of the target month, matching the field's own "last working day"
+// framing and its original Dec 31 default.
+function syncRetirementDateFromAge() {
+  const ageEl = els('retirementAge');
+  const dateEl = els('retirementDate');
+  if (!ageEl || !dateEl) return;
+  const targetAge = +ageEl.value;
+  if (isNaN(targetAge)) return;
+  const currentAge = +els('currentAge').value;
+  const monthVal = ageToMonthValue(currentAge, targetAge);
+  const [y, m] = monthVal.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  dateEl.value = monthVal + '-' + String(lastDay).padStart(2, '0');
+  const hintEl = els('retirementDateHint');
+  if (hintEl) {
+    const monthsAway = Math.round((targetAge - currentAge) * 12);
+    const yrs = Math.floor(Math.abs(monthsAway) / 12), mo = Math.abs(monthsAway) % 12;
+    const label = new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    hintEl.textContent = monthsAway >= 0
+      ? `≈ ${yrs} yr${yrs !== 1 ? 's' : ''} ${mo} mo from today — ${label}`
+      : `That's in the past — ${label}`;
+  }
+  render();
+}
 function syncRetirementDate(force) {
   const dateVal = els('retirementDate').value;
   if (!dateVal) return;
@@ -4292,6 +4319,44 @@ function syncAgeDate(dateFieldId, ageFieldId, hintFieldId, basisAgeFieldId) {
     hintEl.textContent = monthsAway >= 0
       ? `≈ ${yrs} yr${yrs !== 1 ? 's' : ''} ${mo} mo from today — sets age to ${Math.max(1, impliedAge)}`
       : `That date is in the past`;
+  }
+  render();
+}
+
+// Inverse of the monthsAway math inside syncAgeDate above: given a target age and the basis age it's
+// measured from, returns a "YYYY-MM" string suitable for an <input type="month">'s .value.
+function ageToMonthValue(basisAge, targetAge) {
+  if (targetAge === null || targetAge === undefined || isNaN(targetAge)) return '';
+  const monthsAway = Math.round((targetAge - basisAge) * 12);
+  const today = new Date();
+  const totalMonths = today.getFullYear() * 12 + today.getMonth() + monthsAway;
+  const y = Math.floor(totalMonths / 12), m = (totalMonths % 12) + 1;
+  return y + '-' + String(m).padStart(2, '0');
+}
+// The reverse direction of syncAgeDate: fires when the AGE number field itself is edited directly
+// (which is how most people actually use these fields — the month/year picker is the secondary,
+// optional way in). Without this, editing the age left the date picker and its hint exactly where
+// they started (usually blank), so there was no way to tell what calendar year a given age actually
+// falls in without doing the math yourself. Keeps both fields — and the hint — in sync no matter
+// which one you actually typed into.
+function syncDateFromAge(ageFieldId, dateFieldId, hintFieldId, basisAgeFieldId) {
+  const ageEl = els(ageFieldId);
+  const dateEl = els(dateFieldId);
+  if (!ageEl || !dateEl) return;
+  const targetAge = +ageEl.value;
+  if (isNaN(targetAge)) return;
+  const basisAge = +els(basisAgeFieldId).value;
+  const monthVal = ageToMonthValue(basisAge, targetAge);
+  dateEl.value = monthVal;
+  const hintEl = els(hintFieldId);
+  if (hintEl) {
+    const monthsAway = Math.round((targetAge - basisAge) * 12);
+    const yrs = Math.floor(Math.abs(monthsAway) / 12), mo = Math.abs(monthsAway) % 12;
+    const [y, m] = monthVal.split('-').map(Number);
+    const label = new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    hintEl.textContent = monthsAway >= 0
+      ? `≈ ${yrs} yr${yrs !== 1 ? 's' : ''} ${mo} mo from today — ${label}`
+      : `That's in the past — ${label}`;
   }
   render();
 }
@@ -4703,8 +4768,17 @@ function updateFutureExpense(i, field, value) {
   if (field === 'recurring') futureExpenses[i][field] = value === 'true';
   else if (field === 'name') futureExpenses[i][field] = value;
   else futureExpenses[i][field] = +value;
-  // Editing the age number directly means the pinned date picker no longer necessarily matches it.
-  if (field === 'age') futureExpenses[i].dateValue = null;
+  // Editing the age number directly should push the pinned date picker to match it, not blank it out
+  // and leave the user guessing what calendar date that age actually falls on. Update the sibling
+  // month input in place (not a full renderFutureExpenseRows()) so the age field being typed into
+  // doesn't lose keyboard focus mid-keystroke.
+  if (field === 'age') {
+    futureExpenses[i].dateValue = ageToMonthValue(+els('currentAge').value, futureExpenses[i].age);
+    const rows = els('futureExpenseRows');
+    const cell = rows ? rows.querySelectorAll('.age-cell')[i] : null;
+    const monthInput = cell ? cell.querySelector('input[type="month"]') : null;
+    if (monthInput) monthInput.value = futureExpenses[i].dateValue || '';
+  }
   if (field === 'recurring') renderFutureExpenseRows();
   render();
 }
@@ -4758,7 +4832,15 @@ function renderWindfallRows() {
 }
 function updateWindfall(i, field, value) {
   windfalls[i][field] = (field==='age'||field==='amount') ? +value : value;
-  if (field === 'age') windfalls[i].dateValue = null;
+  // Same age->date reverse sync as future expenses: keep the pinned month picker matched to the
+  // typed age instead of blanking it, updated in place so the age field doesn't lose focus mid-keystroke.
+  if (field === 'age') {
+    windfalls[i].dateValue = ageToMonthValue(+els('currentAge').value, windfalls[i].age);
+    const rows = els('windfallRows');
+    const cell = rows ? rows.querySelectorAll('.age-cell')[i] : null;
+    const monthInput = cell ? cell.querySelector('input[type="month"]') : null;
+    if (monthInput) monthInput.value = windfalls[i].dateValue || '';
+  }
   render();
 }
 function addWindfall() { windfalls.push({ name:'New windfall', age:60, amount:10000, destination:'Brokerage' }); renderWindfallRows(); render(); }
