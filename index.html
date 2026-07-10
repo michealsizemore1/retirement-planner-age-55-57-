@@ -43,7 +43,10 @@
   .dollar-toggle{display:flex; border:1px solid rgba(255,255,255,0.3); border-radius:20px; overflow:hidden; flex-shrink:0; margin-top:2px;}
   .dollar-toggle-btn{padding:8px 14px; font-size:16.5px; color:#cfe6e0; cursor:pointer; white-space:nowrap;}
   .dollar-toggle-btn.active{background:var(--teal); color:#fff; font-weight:600;}
-  .mc-mini-score{display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:22px; padding:0 7px; border-radius:11px; font-size:13px; font-weight:800; margin-left:6px; color:#fff; vertical-align:middle; line-height:1;}
+  /* The score sits above the label (not inline beside it) so each button reads as one compact stacked
+     unit instead of a long "Label NN%" strip — three of those side by side is what was crowding the row. */
+  .spending-basis-toggle-btn{display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .mc-mini-score{display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:22px; padding:0 7px; border-radius:11px; font-size:13px; font-weight:800; color:#fff; line-height:1;}
   /* Left-aligned (not flex-end) so the date picker below the toggle lines up under "Job Loss" (the
      first/leftmost button), not under whichever button happens to be widest/last. */
   .header-toggle-group{display:flex; flex-direction:column; gap:6px; align-items:flex-start; max-width:100%;}
@@ -487,9 +490,9 @@
         <span class="dollar-toggle-btn active" data-mode="nominal" onclick="setDollarView('nominal')">Future $</span>
       </div>
       <div class="dollar-toggle" id="spendingBasisToggle" title="Which expense column (Expenses page) drives the whole projection, guardrails, and Monte Carlo — the % next to each option is that option's own Monte Carlo confidence score, computed the same way as the Dashboard's, so you can compare all three without switching">
-        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="jobloss" onclick="setSpendingBasis('jobloss')">Job Loss<span class="mc-mini-score" id="mcMiniJobloss"></span></span>
-        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')">Must Spend<span class="mc-mini-score" id="mcMiniMustspend"></span></span>
-        <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')">Like to Spend<span class="mc-mini-score" id="mcMiniLiketo"></span></span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="jobloss" onclick="setSpendingBasis('jobloss')"><span class="mc-mini-score" id="mcMiniJobloss"></span><span>Job Loss</span></span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')"><span class="mc-mini-score" id="mcMiniMustspend"></span><span>Must Spend</span></span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')"><span class="mc-mini-score" id="mcMiniLiketo"></span><span>Like to Spend</span></span>
       </div>
       <div class="job-loss-date-wrap" title="If Job Loss is selected above, the projection stays on normal income/Like to Spend until this date, then switches to zero income, zero TSP/brokerage contributions, and the Job Loss expense column">
         <input type="date" id="jobLossDate" onchange="setJobLossDate(this.value)">
