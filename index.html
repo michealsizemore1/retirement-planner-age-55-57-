@@ -220,7 +220,7 @@
   .row-item{display:grid; grid-template-columns:1.3fr 0.9fr 26px; gap:8px; align-items:center; margin-bottom:8px;}
   .row-item.debt-row{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
   .row-item.tx-row{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
-  .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 26px;}
+  .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 0.7fr 26px;}
   .row-item.future-row{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px; align-items:start;}
   .row-item.windfall-row{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px; align-items:start;}
   /* future-row/windfall-row's age-cell holds two stacked inputs (age number + month picker),
@@ -263,7 +263,7 @@
   .row-header.cols-contrib{grid-template-columns:1.6fr 0.9fr;}
   .row-header.cols-future{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px;}
   .row-header.cols-windfall{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px;}
-  .row-header.cols-expense{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 26px;}
+  .row-header.cols-expense{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 0.7fr 26px;}
   .row-header.cols-insurance{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
   .row-item.contrib-row{grid-template-columns:1.6fr 0.9fr; align-items:center;}
   .pie-name-label{font-size:16.5px; color:var(--text);}
@@ -423,14 +423,22 @@
     .row-header > *{
       font-size:13px;
     }
-    /* Recurring Monthly Expenses (expense-row: name, category, Must Spend, Like to Spend, remove) —
-       the generic rule above pairs fields 2-and-3 together (category + Must Spend), which visually
-       separates Must Spend from Like to Spend even though they're meant to be compared side by side.
-       Give category its own full-width line instead, so Must Spend and Like to Spend end up paired
-       together on the line below, same as they were before — matches the desktop column order. */
+    /* Recurring Monthly Expenses (expense-row: name, category, Job Loss, Must Spend, Like to Spend,
+       remove) — the generic rule above pairs fields 2-and-3 together (category + Job Loss), which
+       visually separates the three $ columns from each other even though they're meant to be compared
+       side by side. Give category its own full-width line instead, and let the three $ columns share
+       one row at a third each — matches the desktop column order. */
     .row-item.expense-row > *:nth-child(2),
     .row-header.cols-expense > *:nth-child(2){
       flex:1 1 100%;
+    }
+    .row-item.expense-row > *:nth-child(3),
+    .row-item.expense-row > *:nth-child(4),
+    .row-item.expense-row > *:nth-child(5),
+    .row-header.cols-expense > *:nth-child(3),
+    .row-header.cols-expense > *:nth-child(4),
+    .row-header.cols-expense > *:nth-child(5){
+      flex:1 1 calc(33.333% - 6px);
     }
   }
 </style>
@@ -450,6 +458,7 @@
         <span class="dollar-toggle-btn active" data-mode="nominal" onclick="setDollarView('nominal')">Future $</span>
       </div>
       <div class="dollar-toggle" id="spendingBasisToggle" title="Which expense column (Expenses page) drives the whole projection, guardrails, and Monte Carlo">
+        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="jobloss" onclick="setSpendingBasis('jobloss')">Job Loss</span>
         <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')">Like to Spend</span>
         <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')">Must Spend</span>
       </div>
@@ -921,12 +930,13 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Recurring Monthly Expenses</h3>
-        <div class="row-header cols-expense"><span>Name</span><span>Category</span><span>Must Spend</span><span>Like to Spend</span><span></span></div>
+        <div class="row-header cols-expense"><span>Name</span><span>Category</span><span>Job Loss</span><span>Must Spend</span><span>Like to Spend</span><span></span></div>
         <div class="row-list" id="expenseRows"></div>
         <button class="add-btn" onclick="addExpense()">+ Add expense</button>
+        <div class="total-row"><span>Job Loss total (excl. housing)</span><span id="expenseJobLossTotal">$0</span></div>
         <div class="total-row"><span>Must Spend total (excl. housing)</span><span id="expenseMustSpendTotal">$0</span></div>
         <div class="total-row"><span>Like to Spend total (excl. housing)</span><span id="expenseTotal">$0</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">The <b>Like to Spend / Must Spend</b> toggle in the header picks which of these two columns actually drives the whole projection — the dashboard, guardrails, the Gap page, Explorers, and every Monte Carlo run all switch together. Whichever one ISN'T selected still matters: when dynamic spending guardrails (Assumptions page) cut spending in a down market, the cut never pushes recurring expenses below the Must Spend total — housing, debt, insurance, and medical premiums are already treated as 100% essential and are never cut.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">The <b>Like to Spend / Job Loss / Must Spend</b> toggle in the header picks which of these three columns actually drives the whole projection — the dashboard, guardrails, the Gap page, Explorers, and every Monte Carlo run all switch together. Whichever ones AREN'T selected still matter: when dynamic spending guardrails (Assumptions page) cut spending in a down market, the cut never pushes recurring expenses below the Must Spend total — housing, debt, insurance, and medical premiums are already treated as 100% essential and are never cut. Job Loss is a test column — leave a row's Job Loss blank and it falls back to that row's Must Spend amount.</p>
       </div>
 
       <div class="card">
@@ -3971,7 +3981,7 @@ const DOLLAR_VIEW_KEY = 'retirementPlannerDollarView_v1';
 // and every Monte Carlo run, since they all flow through buildContext()/projectRun(). The Must Spend
 // *floor* (guardrails never cutting below it) is unaffected by this toggle either way — it's always
 // the true essential-only total; this only changes what spending STARTS at before any guardrail cut.
-let spendingBasis = 'liketo'; // 'liketo' | 'mustspend'
+let spendingBasis = 'liketo'; // 'liketo' | 'mustspend' | 'jobloss' (test)
 const SPENDING_BASIS_KEY = 'retirementPlannerSpendingBasis_v1';
 
 // Deflates a value anchored at a given future age back to today's purchasing power, using General Inflation.
@@ -4488,6 +4498,7 @@ function renderExpenseRows() {
       <select onchange="updateExpense(${i},'category',this.value)">
         ${EXPENSE_CATEGORIES.map(c => `<option value="${c}" ${c===e.category?'selected':''}>${c}</option>`).join('')}
       </select>
+      <input type="number" value="${e.jobLoss != null ? e.jobLoss : (e.mustSpend != null ? e.mustSpend : e.amount)}" step="10" title="Test column: what you'd spend on this if you lost your job" oninput="updateExpense(${i},'jobLoss',this.value)">
       <input type="number" value="${e.mustSpend != null ? e.mustSpend : e.amount}" step="10" oninput="updateExpense(${i},'mustSpend',this.value)">
       <input type="number" value="${e.amount}" step="10" oninput="updateExpense(${i},'amount',this.value)">
       <button class="remove-btn" onclick="removeExpense(${i})" title="Remove">×</button>
@@ -4498,13 +4509,16 @@ function renderExpenseRows() {
 function updateExpenseTotals() {
   els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0)) + '/mo';
   els('expenseMustSpendTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (e.mustSpend != null ? +e.mustSpend : (+e.amount || 0)), 0)) + '/mo';
+  if (els('expenseJobLossTotal')) {
+    els('expenseJobLossTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (e.jobLoss != null ? +e.jobLoss : (e.mustSpend != null ? +e.mustSpend : (+e.amount || 0))), 0)) + '/mo';
+  }
 }
 function updateExpense(i, field, value) {
-  expenses[i][field] = (field==='amount' || field==='mustSpend') ? +value : value;
+  expenses[i][field] = (field==='amount' || field==='mustSpend' || field==='jobLoss') ? +value : value;
   updateExpenseTotals();
   render();
 }
-function addExpense() { expenses.push({ name:'New expense', category:'Other', amount:50, mustSpend:50 }); renderExpenseRows(); render(); }
+function addExpense() { expenses.push({ name:'New expense', category:'Other', amount:50, mustSpend:50, jobLoss:0 }); renderExpenseRows(); render(); }
 function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render(); }
 
 // Read-only combined view on the Expenses page: shows Housing/Debt/Insurance alongside the
@@ -5598,16 +5612,16 @@ function projectRun(inputs, ctx, randomize, shocks) {
       medicalCostAnnual = medicarePremiumBase * medicalInflator;
       // Survivorship what-if: use only the expenses marked as continuing (toggled on the Survivorship page),
       // at each item's edited override amount if one was set, instead of the full household expense list.
-      // spendingBasis ('liketo' default, or 'mustspend' via the header toggle) picks which Expenses-page
-      // column this year's baseline spending starts from, BEFORE any guardrail cut runs. The Must Spend
-      // *floor* two lines below is intentionally left alone either way — it's always the true essential-only
-      // total regardless of which basis is currently selected.
+      // spendingBasis ('liketo' default, 'mustspend', or the test 'jobloss' basis, all via the header
+      // toggle) picks which Expenses-page column this year's baseline spending starts from, BEFORE any
+      // guardrail cut runs. The Must Spend *floor* two lines below is intentionally left alone either
+      // way — it's always the true essential-only total regardless of which basis is currently selected.
       const expensesNonMedicalForYear = survivorshipActive
-        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedicalSurvivor : ctx.expensesNonMedicalSurvivor)
-        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedical : ctx.expensesNonMedical);
+        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedicalSurvivor : spendingBasis === 'jobloss' ? ctx.expensesJobLossNonMedicalSurvivor : ctx.expensesNonMedicalSurvivor)
+        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedical : spendingBasis === 'jobloss' ? ctx.expensesJobLossNonMedical : ctx.expensesNonMedical);
       const expensesMedicalForYear = survivorshipActive
-        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedicalSurvivor : ctx.expensesMedicalSurvivor)
-        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedical : ctx.expensesMedical);
+        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedicalSurvivor : spendingBasis === 'jobloss' ? ctx.expensesJobLossMedicalSurvivor : ctx.expensesMedicalSurvivor)
+        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedical : spendingBasis === 'jobloss' ? ctx.expensesJobLossMedical : ctx.expensesMedical);
       expensesCategoriesAnnual = (expensesNonMedicalForYear * inflator + expensesMedicalForYear * medicalInflator) * spendMult;
       const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
       // Must Spend floor for this year's recurring expenses only (housing/debt/insurance/Tricare-Medicare
@@ -5779,6 +5793,13 @@ function buildContext(inputs) {
   const expensesMustSpendTotal = expenses.reduce((s,e) => s + mustSpendVal(e), 0) * 12;
   const expensesMustSpendMedical = expenses.filter(e => e.category === 'Healthcare').reduce((s,e) => s + mustSpendVal(e), 0) * 12;
   const expensesMustSpendNonMedical = expensesMustSpendTotal - expensesMustSpendMedical;
+  // "Job Loss" totals — a test third spending basis (Expenses page), same shape as Must Spend, falling
+  // back to Must Spend (which itself falls back to Like to Spend) for any row that hasn't had a Job
+  // Loss amount set yet.
+  const jobLossVal = e => (e.jobLoss != null ? +e.jobLoss : mustSpendVal(e));
+  const expensesJobLossTotal = expenses.reduce((s,e) => s + jobLossVal(e), 0) * 12;
+  const expensesJobLossMedical = expenses.filter(e => e.category === 'Healthcare').reduce((s,e) => s + jobLossVal(e), 0) * 12;
+  const expensesJobLossNonMedical = expensesJobLossTotal - expensesJobLossMedical;
   // Survivorship what-if: a parallel set of totals that only include expenses/debts marked as continuing
   // after you're gone (item.survivorContinues, toggled on the Survivorship page — defaults to continuing
   // when unset), using each item's edited override amount (item.survivorAmount) if the user set one,
@@ -5797,12 +5818,18 @@ function buildContext(inputs) {
   const expensesMustSpendTotalSurvivor = expenses.filter(e => e.survivorContinues !== false).reduce((s,e) => s + mustSpendVal(e), 0) * 12;
   const expensesMustSpendMedicalSurvivor = expenses.filter(e => e.category === 'Healthcare' && e.survivorContinues !== false).reduce((s,e) => s + mustSpendVal(e), 0) * 12;
   const expensesMustSpendNonMedicalSurvivor = expensesMustSpendTotalSurvivor - expensesMustSpendMedicalSurvivor;
+  // Job Loss, survivorship-filtered (same "continuing" filter as everything else above).
+  const expensesJobLossTotalSurvivor = expenses.filter(e => e.survivorContinues !== false).reduce((s,e) => s + jobLossVal(e), 0) * 12;
+  const expensesJobLossMedicalSurvivor = expenses.filter(e => e.category === 'Healthcare' && e.survivorContinues !== false).reduce((s,e) => s + jobLossVal(e), 0) * 12;
+  const expensesJobLossNonMedicalSurvivor = expensesJobLossTotalSurvivor - expensesJobLossMedicalSurvivor;
   return {
     maxYears, ageGap, effectiveLifeExpectancy, effectiveSpousalStartAge, debtSchedules, mortgageSchedule,
     expensesTotal, expensesMedical, expensesNonMedical,
     expensesMustSpendTotal, expensesMustSpendMedical, expensesMustSpendNonMedical,
+    expensesJobLossTotal, expensesJobLossMedical, expensesJobLossNonMedical,
     debtSchedulesSurvivor, expensesTotalSurvivor, expensesMedicalSurvivor, expensesNonMedicalSurvivor,
-    expensesMustSpendTotalSurvivor, expensesMustSpendMedicalSurvivor, expensesMustSpendNonMedicalSurvivor
+    expensesMustSpendTotalSurvivor, expensesMustSpendMedicalSurvivor, expensesMustSpendNonMedicalSurvivor,
+    expensesJobLossTotalSurvivor, expensesJobLossMedicalSurvivor, expensesJobLossNonMedicalSurvivor
   };
 }
 
