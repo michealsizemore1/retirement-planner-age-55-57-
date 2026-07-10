@@ -43,7 +43,7 @@
   .dollar-toggle{display:flex; border:1px solid rgba(255,255,255,0.3); border-radius:20px; overflow:hidden; flex-shrink:0; margin-top:2px;}
   .dollar-toggle-btn{padding:8px 14px; font-size:16.5px; color:#cfe6e0; cursor:pointer; white-space:nowrap;}
   .dollar-toggle-btn.active{background:var(--teal); color:#fff; font-weight:600;}
-  .mc-mini-score{display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:17px; padding:0 5px; border-radius:9px; font-size:10px; font-weight:800; margin-left:5px; color:#fff; vertical-align:middle; line-height:1;}
+  .mc-mini-score{display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:22px; padding:0 7px; border-radius:11px; font-size:13px; font-weight:800; margin-left:6px; color:#fff; vertical-align:middle; line-height:1;}
   /* Left-aligned (not flex-end) so the date picker below the toggle lines up under "Job Loss" (the
      first/leftmost button), not under whichever button happens to be widest/last. */
   .header-toggle-group{display:flex; flex-direction:column; gap:6px; align-items:flex-start; max-width:100%;}
@@ -393,7 +393,7 @@
     .header-toggle-group{width:100%; max-width:100%;}
     .dollar-toggle{flex-wrap:wrap; flex-shrink:1; max-width:100%;}
     .dollar-toggle-btn{font-size:13px; padding:6px 9px;}
-    .mc-mini-score{font-size:9px; min-width:26px; height:15px; padding:0 4px; margin-left:3px;}
+    .mc-mini-score{font-size:11px; min-width:32px; height:19px; padding:0 5px; margin-left:4px;}
   }
   /* .two-col/.three-col never adapted to phone widths — cramming 2 or 3 fields side by side left each
      one too narrow for its own contents (e.g. the "Retire at 55/56/57" pill row, which has no room to
@@ -7140,8 +7140,12 @@ function render() {
       el.textContent = Math.round(miniScore) + '%';
       // Same red/orange/green traffic-light read as the rest of the app (tip severities, stat.warn/ok),
       // just collapsed to 3 bands instead of the Dashboard ring's 4, since a small dot has less room to
-      // read a finer gradient at a glance.
-      el.style.background = miniScore < 40 ? 'var(--danger)' : miniScore < 70 ? 'var(--orange)' : 'var(--good)';
+      // read a finer gradient at a glance. Orange (--orange:#e08c2b) is light enough that white text on
+      // it loses too much contrast to read at this size — black text stays legible there, while red and
+      // green are both dark enough for white to still read cleanly.
+      const isOrange = miniScore >= 40 && miniScore < 70;
+      el.style.background = miniScore < 40 ? 'var(--danger)' : isOrange ? 'var(--orange)' : 'var(--good)';
+      el.style.color = isOrange ? '#000' : '#fff';
     }
   });
   spendingBasis = savedSpendingBasisForMini;
