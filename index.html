@@ -388,11 +388,18 @@
   /* The spending-basis toggle (3 buttons, each now with an appended Monte Carlo % score) is too wide
      for phone-width viewports at full desktop size — left unchecked it forces the whole page to scroll
      horizontally, which is what was cutting the title/menu off-screen. Shrinking the buttons/scores and
-     letting the toggle itself wrap onto two lines keeps everything inside the viewport instead. */
+     letting the toggle itself wrap onto two lines keeps everything inside the viewport instead.
+     The desktop version relies on the container's own single rounded border + overflow:hidden to draw
+     one continuous pill around all 3 segments — that only looks right on one line. Once it wraps to two
+     rows, that single border/radius wraps around both rows as one lopsided box instead of following each
+     row, and only the segment boundaries (not each button) have any shape. So on mobile, drop the
+     container's own border/clipping and give each button its own independent rounded pill + small gap
+     instead, which looks correct no matter how many lines it wraps to. */
   @media (max-width:700px){
     .header-toggle-group{width:100%; max-width:100%;}
-    .dollar-toggle{flex-wrap:wrap; flex-shrink:1; max-width:100%;}
-    .dollar-toggle-btn{font-size:13px; padding:6px 9px;}
+    .dollar-toggle{flex-wrap:wrap; flex-shrink:1; max-width:100%; border:none; border-radius:0; overflow:visible; gap:6px;}
+    .dollar-toggle-btn{font-size:13px; padding:6px 10px; border:1px solid rgba(255,255,255,0.35); border-radius:16px;}
+    .dollar-toggle-btn.active{border-color:var(--teal);}
     .mc-mini-score{font-size:11px; min-width:32px; height:19px; padding:0 5px; margin-left:4px;}
   }
   /* .two-col/.three-col never adapted to phone widths — cramming 2 or 3 fields side by side left each
