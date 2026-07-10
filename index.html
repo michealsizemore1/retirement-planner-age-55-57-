@@ -462,6 +462,10 @@
         <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')">Must Spend</span>
         <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')">Like to Spend</span>
       </div>
+      <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-end;" title="If Job Loss is selected above, the projection stays on normal income/Like to Spend until this date, then switches to zero income, zero TSP/brokerage contributions, and the Job Loss expense column">
+        <input type="date" id="jobLossDate" onchange="setJobLossDate(this.value)" style="font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--border,#ccc);">
+        <span id="jobLossDateHint" style="font-size:11px;color:var(--muted,#888);"></span>
+      </div>
     </div>
   </div>
 </header>
@@ -4009,6 +4013,39 @@ function setSpendingBasis(mode) {
   const activePage = document.querySelector('.page.active');
   if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
 }
+
+// Job Loss test: the specific calendar date the header toggle's Job Loss basis actually kicks in on —
+// lives outside .page like dollarView/spendingBasis above, so it gets its own dedicated localStorage key
+// rather than the generic per-page saveState() mechanism.
+let jobLossDate = '';
+const JOB_LOSS_DATE_KEY = 'retirementPlannerJobLossDate_v1';
+// Converts an arbitrary future (or past) calendar date into the whole-number age it falls in, the same
+// year-resolution every other age in this engine works at — a job loss "3 months from now" and one
+// "11 months from now" both land in the same projection year, which is the right precision for an
+// annual simulation even though the date picker itself is precise to the day.
+function dateToAge(dateStr, currentAge) {
+  if (!dateStr) return null;
+  const target = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  const yearsAway = (target - today) / (365.25*24*60*60*1000);
+  return Math.max(0, Math.round(currentAge + yearsAway));
+}
+function setJobLossDate(value) {
+  jobLossDate = value;
+  try { localStorage.setItem(JOB_LOSS_DATE_KEY, value); } catch (e) { /* storage unavailable, ignore */ }
+  const hintEl = els('jobLossDateHint');
+  if (hintEl) {
+    if (!value) { hintEl.textContent = ''; }
+    else {
+      const currentAge = +els('currentAge').value;
+      const age = dateToAge(value, currentAge);
+      const today = new Date(), target = new Date(value + 'T00:00:00');
+      const monthsAway = Math.round((target - today) / (30.437*24*60*60*1000));
+      hintEl.textContent = monthsAway <= 0 ? `≈ age ${age}` : `≈ ${monthsAway} mo away — age ${age}`;
+    }
+  }
+  render();
+}
 const PAGE_LABELS = {
   dashboard:'Dashboard', personal:'Personal & Family', income:'Income', survivorship:'Survivorship', moneyflows:'Money Flows',
   investments:'Investments', accounts:'Accounts & Cards', housing:'Housing', expenses:'Expenses', debt:'Debt',
@@ -5200,6 +5237,7 @@ function readInputs() {
   return {
     currentAge: +els('currentAge').value,
     retirementAge: +els('retirementAge').value,
+    jobLossAge: dateToAge(jobLossDate, +els('currentAge').value),
     lifeExpectancy: +els('lifeExpectancy').value,
     birthMonth: +els('birthMonth').value || 1,
     currentIncome: +els('currentIncome').value,
@@ -5370,6 +5408,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // sets): hoisted up here (rather than only inside the post-retirement branch below) so the debt/housing/
     // insurance totals just below can also respect it.
     const survivorshipActive = !!(inputs.survivorshipEnabled && inputs.survivorshipDeathAge && age >= inputs.survivorshipDeathAge);
+    // Job Loss test toggle (header): only actually changes anything once BOTH the header basis is set to
+    // 'jobloss' AND this year is at/after the specific age the job loss is assumed to happen (inputs.jobLossAge,
+    // set from the date field under the toggle) — years before that still run on the normal Like to Spend
+    // baseline, same as if the toggle weren't on at all.
+    const jobLossActive = spendingBasis === 'jobloss' && inputs.jobLossAge != null && age >= inputs.jobLossAge;
 
     if (ctx.mortgageSchedule && y === ctx.mortgageSchedule.purchaseYearIdx) {
       let remaining = ctx.mortgageSchedule.downPayment;
@@ -5519,6 +5562,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const preR = (shocks.pre && shocks.pre[y] !== undefined) ? shocks.pre[y]
         : (randomize ? randNormal(inputs.preReturn, inputs.preStdev) : inputs.preReturn);
       if (y > 0) income *= (1+inputs.incomeGrowth);
+      // Job Loss test: once active, the paycheck is gone for good — zeroing it here (rather than just
+      // skipping this year's raise) means every dollar figure derived from income below (FICA, TSP/match
+      // contributions, taxable wages) correctly falls to zero too, and it stays zero in every later year
+      // since income only ever grows off its own prior value.
+      if (jobLossActive) income = 0;
       // FICA payroll tax on job income (working years only — pension/SS/withdrawals aren't FICA-taxable).
       // Social Security's 6.2% share is capped at the wage base (grown here with General Inflation as a
       // stand-in for real wage-base growth, since it isn't itself an input); Medicare's 1.45% has no cap,
@@ -5541,8 +5589,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
       federalTaxAnnual += taxOwedFromBrackets(taxableWorkingYears, FEDERAL_BRACKETS_MFJ);
       stateTaxAnnual += taxableWorkingYears * inputs.idahoRate;
       fedMarginal = marginalRateFromBrackets(taxableWorkingYears, FEDERAL_BRACKETS_MFJ);
-      // Brokerage pie contributions come from the same paycheck as the TSP %-based ones, so they grow with the same raise assumption.
-      const pieContribsMonthly = inputs.brokeragePieContributionsMonthly || [];
+      // Brokerage pie contributions come from the same paycheck as the TSP %-based ones, so they grow with the
+      // same raise assumption — and stop along with it once Job Loss is active, same reasoning as income above.
+      const pieContribsMonthly = jobLossActive ? (inputs.brokeragePieContributionsMonthly || []).map(() => 0) : (inputs.brokeragePieContributionsMonthly || []);
       const brokerageContribThisYear = pieContribsMonthly.reduce((s,c) => s + (+c||0), 0) * 12 * Math.pow(1+inputs.incomeGrowth, y);
       // Excess income savings: whatever's left of your paycheck (plus any guaranteed income already
       // flowing in, e.g. a military pension or VA disability that started before you actually retired)
@@ -5550,9 +5599,42 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // on top of the fixed contributions above. Guaranteed income doesn't get a TSP-style elective
       // contribution % applied to it — that only applies to actual paycheck income — so it's added
       // here rather than into tradContrib/rothContrib/matchContrib above.
-      const recurringLivingCostThisYear = (ctx.expensesNonMedical * inflator + ctx.expensesMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
+      // Job Loss test: recurring living costs switch to the Job Loss expense column once active — same
+      // basis the post-retirement branch below uses, just gated by age here too instead of unconditionally.
+      const preRetireNonMedical = jobLossActive ? ctx.expensesJobLossNonMedical : ctx.expensesNonMedical;
+      const preRetireMedical = jobLossActive ? ctx.expensesJobLossMedical : ctx.expensesMedical;
+      const recurringLivingCostThisYear = (preRetireNonMedical * inflator + preRetireMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
       const excessIncomeAvailable = Math.max(0, income + guaranteedIncome - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
-      excessIncomeSaved = excessIncomeAvailable * (inputs.excessIncomeSavingsPct || 0);
+      // Job Loss test: any surplus left over (typically guaranteed income like a pension/VA disability that
+      // keeps flowing and now exceeds Job Loss-level spending) stays as unswept slack rather than getting
+      // invested into a brokerage pie — "no longer contributing to TSP or brokerage accounts" means the whole
+      // paycheck-era contribution pipeline stops, not just the fixed-dollar/% pieces above.
+      excessIncomeSaved = jobLossActive ? 0 : excessIncomeAvailable * (inputs.excessIncomeSavingsPct || 0);
+      // Job Loss test: pre-retirement years never had a withdrawal mechanism before this feature, because a
+      // shortfall wasn't possible — your paycheck was always assumed to at least cover living costs, so any
+      // gap just silently zeroed out excessIncomeSaved above instead of drawing anything down. With income
+      // gone, that assumption breaks, so cover a real gap the same cash-first, then-brokerage, then-Roth,
+      // then-Traditional order used everywhere else in this engine for an unplanned shortfall (LTC, future
+      // expenses) — rather than pretending the bills simply don't get paid.
+      if (jobLossActive) {
+        const preRetireNeed = Math.max(0, recurringLivingCostThisYear - (income + guaranteedIncome));
+        if (preRetireNeed > 0.01) {
+          let preRemaining = preRetireNeed;
+          const j1 = Math.min(preRemaining, balHYSA); balHYSA -= j1; preRemaining -= j1;
+          const j2 = Math.min(preRemaining, balSavings); balSavings -= j2; preRemaining -= j2;
+          const j3 = Math.min(preRemaining, balChecking); balChecking -= j3; preRemaining -= j3;
+          if (preRemaining > 0) {
+            const preBrokerageAvailable = sumPies(balBrokeragePies);
+            const fromPreBrokerage = Math.min(preRemaining, preBrokerageAvailable);
+            applyPooledDelta(balBrokeragePies, -fromPreBrokerage); preRemaining -= fromPreBrokerage;
+            if (preRemaining > 0) {
+              const fromPreRoth = Math.min(preRemaining, balRoth); balRoth -= fromPreRoth; preRemaining -= fromPreRoth;
+              const fromPreTrad = Math.min(preRemaining, balTrad); balTrad -= fromPreTrad; preRemaining -= fromPreTrad;
+            }
+            if (preRemaining > 0.01) shortfallEver = true;
+          }
+        }
+      }
       tradContribOut = tradContrib; rothContribOut = rothContrib; matchContribOut = matchContrib;
       contributions = tradContrib+rothContrib+matchContrib+brokerageContribThisYear+excessIncomeSaved;
       balTrad = balTrad*(1+preR) + tradContrib + matchContrib;
@@ -5616,12 +5698,14 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // toggle) picks which Expenses-page column this year's baseline spending starts from, BEFORE any
       // guardrail cut runs. The Must Spend *floor* two lines below is intentionally left alone either
       // way — it's always the true essential-only total regardless of which basis is currently selected.
+      // Job Loss specifically only takes over from jobLossActive's age onward (see its definition above) —
+      // years before that still run on Like to Spend even with the toggle on, same as pre-retirement above.
       const expensesNonMedicalForYear = survivorshipActive
-        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedicalSurvivor : spendingBasis === 'jobloss' ? ctx.expensesJobLossNonMedicalSurvivor : ctx.expensesNonMedicalSurvivor)
-        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedical : spendingBasis === 'jobloss' ? ctx.expensesJobLossNonMedical : ctx.expensesNonMedical);
+        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedicalSurvivor : jobLossActive ? ctx.expensesJobLossNonMedicalSurvivor : ctx.expensesNonMedicalSurvivor)
+        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedical : jobLossActive ? ctx.expensesJobLossNonMedical : ctx.expensesNonMedical);
       const expensesMedicalForYear = survivorshipActive
-        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedicalSurvivor : spendingBasis === 'jobloss' ? ctx.expensesJobLossMedicalSurvivor : ctx.expensesMedicalSurvivor)
-        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedical : spendingBasis === 'jobloss' ? ctx.expensesJobLossMedical : ctx.expensesMedical);
+        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedicalSurvivor : jobLossActive ? ctx.expensesJobLossMedicalSurvivor : ctx.expensesMedicalSurvivor)
+        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedical : jobLossActive ? ctx.expensesJobLossMedical : ctx.expensesMedical);
       expensesCategoriesAnnual = (expensesNonMedicalForYear * inflator + expensesMedicalForYear * medicalInflator) * spendMult;
       const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
       // Must Spend floor for this year's recurring expenses only (housing/debt/insurance/Tricare-Medicare
@@ -7246,9 +7330,18 @@ try {
 
 try {
   const savedSpendingBasis = localStorage.getItem(SPENDING_BASIS_KEY);
-  if (savedSpendingBasis === 'liketo' || savedSpendingBasis === 'mustspend') {
+  if (savedSpendingBasis === 'liketo' || savedSpendingBasis === 'mustspend' || savedSpendingBasis === 'jobloss') {
     spendingBasis = savedSpendingBasis;
     document.querySelectorAll('#spendingBasisToggle .dollar-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === savedSpendingBasis));
+  }
+} catch (e) { /* storage unavailable, ignore */ }
+
+try {
+  const savedJobLossDate = localStorage.getItem(JOB_LOSS_DATE_KEY);
+  if (savedJobLossDate) {
+    jobLossDate = savedJobLossDate;
+    const jlEl = els('jobLossDate');
+    if (jlEl) jlEl.value = savedJobLossDate;
   }
 } catch (e) { /* storage unavailable, ignore */ }
 
