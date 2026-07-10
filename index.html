@@ -6900,7 +6900,7 @@ function renderGapTable(rows, inputs, retirementAge) {
   const headRow = els('gapTableHeadRow');
   if (headRow) {
     headRow.innerHTML = '<th>Age</th><th>Guaranteed Income (after tax)</th><th>Total Spending</th><th>Surplus / (Gap)</th><th>Portfolio Withdrawal (gross)</th>'
-      + usedKeys.map(k => `<th>${esc(withdrawalAccountInfo(k).label)}</th>`).join('');
+      + usedKeys.map(k => `<th>${withdrawalAccountInfo(k).label}</th>`).join('');
   }
   if (!retirementRows.length) { body.innerHTML = `<tr><td colspan="${5 + usedKeys.length}">No retirement years in the current projection.</td></tr>`; return; }
   body.innerHTML = retirementRows.map(r => {
