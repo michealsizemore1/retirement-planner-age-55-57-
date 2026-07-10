@@ -708,7 +708,7 @@
         <h3 onclick="toggleCard(this)">Guaranteed Income</h3>
         <div class="two-col">
           <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2200" step="50"></div>
-          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="67" min="62" max="70" oninput="syncDateFromAge('ssAge','ssAgeDate','ssAgeDateHint','currentAge')">
+          <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="65" min="62" max="70" oninput="syncDateFromAge('ssAge','ssAgeDate','ssAgeDateHint','currentAge')">
             <input type="month" id="ssAgeDate" class="age-date-input" oninput="syncAgeDate('ssAgeDate','ssAge','ssAgeDateHint','currentAge')">
             <div id="ssAgeDateHint" class="age-date-hint"></div>
           </div>
@@ -6750,7 +6750,17 @@ function buildYearlyChartConfig(pageId, snap) {
         { label: 'Recurring expenses (General/Medical Inflation)', data: rows.map(r => d(r.expensesCategoriesAnnual, r.age)) },
         { label: 'Future / one-time expenses (General Inflation)', data: rows.map(r => d(r.futureExpenseCost, r.age)) }
       ], { stacked: true });
-    case 'income':
+    case 'income': {
+      // Once retired, whatever's pulled out of Traditional TSP / Roth TSP / HYSA / brokerage pies to
+      // cover that year's spending gap is just as much "income" for the year as a paycheck or Social
+      // Security check — so it's added here as one bar series per account actually drawn from anywhere
+      // in the projection (same account keys/labels/filtering as the Income Gap & Withdrawals page),
+      // stacked right alongside the guaranteed-income sources (no separate stack group, unlike the
+      // Income Gap & Withdrawals chart — there the withdrawal total is compared against a Surplus/(Gap)
+      // figure so keeping them visually separate matters; here everything is simply "money that came in
+      // this year," so it all belongs in one combined stack).
+      const accountKeys = getWithdrawalAccountKeys();
+      const usedKeys = accountKeys.filter(k => rows.some(r => (r.withdrawalByAccount && r.withdrawalByAccount[k]) > 0.5));
       return yearlyBarConfig(ages, [
         { label: 'Job income (annual raise %)', data: rows.map(r => d(r.income, r.age)) },
         { label: 'Social Security (SS COLA)', data: rows.map(r => d(r.ssAmount, r.age)) },
@@ -6758,8 +6768,13 @@ function buildYearlyChartConfig(pageId, snap) {
         { label: 'Military Pension (own yearly increase %)', data: rows.map(r => d(r.pensionAmount, r.age)) },
         { label: 'Govt Civil Service (own yearly increase %)', data: rows.map(r => d(r.pension2Amount, r.age)) },
         { label: 'VA Disability (own yearly increase %)', data: rows.map(r => d(r.vaDisabilityAmount, r.age)) },
-        { label: 'Annuity (own yearly increase %)', data: rows.map(r => d(r.annuityAmount, r.age)) }
+        { label: 'Annuity (own yearly increase %)', data: rows.map(r => d(r.annuityAmount, r.age)) },
+        ...usedKeys.map(k => ({
+          label: 'Withdrawn from: ' + withdrawalAccountInfo(k).label,
+          data: rows.map(r => d((r.withdrawalByAccount && r.withdrawalByAccount[k]) || 0, r.age))
+        }))
       ], { stacked: true });
+    }
     case 'medical':
       return yearlyBarConfig(ages, [
         { label: 'Tricare + Part B + FEDVIP (Medical Inflation)', data: rows.map(r => d(r.medicalCostAnnual, r.age)) },
