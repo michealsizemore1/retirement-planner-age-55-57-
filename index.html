@@ -4260,7 +4260,9 @@ function syncRetirementDateFromAge() {
   const targetAge = +ageEl.value;
   if (isNaN(targetAge)) return;
   const currentAge = +els('currentAge').value;
-  const monthVal = ageToMonthValue(currentAge, targetAge);
+  const birthDateStr = els('birthDate') ? els('birthDate').value : '';
+  const monthVal = ageToMonthValue(birthDateStr, targetAge);
+  if (!monthVal) return;
   const [y, m] = monthVal.split('-').map(Number);
   const lastDay = new Date(y, m, 0).getDate();
   dateEl.value = monthVal + '-' + String(lastDay).padStart(2, '0');
@@ -4317,15 +4319,18 @@ function syncAgeDate(dateFieldId, ageFieldId, hintFieldId, basisAgeFieldId) {
   render();
 }
 
-// Inverse of the monthsAway math inside syncAgeDate above: given a target age and the basis age it's
-// measured from, returns a "YYYY-MM" string suitable for an <input type="month">'s .value.
-function ageToMonthValue(basisAge, targetAge) {
-  if (targetAge === null || targetAge === undefined || isNaN(targetAge)) return '';
-  const monthsAway = Math.round((targetAge - basisAge) * 12);
-  const today = new Date();
-  const totalMonths = today.getFullYear() * 12 + today.getMonth() + monthsAway;
-  const y = Math.floor(totalMonths / 12), m = (totalMonths % 12) + 1;
-  return y + '-' + String(m).padStart(2, '0');
+// Inverse of the monthsAway math inside syncAgeDate above: given a target age and the actual
+// birthdate ("YYYY-MM-DD") it's measured from, returns a "YYYY-MM" string suitable for an
+// <input type="month">'s .value. Anchored on the real birth year/month, not "today" — a birthday
+// always lands in the same calendar month every year, so this is exact, not an approximation, and
+// it no longer defaults to whatever month it happens to be right now (e.g. July) instead of the
+// person's actual birth month (e.g. November).
+function ageToMonthValue(birthDateStr, targetAge) {
+  if (targetAge === null || targetAge === undefined || isNaN(targetAge) || !birthDateStr) return '';
+  const [by, bm] = birthDateStr.split('-').map(Number);
+  if (!by || !bm) return '';
+  const y = by + Math.round(targetAge);
+  return y + '-' + String(bm).padStart(2, '0');
 }
 // Authoritative direction: your actual birthdate never needs "correcting" the way a plain age
 // number does, so a real birthdate (not just a birth month, and not a manually-bumped "current age")
@@ -4371,7 +4376,12 @@ function syncDateFromAge(ageFieldId, dateFieldId, hintFieldId, basisAgeFieldId) 
   const targetAge = +ageEl.value;
   if (isNaN(targetAge)) return;
   const basisAge = +els(basisAgeFieldId).value;
-  const monthVal = ageToMonthValue(basisAge, targetAge);
+  // Spouse-basis milestones (spousalStartAge, ltcStartAge) anchor on the spouse's own birth month;
+  // everything else anchors on your birth month.
+  const birthDateFieldId = basisAgeFieldId === 'spouseAge' ? 'spouseBirthDate' : 'birthDate';
+  const birthDateStr = els(birthDateFieldId) ? els(birthDateFieldId).value : '';
+  const monthVal = ageToMonthValue(birthDateStr, targetAge);
+  if (!monthVal) return;
   dateEl.value = monthVal;
   const hintEl = els(hintFieldId);
   if (hintEl) {
@@ -4798,7 +4808,7 @@ function updateFutureExpense(i, field, value) {
   // month input in place (not a full renderFutureExpenseRows()) so the age field being typed into
   // doesn't lose keyboard focus mid-keystroke.
   if (field === 'age') {
-    futureExpenses[i].dateValue = ageToMonthValue(+els('currentAge').value, futureExpenses[i].age);
+    futureExpenses[i].dateValue = ageToMonthValue(els('birthDate') ? els('birthDate').value : '', futureExpenses[i].age);
     const rows = els('futureExpenseRows');
     const cell = rows ? rows.querySelectorAll('.age-cell')[i] : null;
     const monthInput = cell ? cell.querySelector('input[type="month"]') : null;
@@ -4818,12 +4828,14 @@ function monthToAge(monthVal, basisAge) {
   return Math.max(1, Math.round(basisAge + monthsAway / 12));
 }
 // Inverse of monthToAge: given a whole-years-away target age (e.g. a debt payoff age from the
-// year-resolution amortization schedule), return a human "Mon YYYY" estimate of the calendar date.
-function ageToMonthYear(currentAge, targetAge) {
+// year-resolution amortization schedule), return a human "Mon YYYY" estimate of the calendar date —
+// anchored on the person's actual birth month, not whatever calendar month it happens to be today.
+function ageToMonthYear(currentAge, targetAge, birthMonth) {
   if (targetAge === null || targetAge === undefined || isNaN(targetAge)) return '';
-  const yearsAway = targetAge - currentAge;
+  const yearsAway = Math.round(targetAge - currentAge);
   const today = new Date();
-  const target = new Date(today.getFullYear() + yearsAway, today.getMonth(), 1);
+  const bm = birthMonth || (today.getMonth() + 1);
+  const target = new Date(today.getFullYear() + yearsAway, bm - 1, 1);
   return target.toLocaleString('en-US', { month: 'short', year: 'numeric' });
 }
 function setFutureExpenseAgeFromDate(i, monthVal) {
@@ -4860,7 +4872,7 @@ function updateWindfall(i, field, value) {
   // Same age->date reverse sync as future expenses: keep the pinned month picker matched to the
   // typed age instead of blanking it, updated in place so the age field doesn't lose focus mid-keystroke.
   if (field === 'age') {
-    windfalls[i].dateValue = ageToMonthValue(+els('currentAge').value, windfalls[i].age);
+    windfalls[i].dateValue = ageToMonthValue(els('birthDate') ? els('birthDate').value : '', windfalls[i].age);
     const rows = els('windfallRows');
     const cell = rows ? rows.querySelectorAll('.age-cell')[i] : null;
     const monthInput = cell ? cell.querySelector('input[type="month"]') : null;
@@ -6830,7 +6842,7 @@ function renderDebtPayoffPlan(inputs, ctx) {
     topWithExtra = payoffStatsFromSchedule(boostedSched, inputs.currentAge, top.balance);
   }
 
-  const payoffLabel = age => `Age ${age} (${ageToMonthYear(inputs.currentAge, age)})`;
+  const payoffLabel = age => `Age ${age} (${ageToMonthYear(inputs.currentAge, age, inputs.birthMonth)})`;
 
   rowsEl.innerHTML = items.map((it, i) => {
     const isTop = i === 0;
