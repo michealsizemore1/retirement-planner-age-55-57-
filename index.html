@@ -415,6 +415,11 @@
        line at phone widths instead of the 3rd one wrapping to its own row. */
     .spending-basis-toggle-btn{min-width:82px;}
     .mc-mini-score{font-size:11px; min-width:30px; height:18px; padding:0 5px;}
+    /* Stretch the row and let each button grow to fill it, instead of the row only being as wide as its
+       3 buttons' natural content width — that left a strip of empty header background to the right of
+       "Like to Spend". flex:1 on each button divides any leftover width evenly between all 3. */
+    #spendingBasisToggle{width:100%;}
+    #spendingBasisToggle .dollar-toggle-btn{flex:1 1 0; text-align:center;}
   }
   /* .two-col/.three-col never adapted to phone widths — cramming 2 or 3 fields side by side left each
      one too narrow for its own contents (e.g. the "Retire at 55/56/57" pill row, which has no room to
