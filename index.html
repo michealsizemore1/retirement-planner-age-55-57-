@@ -6691,7 +6691,14 @@ function yearlyBarConfig(ages, series, opts) {
     // baseline bar is meant to look like a specific dark navy rather than the usual rotating palette);
     // everything else keeps the plain rotating CHART_COLORS assignment it always had.
     backgroundColor: s.backgroundColor || CHART_COLORS[i % CHART_COLORS.length],
-    borderRadius: 3
+    borderRadius: 3,
+    // Optional per-series stack group id (Chart.js): datasets sharing the same id stack together into
+    // one column; datasets that don't set this all fall into Chart.js's own default single group, so
+    // every existing caller that doesn't pass `stack` keeps behaving exactly as before. The Income Gap
+    // & Withdrawals chart uses two distinct ids (see buildYearlyChartConfig's 'gap' case) so the
+    // Surplus/(Gap) bar and the per-account withdrawal breakdown render as two separate stacked columns
+    // side by side per age, instead of getting summed together into one meaningless combined bar.
+    stack: s.stack
   }));
   return {
     type: 'bar',
@@ -6773,11 +6780,25 @@ function buildYearlyChartConfig(pageId, snap) {
         { label: 'FICA', data: rows.map(r => d(r.ficaTaxAnnual, r.age)) }
       ], { stacked: true, bracketLabels });
     }
-    case 'gap':
+    case 'gap': {
+      // Same account keys/labels as the Income Gap & Withdrawals table below it, filtered to only the
+      // accounts actually drawn from anywhere in the projection — so the chart's legend (and each bar
+      // segment's color, in the tooltip) tells you exactly which account that year's withdrawal came
+      // from, instead of one unlabeled lump "Portfolio withdrawal" bar. The Surplus/(Gap) bar gets its
+      // own stack group ('surplus') so it renders as its own column rather than getting summed into
+      // the withdrawal total; the per-account bars share the 'withdrawal' stack group so they stack
+      // into one column whose total height still equals the old lump gross-withdrawal figure.
+      const accountKeys = getWithdrawalAccountKeys();
+      const usedKeys = accountKeys.filter(k => rows.some(r => (r.withdrawalByAccount && r.withdrawalByAccount[k]) > 0.5));
       return yearlyBarConfig(ages, [
-        { label: 'Surplus / (Gap), after tax', data: rows.map(r => d((r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0)) - (r.spending || 0), r.age)) },
-        { label: 'Portfolio withdrawal (gross)', data: rows.map(r => d(r.grossWithdrawal, r.age)) }
-      ]);
+        { label: 'Surplus / (Gap), after tax', data: rows.map(r => d((r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0)) - (r.spending || 0), r.age)), stack: 'surplus' },
+        ...usedKeys.map(k => ({
+          label: 'Withdrawn from: ' + withdrawalAccountInfo(k).label,
+          data: rows.map(r => d((r.withdrawalByAccount && r.withdrawalByAccount[k]) || 0, r.age)),
+          stack: 'withdrawal'
+        }))
+      ], { stacked: true });
+    }
     default:
       return null;
   }
