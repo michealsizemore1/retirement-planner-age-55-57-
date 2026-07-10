@@ -221,8 +221,15 @@
   .row-item.debt-row{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
   .row-item.tx-row{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
   .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 26px;}
-  .row-item.future-row{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px;}
-  .row-item.windfall-row{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px;}
+  .row-item.future-row{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px; align-items:start;}
+  .row-item.windfall-row{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px; align-items:start;}
+  /* future-row/windfall-row's age-cell holds two stacked inputs (age number + month picker),
+     making it taller than the single-line Amount field beside it. The base .row-item rule
+     centers everything vertically, which centers the whole (taller) age-cell block and leaves
+     its age-number input sitting lower than the Amount field's middle — visually "off" from
+     each other. Top-aligning just these two row types instead keeps the age number level with
+     Amount (both start at the same y), while the month picker hangs below on its own. This
+     value works the same in both the desktop grid layout and the mobile flex-wrap layout. */
   .row-item.insurance-row{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
   .row-item input, .row-item select{padding:8px 9px; border:1px solid var(--border); border-radius:6px; font-size:16.5px; background:#fbfcfc; width:100%;}
   .age-cell{display:flex; flex-direction:column; gap:4px;}
