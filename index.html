@@ -5097,9 +5097,16 @@ function buildDebtSchedule(debt, maxYears) {
   let bal = debt.balance;
   if (neverPaysOff || debt.balance <= 0) {
     for (let y=0; y<=maxYears; y++) { paymentDuringYear[y] = neverPaysOff ? debt.payment*12 : 0; balanceAtYearEnd[y] = bal; }
-    return { balanceAtYearEnd, paymentDuringYear, neverPaysOff };
+    // Already-paid-off debts count as paid off this month (0); a debt that never pays off has no payoff month at all.
+    return { balanceAtYearEnd, paymentDuringYear, neverPaysOff, payoffMonthIndex: debt.balance <= 0 ? 0 : null };
   }
   let y = 0, paidThisYear = 0, month = 0;
+  // Exact number of months from today until the balance actually hits zero, tracked at the same
+  // monthly resolution the amortization math itself already runs at — independent of anyone's age or
+  // birthday, since a payoff date is purely a function of balance/APR/payment, not a milestone tied to
+  // a person's calendar. Only balanceAtYearEnd/paymentDuringYear (the arrays the rest of the engine
+  // needs) get rolled up to yearly resolution; this stays at the true monthly precision.
+  let payoffMonthIndex = null;
   while (bal > 0.01 && month < maxYears*12) {
     const interest = bal*r;
     let principal = debt.payment - interest;
@@ -5107,11 +5114,12 @@ function buildDebtSchedule(debt, maxYears) {
     bal -= principal;
     paidThisYear += interest + principal;
     month++;
+    if (bal <= 0.01 && payoffMonthIndex === null) payoffMonthIndex = month;
     if (month % 12 === 0) { balanceAtYearEnd[y] = bal; paymentDuringYear[y] = paidThisYear; y++; paidThisYear = 0; }
   }
   if (bal <= 0.01 && month % 12 !== 0 && y <= maxYears) { balanceAtYearEnd[y] = 0; paymentDuringYear[y] = paidThisYear; y++; }
   for (; y <= maxYears; y++) { balanceAtYearEnd[y] = 0; paymentDuringYear[y] = 0; }
-  return { balanceAtYearEnd, paymentDuringYear, neverPaysOff };
+  return { balanceAtYearEnd, paymentDuringYear, neverPaysOff, payoffMonthIndex };
 }
 
 // ---------- Mortgage helpers ----------
@@ -6812,7 +6820,16 @@ function payoffStatsFromSchedule(sched, currentAge, originalBalance) {
   const totalPaid = sched.paymentDuringYear.slice(0, payoffYearIdx >= 0 ? payoffYearIdx + 1 : sched.paymentDuringYear.length)
     .reduce((s, p) => s + p, 0);
   const totalInterest = sched.neverPaysOff ? null : Math.max(0, totalPaid - originalBalance);
-  return { payoffAge, totalInterest, neverPaysOff: sched.neverPaysOff, payoffYearIdx };
+  return { payoffAge, totalInterest, neverPaysOff: sched.neverPaysOff, payoffYearIdx, payoffMonthIndex: sched.payoffMonthIndex };
+}
+// Exact calendar month/year a debt actually pays off in, from its real amortization schedule — not an
+// approximation from age or birth month, which have nothing to do with when a fixed monthly payment
+// happens to clear a balance.
+function monthIndexToMonthYear(monthIndex) {
+  if (monthIndex === null || monthIndex === undefined) return '';
+  const today = new Date();
+  const target = new Date(today.getFullYear(), today.getMonth() + monthIndex, 1);
+  return target.toLocaleString('en-US', { month: 'short', year: 'numeric' });
 }
 
 function renderDebtPayoffPlan(inputs, ctx) {
@@ -6846,14 +6863,14 @@ function renderDebtPayoffPlan(inputs, ctx) {
     topWithExtra = payoffStatsFromSchedule(boostedSched, inputs.currentAge, top.balance);
   }
 
-  const payoffLabel = age => `Age ${age} (${ageToMonthYear(inputs.currentAge, age, inputs.birthMonth)})`;
+  const payoffLabel = (age, monthIndex) => `Age ${age} (${monthIndexToMonthYear(monthIndex)})`;
 
   rowsEl.innerHTML = items.map((it, i) => {
     const isTop = i === 0;
     const extraCell = !isTop ? '—'
       : extraPayment <= 0 ? 'Add an extra payment above'
       : topWithExtra.neverPaysOff ? 'Still never pays off'
-      : payoffLabel(topWithExtra.payoffAge);
+      : payoffLabel(topWithExtra.payoffAge, topWithExtra.payoffMonthIndex);
     return `
     <tr>
       <td>${i + 1}</td>
@@ -6861,7 +6878,7 @@ function renderDebtPayoffPlan(inputs, ctx) {
       <td>${fmtMoney(it.balance)}</td>
       <td>${it.apr.toFixed(1)}%</td>
       <td>${fmtMoney(it.payment)}/mo</td>
-      <td>${it.neverPaysOff ? 'Never at this payment' : payoffLabel(it.payoffAge)}</td>
+      <td>${it.neverPaysOff ? 'Never at this payment' : payoffLabel(it.payoffAge, it.payoffMonthIndex)}</td>
       <td>${it.neverPaysOff ? '—' : fmtMoney(it.totalInterest)}</td>
       <td>${extraCell}</td>
     </tr>`;
@@ -6871,8 +6888,8 @@ function renderDebtPayoffPlan(inputs, ctx) {
   if (anyNeverPaysOff) {
     freeAgeEl.textContent = 'Some debts never pay off at current payments';
   } else {
-    const maxPayoffAge = Math.max(...items.map(it => it.payoffAge));
-    freeAgeEl.textContent = payoffLabel(maxPayoffAge);
+    const maxPayoffItem = items.reduce((a, b) => (a.payoffAge >= b.payoffAge ? a : b));
+    freeAgeEl.textContent = payoffLabel(maxPayoffItem.payoffAge, maxPayoffItem.payoffMonthIndex);
   }
 
   if (extraSummaryRow) {
@@ -6880,7 +6897,7 @@ function renderDebtPayoffPlan(inputs, ctx) {
       const monthsSaved = (items[0].payoffYearIdx - topWithExtra.payoffYearIdx) * 12;
       const interestSaved = Math.max(0, items[0].totalInterest - topWithExtra.totalInterest);
       extraSummaryRow.style.display = 'flex';
-      extraSummaryEl.textContent = `${items[0].name} paid off by ${payoffLabel(topWithExtra.payoffAge)} instead of ${payoffLabel(items[0].payoffAge)} — roughly ${Math.max(0,monthsSaved)} fewer months and ${fmtMoney(interestSaved)} less interest.`;
+      extraSummaryEl.textContent = `${items[0].name} paid off by ${payoffLabel(topWithExtra.payoffAge, topWithExtra.payoffMonthIndex)} instead of ${payoffLabel(items[0].payoffAge, items[0].payoffMonthIndex)} — roughly ${Math.max(0,monthsSaved)} fewer months and ${fmtMoney(interestSaved)} less interest.`;
     } else {
       extraSummaryRow.style.display = 'none';
     }
