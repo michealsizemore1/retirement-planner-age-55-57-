@@ -43,6 +43,7 @@
   .dollar-toggle{display:flex; border:1px solid rgba(255,255,255,0.3); border-radius:20px; overflow:hidden; flex-shrink:0; margin-top:2px;}
   .dollar-toggle-btn{padding:8px 14px; font-size:16.5px; color:#cfe6e0; cursor:pointer; white-space:nowrap;}
   .dollar-toggle-btn.active{background:var(--teal); color:#fff; font-weight:600;}
+  .mc-mini-score{font-size:11px; font-weight:700; margin-left:4px; opacity:0.88;}
   .hamburger-btn{
     background:rgba(255,255,255,0.12);
     border:1px solid rgba(255,255,255,0.25);
@@ -457,10 +458,10 @@
         <span class="dollar-toggle-btn" data-mode="real" onclick="setDollarView('real')">Today's $</span>
         <span class="dollar-toggle-btn active" data-mode="nominal" onclick="setDollarView('nominal')">Future $</span>
       </div>
-      <div class="dollar-toggle" id="spendingBasisToggle" title="Which expense column (Expenses page) drives the whole projection, guardrails, and Monte Carlo">
-        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="jobloss" onclick="setSpendingBasis('jobloss')">Job Loss</span>
-        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')">Must Spend</span>
-        <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')">Like to Spend</span>
+      <div class="dollar-toggle" id="spendingBasisToggle" title="Which expense column (Expenses page) drives the whole projection, guardrails, and Monte Carlo — the % next to each option is that option's own Monte Carlo confidence score, computed the same way as the Dashboard's, so you can compare all three without switching">
+        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="jobloss" onclick="setSpendingBasis('jobloss')">Job Loss<span class="mc-mini-score" id="mcMiniJobloss"></span></span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')">Must Spend<span class="mc-mini-score" id="mcMiniMustspend"></span></span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')">Like to Spend<span class="mc-mini-score" id="mcMiniLiketo"></span></span>
       </div>
       <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-end;" title="If Job Loss is selected above, the projection stays on normal income/Like to Spend until this date, then switches to zero income, zero TSP/brokerage contributions, and the Job Loss expense column">
         <input type="date" id="jobLossDate" onchange="setJobLossDate(this.value)" style="font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--border,#ccc);">
@@ -7093,6 +7094,22 @@ function render() {
 
   // Monte Carlo score
   const score = runMonteCarlo(inputs, ctx, 1000);
+
+  // Mini Monte Carlo scores for all three spending bases (Job Loss / Must Spend / Like to Spend), shown
+  // right in the header toggle so you can compare all three at a glance without switching the active one.
+  // These reuse the same inputs/ctx already built above and share the exact same simulated market-return
+  // paths across all three runs (runMonteCarlo's seed doesn't depend on spendingBasis), so the comparison
+  // is apples-to-apples. A lighter run count (300, matching the Explorers page's own scenario cards) keeps
+  // this from tripling the cost of every render() the way three more 1000-run sims would.
+  const savedSpendingBasisForMini = spendingBasis;
+  ['jobloss', 'mustspend', 'liketo'].forEach(basis => {
+    spendingBasis = basis;
+    const miniScore = runMonteCarlo(inputs, ctx, 300);
+    const el = els('mcMini' + (basis === 'jobloss' ? 'Jobloss' : basis === 'mustspend' ? 'Mustspend' : 'Liketo'));
+    if (el) el.textContent = ' ' + Math.round(miniScore) + '%';
+  });
+  spendingBasis = savedSpendingBasisForMini;
+
   els('scoreLifeExp').textContent = lifeExpectancy;
   const ring = els('scoreRing');
   ring.textContent = Math.round(score) + '%';
