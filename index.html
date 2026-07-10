@@ -7155,17 +7155,17 @@ function render() {
   // right in the header toggle so you can compare all three at a glance without switching the active one.
   // These reuse the same inputs/ctx already built above and share the exact same simulated market-return
   // paths across all three runs (runMonteCarlo's seed doesn't depend on spendingBasis), so the comparison
-  // is apples-to-apples. A lighter run count (300, matching the Explorers page's own scenario cards) keeps
-  // this from tripling the cost of every render() the way three more 1000-run sims would — EXCEPT for
-  // whichever basis is currently active, which reuses the exact `score` above (the real 1000-run Dashboard
-  // number) instead of a separate 300-run approximation of the same scenario. Without this, the active
-  // basis's own pill could show a slightly different number than the Dashboard ring right next to it
-  // (e.g. 52% vs 51%) even though they're describing the identical plan — same scenario, different sample
-  // size/seed, so a small amount of simulation noise between them was showing up as a visible mismatch.
+  // is apples-to-apples. All three now run the SAME 1000-simulation count as the Dashboard ring — an
+  // earlier version used a cheaper 300-run approximation for whichever basis was NOT currently active
+  // (to save render time), but that meant a given basis's own number would jump around every time you
+  // switched away from it and back: 1000-run precision while it was active, then a slightly different
+  // 300-run approximation the moment it became inactive. Same basis, same inputs, genuinely different
+  // numbers depending on which tab happened to be selected — that inconsistency mattered more than the
+  // extra compute, so every basis is now always evaluated at full precision regardless of which is active.
   const savedSpendingBasisForMini = spendingBasis;
   ['jobloss', 'mustspend', 'liketo'].forEach(basis => {
     spendingBasis = basis;
-    const miniScore = basis === savedSpendingBasisForMini ? score : runMonteCarlo(inputs, ctx, 300);
+    const miniScore = basis === savedSpendingBasisForMini ? score : runMonteCarlo(inputs, ctx, 1000);
     const el = els('mcMini' + (basis === 'jobloss' ? 'Jobloss' : basis === 'mustspend' ? 'Mustspend' : 'Liketo'));
     if (el) {
       el.textContent = Math.round(miniScore) + '%';
