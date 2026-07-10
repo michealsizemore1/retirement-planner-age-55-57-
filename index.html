@@ -402,16 +402,19 @@
      container's own border/clipping and give each button its own independent rounded pill + small gap
      instead, which looks correct no matter how many lines it wraps to. */
   @media (max-width:700px){
-    /* When the toggle group wraps below the title (flex-wrap on .header-bar), it starts its own new
-       line flush with the container's left edge — i.e. under the hamburger button, not under the title
-       text next to it. Padding-left here (hamburger width 46px + .header-bar's 14px gap = 60px) pulls it
-       back in so it visually lines up under "Michael & Cynthia's Planner" instead of sticking out to the
-       left of it. box-sizing:border-box keeps the padded box within the 100% width instead of overflowing. */
-    .header-toggle-group{width:100%; max-width:100%; padding-left:60px; box-sizing:border-box;}
-    .dollar-toggle{flex-wrap:wrap; flex-shrink:1; max-width:100%; border:none; border-radius:0; overflow:visible; gap:6px;}
-    .dollar-toggle-btn{font-size:13px; padding:6px 10px; border:1px solid rgba(255,255,255,0.35); border-radius:16px;}
+    /* Fitting all 3 spending-basis buttons on one row takes priority over indenting the group to match
+       the title above it — those two goals compete for the same limited width on a phone screen, and a
+       wrapped 2nd row (one lone button dangling below the other two) looked worse than a flush-left row
+       that actually fits. So no left padding here anymore; the group starts at the container's own edge. */
+    .header-toggle-group{width:100%; max-width:100%;}
+    .dollar-toggle{flex-wrap:wrap; flex-shrink:1; max-width:100%; border:none; border-radius:0; overflow:visible; gap:5px;}
+    .dollar-toggle-btn{font-size:12.5px; padding:5px 8px; border:1px solid rgba(255,255,255,0.35); border-radius:14px;}
     .dollar-toggle-btn.active{border-color:var(--teal);}
-    .mc-mini-score{font-size:11px; min-width:32px; height:19px; padding:0 5px; margin-left:4px;}
+    /* Smaller shared min-width than the desktop 96px — still keeps all 3 pills the same size as each
+       other, just narrow enough that "Job Loss" + "Must Spend" + "Like to Spend" actually fit on one
+       line at phone widths instead of the 3rd one wrapping to its own row. */
+    .spending-basis-toggle-btn{min-width:82px;}
+    .mc-mini-score{font-size:11px; min-width:30px; height:18px; padding:0 5px;}
   }
   /* .two-col/.three-col never adapted to phone widths — cramming 2 or 3 fields side by side left each
      one too narrow for its own contents (e.g. the "Retire at 55/56/57" pill row, which has no room to
