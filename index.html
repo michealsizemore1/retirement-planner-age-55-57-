@@ -978,7 +978,7 @@
         <h3 onclick="toggleCard(this)">Year-by-Year Gap &amp; Withdrawals</h3>
         <div class="table-scroll">
           <table id="gapTable">
-            <thead><tr><th>Age</th><th>Guaranteed Income (after tax)</th><th>Total Spending</th><th>Surplus / (Gap)</th><th>Portfolio Withdrawal (gross)</th></tr></thead>
+            <thead><tr id="gapTableHeadRow"><th>Age</th><th>Guaranteed Income (after tax)</th><th>Total Spending</th><th>Surplus / (Gap)</th><th>Portfolio Withdrawal (gross)</th></tr></thead>
             <tbody id="gapRows"></tbody>
           </table>
         </div>
@@ -5458,6 +5458,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
     const insurancePremiumAnnual = (insurancePremiumMonthlyForYear || 0) * 12 * inflator;
 
     let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, pension2Amount=0, vaDisabilityAmount=0, annuityAmount=0, sbpAmount=0, dicAmount=0;
+    // How much of this year's gross withdrawal came out of each individual account (trad/roth/hysa/pie_N) —
+    // stays {} for pre-retirement years and any retirement year with no shortfall to cover.
+    const withdrawalByAccount = {};
     let fedMarginal=null, ltcgMarginal=null;
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
     let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0;
@@ -5685,6 +5688,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         bal[key] -= grossTaken;
         remaining -= netTaken;
         grossWithdrawal += grossTaken;
+        withdrawalByAccount[key] = (withdrawalByAccount[key] || 0) + grossTaken;
         // Split this withdrawal's blended tax rate back into Federal vs Idaho-state shares for the Taxes
         // page's Estimated Taxes chart — Idaho's flat rate is always the state slice; whatever's left
         // (ordinary federal marginal + early-withdrawal penalty for Traditional TSP, or the federal LTCG
@@ -5731,7 +5735,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       rows.push({
         age, spouseAge: age - ctx.ageGap, income: age < inputs.retirementAge ? income : null,
         contributions, tradContribOut, rothContribOut, matchContribOut,
-        guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, pension2Amount, vaDisabilityAmount, annuityAmount, sbpAmount, dicAmount, spending, withdrawal, grossWithdrawal, ltcCost: ltcCostThisYear,
+        guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, pension2Amount, vaDisabilityAmount, annuityAmount, sbpAmount, dicAmount, spending, withdrawal, grossWithdrawal, withdrawalByAccount, ltcCost: ltcCostThisYear,
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
         medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual,
         fedMarginalRate: fedMarginal, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null,
@@ -6888,13 +6892,24 @@ function renderGapTable(rows, inputs, retirementAge) {
   const body = els('gapRows');
   if (!body) return;
   const retirementRows = rows.filter(r => r.age >= retirementAge);
-  if (!retirementRows.length) { body.innerHTML = '<tr><td colspan="5">No retirement years in the current projection.</td></tr>'; return; }
+  // One column per account that's actually drawn from anywhere in the projection (Traditional TSP,
+  // Roth TSP, HYSA, each brokerage pie) — reuses the same account keys/labels as the Money Flows
+  // withdrawal-order list, so the columns always match whatever accounts/pies currently exist.
+  const accountKeys = getWithdrawalAccountKeys();
+  const usedKeys = accountKeys.filter(k => retirementRows.some(r => (r.withdrawalByAccount && r.withdrawalByAccount[k]) > 0.5));
+  const headRow = els('gapTableHeadRow');
+  if (headRow) {
+    headRow.innerHTML = '<th>Age</th><th>Guaranteed Income (after tax)</th><th>Total Spending</th><th>Surplus / (Gap)</th><th>Portfolio Withdrawal (gross)</th>'
+      + usedKeys.map(k => `<th>${esc(withdrawalAccountInfo(k).label)}</th>`).join('');
+  }
+  if (!retirementRows.length) { body.innerHTML = `<tr><td colspan="${5 + usedKeys.length}">No retirement years in the current projection.</td></tr>`; return; }
   body.innerHTML = retirementRows.map(r => {
     const guaranteed = r.guaranteedIncomeAfterTax != null ? r.guaranteedIncomeAfterTax : (r.guaranteedIncome || 0);
     const spending = r.spending || 0;
     const surplus = guaranteed - spending;
     const surplusStyle = surplus < 0 ? ' style="color:var(--danger);"' : '';
     const surplusLabel = surplus < 0 ? `(${fmtMoney(dv(-surplus, r.age, inputs))})` : fmtMoney(dv(surplus, r.age, inputs));
+    const perAccountCells = usedKeys.map(k => `<td>${fmtMoney(dv((r.withdrawalByAccount && r.withdrawalByAccount[k]) || 0, r.age, inputs))}</td>`).join('');
     return `
     <tr>
       <td>${r.age}</td>
@@ -6902,6 +6917,7 @@ function renderGapTable(rows, inputs, retirementAge) {
       <td>${fmtMoney(dv(spending, r.age, inputs))}</td>
       <td${surplusStyle}>${surplusLabel}</td>
       <td>${fmtMoney(dv(r.grossWithdrawal || 0, r.age, inputs))}</td>
+      ${perAccountCells}
     </tr>`;
   }).join('');
 }
