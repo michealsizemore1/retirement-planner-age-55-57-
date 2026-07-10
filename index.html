@@ -6993,6 +6993,12 @@ function render() {
     els('survivorshipConfidenceTile').innerHTML = `<div class="label">${survivorshipLabel}</div><div class="value">${survivorshipValue}</div>`;
   }
 
+  // Ending balance at your spouse's own longevity (life expectancy) age — looked up by spouseAge
+  // rather than your own age, since the two can differ by the age gap between you. Falls back to the
+  // last projected row in the unlikely event the exact age isn't present.
+  const spouseLongevityRow = rows.find(r => r.spouseAge === inputs.spouseLifeExpectancy) || rows[rows.length - 1];
+  const spouseEndingBalance = spouseLongevityRow ? spouseLongevityRow.netWorth : 0;
+
   els('statCards').innerHTML = `
     <div class="stat"><div class="label">Investable balance at retirement (age ${retirementAge})</div><div class="value">${fmtMoneyK(dv(investableAtRetirement, retirementAge, inputs))}</div></div>
     <div class="stat ${longevityClass}"><div class="label">Portfolio longevity (deterministic)</div><div class="value">${longevityLabel}</div></div>
@@ -7001,6 +7007,7 @@ function render() {
     <div class="stat"><div class="label">Cash reserves at retirement</div><div class="value">${fmtMoneyK(dv(cashAtRetirement, retirementAge, inputs))}</div></div>
     <div class="stat"><div class="label">Net worth today</div><div class="value">${fmtMoneyK(netWorthToday)}</div></div>
     <div class="stat"><div class="label">Net worth at retirement</div><div class="value">${fmtMoneyK(dv(netWorthAtRetirement, retirementAge, inputs))}</div></div>
+    <div class="stat"><div class="label">Ending balance at spouse's longevity (age ${inputs.spouseLifeExpectancy})</div><div class="value">${fmtMoneyK(dv(spouseEndingBalance, spouseLongevityRow ? spouseLongevityRow.age : retirementAge, inputs))}</div></div>
     <div class="stat ${survivorshipClass}"><div class="label">${survivorshipLabel}</div><div class="value">${survivorshipValue}</div></div>
   `;
 
