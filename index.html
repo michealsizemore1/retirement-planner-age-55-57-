@@ -567,13 +567,10 @@
         </div>
         <div class="field"><label>Plan until age (your life expectancy)</label><input type="number" id="lifeExpectancy" value="100" min="60" max="105"></div>
         <div class="field">
-          <label>Your birth month</label>
-          <select id="birthMonth">
-            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
-            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
-            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
-            <option value="10">October</option><option value="11" selected>November</option><option value="12">December</option>
-          </select>
+          <label>Your birthdate</label>
+          <input type="date" id="birthDate" value="1973-11-12" oninput="syncAgeFromBirthDate('birthDate','currentAge','birthMonth','birthDateHint')">
+          <div id="birthDateHint" style="font-size:16.5px;color:var(--muted);margin-top:4px;"></div>
+          <input type="hidden" id="birthMonth" value="11">
         </div>
         <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">Used to prorate the first calendar year of any income that starts on your age (pension, VA disability, Social Security, annuity) — you only actually receive it from your birthday through year-end that first year, not a full 12 months.</p>
       </div>
@@ -585,13 +582,10 @@
           <div class="field"><label>Spouse's life expectancy</label><input type="number" id="spouseLifeExpectancy" value="100" min="60" max="105"></div>
         </div>
         <div class="field">
-          <label>Spouse's birth month</label>
-          <select id="spouseBirthMonth">
-            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
-            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
-            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
-            <option value="10">October</option><option value="11" selected>November</option><option value="12">December</option>
-          </select>
+          <label>Spouse's birthdate</label>
+          <input type="date" id="spouseBirthDate" value="1975-11-14" oninput="syncAgeFromBirthDate('spouseBirthDate','spouseAge','spouseBirthMonth','spouseBirthDateHint')">
+          <div id="spouseBirthDateHint" style="font-size:16.5px;color:var(--muted);margin-top:4px;"></div>
+          <input type="hidden" id="spouseBirthMonth" value="11">
         </div>
         <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">Used to prorate the first calendar year of the spousal Social Security benefit (and, in the Survivorship what-if, DIC/SBP) to whatever portion of that year falls after their birthday.</p>
         <div class="checkbox-row">
@@ -4333,6 +4327,37 @@ function ageToMonthValue(basisAge, targetAge) {
   const y = Math.floor(totalMonths / 12), m = (totalMonths % 12) + 1;
   return y + '-' + String(m).padStart(2, '0');
 }
+// Authoritative direction: your actual birthdate never needs "correcting" the way a plain age
+// number does, so a real birthdate (not just a birth month, and not a manually-bumped "current age")
+// drives currentAge/spouseAge automatically — including re-computing them fresh on every page load,
+// so the age never goes stale between birthdays the way a hand-typed number would.
+function computeAgeFromBirthDate(dateStr) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const hadBirthdayThisYear = (today.getMonth() + 1 > m) || (today.getMonth() + 1 === m && today.getDate() >= d);
+  if (!hadBirthdayThisYear) age--;
+  return age;
+}
+function syncAgeFromBirthDate(dateFieldId, ageFieldId, monthFieldId, hintFieldId) {
+  const dateEl = els(dateFieldId);
+  if (!dateEl || !dateEl.value) return;
+  const age = computeAgeFromBirthDate(dateEl.value);
+  if (age === null) return;
+  const ageEl = els(ageFieldId);
+  if (ageEl) ageEl.value = age;
+  const [y, m, d] = dateEl.value.split('-').map(Number);
+  const monthEl = els(monthFieldId);
+  if (monthEl) monthEl.value = m;
+  const hintEl = els(hintFieldId);
+  if (hintEl) {
+    const label = new Date(y, m - 1, d).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    hintEl.textContent = `${label} — currently ${age} years old`;
+  }
+  render();
+}
+
 // The reverse direction of syncAgeDate: fires when the AGE number field itself is edited directly
 // (which is how most people actually use these fields — the month/year picker is the secondary,
 // optional way in). Without this, editing the age left the date picker and its hint exactly where
@@ -7171,6 +7196,12 @@ if (shellEl) {
     if (e.target && e.target.matches && e.target.matches('input, select')) render();
   });
 }
+
+// Refresh currentAge/spouseAge from the actual birthdates on every load, so they never go stale
+// waiting on a manual edit (this must run after restoreState has populated birthDate/spouseBirthDate
+// from any saved backup, and before the first render()).
+syncAgeFromBirthDate('birthDate', 'currentAge', 'birthMonth', 'birthDateHint');
+syncAgeFromBirthDate('spouseBirthDate', 'spouseAge', 'spouseBirthMonth', 'spouseBirthDateHint');
 
 render();
 
