@@ -396,7 +396,12 @@
      container's own border/clipping and give each button its own independent rounded pill + small gap
      instead, which looks correct no matter how many lines it wraps to. */
   @media (max-width:700px){
-    .header-toggle-group{width:100%; max-width:100%;}
+    /* When the toggle group wraps below the title (flex-wrap on .header-bar), it starts its own new
+       line flush with the container's left edge — i.e. under the hamburger button, not under the title
+       text next to it. Padding-left here (hamburger width 46px + .header-bar's 14px gap = 60px) pulls it
+       back in so it visually lines up under "Michael & Cynthia's Planner" instead of sticking out to the
+       left of it. box-sizing:border-box keeps the padded box within the 100% width instead of overflowing. */
+    .header-toggle-group{width:100%; max-width:100%; padding-left:60px; box-sizing:border-box;}
     .dollar-toggle{flex-wrap:wrap; flex-shrink:1; max-width:100%; border:none; border-radius:0; overflow:visible; gap:6px;}
     .dollar-toggle-btn{font-size:13px; padding:6px 10px; border:1px solid rgba(255,255,255,0.35); border-radius:16px;}
     .dollar-toggle-btn.active{border-color:var(--teal);}
@@ -7137,11 +7142,16 @@ function render() {
   // These reuse the same inputs/ctx already built above and share the exact same simulated market-return
   // paths across all three runs (runMonteCarlo's seed doesn't depend on spendingBasis), so the comparison
   // is apples-to-apples. A lighter run count (300, matching the Explorers page's own scenario cards) keeps
-  // this from tripling the cost of every render() the way three more 1000-run sims would.
+  // this from tripling the cost of every render() the way three more 1000-run sims would — EXCEPT for
+  // whichever basis is currently active, which reuses the exact `score` above (the real 1000-run Dashboard
+  // number) instead of a separate 300-run approximation of the same scenario. Without this, the active
+  // basis's own pill could show a slightly different number than the Dashboard ring right next to it
+  // (e.g. 52% vs 51%) even though they're describing the identical plan — same scenario, different sample
+  // size/seed, so a small amount of simulation noise between them was showing up as a visible mismatch.
   const savedSpendingBasisForMini = spendingBasis;
   ['jobloss', 'mustspend', 'liketo'].forEach(basis => {
     spendingBasis = basis;
-    const miniScore = runMonteCarlo(inputs, ctx, 300);
+    const miniScore = basis === savedSpendingBasisForMini ? score : runMonteCarlo(inputs, ctx, 300);
     const el = els('mcMini' + (basis === 'jobloss' ? 'Jobloss' : basis === 'mustspend' ? 'Mustspend' : 'Liketo'));
     if (el) {
       el.textContent = Math.round(miniScore) + '%';
