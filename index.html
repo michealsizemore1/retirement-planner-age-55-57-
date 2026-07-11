@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Michael & Cynthia's Planner</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<!-- Document Vault: client-side text extraction only, nothing is uploaded anywhere. pdf.js reads PDF text
+     content; mammoth.js reads .docx text content. Both loaded with `defer` so a slow/blocked CDN never
+     holds up the rest of the page — Document Vault upload just checks `window.pdfjsLib`/`window.mammoth`
+     exist before using them and shows a clear error if a library didn't load, instead of the whole app hanging. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" defer></script>
 <style>
   :root{
     --navy:#132a3e;
@@ -248,6 +254,7 @@
      Amount (both start at the same y), while the month picker hangs below on its own. This
      value works the same in both the desktop grid layout and the mobile flex-wrap layout. */
   .row-item.insurance-row{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
+  .row-item.vault-row{grid-template-columns:1.4fr 0.6fr 0.8fr 0.7fr 26px;}
   .row-item input, .row-item select{padding:8px 9px; border:1px solid var(--border); border-radius:6px; font-size:16.5px; background:#fbfcfc; width:100%;}
   .age-cell{display:flex; flex-direction:column; gap:4px;}
   .age-cell input[type="month"]{font-size:16.5px; padding:5px 7px;}
@@ -282,6 +289,11 @@
   .row-header.cols-windfall{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px;}
   .row-header.cols-expense{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 0.7fr 26px;}
   .row-header.cols-insurance{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
+  .row-header.cols-vault{grid-template-columns:1.4fr 0.6fr 0.8fr 0.7fr 26px;}
+  .vault-search-hit{background:#fbfcfc; border:1px solid var(--border); border-radius:8px; padding:10px 13px; margin-bottom:8px;}
+  .vault-search-hit-name{font-size:16.5px; font-weight:700; color:var(--navy); margin-bottom:4px;}
+  .vault-search-hit-snippet{font-size:16px; color:var(--text); line-height:1.5;}
+  .vault-search-hit-snippet mark{background:#ffe89a; color:inherit; border-radius:2px; padding:0 1px;}
   .row-item.contrib-row{grid-template-columns:1.6fr 0.9fr; align-items:center;}
   .pie-name-label{font-size:16.5px; color:var(--text);}
   .remove-btn{background:none; border:none; color:var(--danger); cursor:pointer; font-size:20px; line-height:1; padding:2px;}
@@ -537,6 +549,7 @@
   <div class="nav-item" data-page="gap" onclick="showPage('gap')">Income Gap &amp; Withdrawals</div>
   <div class="nav-item" data-page="medical" onclick="showPage('medical')">Medical</div>
   <div class="nav-item" data-page="estate" onclick="showPage('estate')">Estate Planning</div>
+  <div class="nav-item" data-page="vault" onclick="showPage('vault')">Document Vault</div>
   <div class="nav-item" data-page="insurance" onclick="showPage('insurance')">Insurance</div>
   <div class="nav-item" data-page="taxes" onclick="showPage('taxes')">Taxes</div>
   <div class="nav-item" data-page="assumptions" onclick="showPage('assumptions')">Assumptions &amp; Guardrails</div>
@@ -1147,6 +1160,49 @@
         <div class="checkbox-row"><input type="checkbox" id="estateTrust"><label for="estateTrust">Trust established</label></div>
         <div class="checkbox-row"><input type="checkbox" id="estateBeneficiaries"><label for="estateBeneficiaries">Beneficiaries reviewed in the last 2 years</label></div>
         <div class="field" style="margin-top:10px;"><label>Notes</label><input type="text" id="estateNotes" placeholder="e.g. attorney contact, document location"></div>
+      </div>
+    </div>
+
+    <!-- ================= DOCUMENT VAULT ================= -->
+    <div class="page" data-page="vault">
+      <div class="page-header"><h2>Document Vault</h2><p>Upload important documents (PDF, Word, or plain text) to keep them searchable — informational only, doesn't feed the projection math.</p></div>
+
+      <div class="note" style="margin-top:0;">For storage efficiency, only the extracted <b>text</b> of each document is saved (not the original file, so formatting/images aren't preserved) — this keeps everything searchable while staying well under the browser's storage limit. Everything stays in this browser only, unless you use Ask AI below with your own Anthropic API key, in which case the relevant document text is sent to Anthropic to answer your question.</div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Upload</h3>
+        <div class="field">
+          <label>Add documents (.pdf, .docx, .txt — up to ~300 KB of extracted text each)</label>
+          <input type="file" id="vaultFileInput" multiple accept=".pdf,.docx,.txt" onchange="handleVaultUpload(event)">
+        </div>
+        <p id="vaultUploadStatus" style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;"></p>
+        <div style="display:flex;justify-content:space-between;padding:10px 0 0;color:var(--muted);font-size:15.5px;"><span>Storage used</span><span id="vaultStorageUsage">0 KB of ~3 MB</span></div>
+        <div style="background:rgba(120,120,120,0.18);border-radius:6px;height:6px;overflow:hidden;margin-top:4px;"><div id="vaultStorageBar" style="height:100%;width:0%;background:#3f9c7a;transition:width 0.3s;"></div></div>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Your Documents</h3>
+        <div class="row-header cols-vault"><span>Name</span><span>Type</span><span>Uploaded</span><span>Text size</span><span></span></div>
+        <div class="row-list" id="vaultDocRows"></div>
+        <p id="vaultEmptyNote" style="color:var(--muted);font-size:15.5px;margin:8px 0 0;">No documents uploaded yet.</p>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Search<span class="sub-label">Plain keyword search — no AI, works fully offline</span></h3>
+        <div class="field"><input type="text" id="vaultSearchInput" placeholder="e.g. beneficiary, policy number, VGLI" oninput="renderVaultSearch()"></div>
+        <div id="vaultSearchResults"></div>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Ask AI about your documents<span class="sub-label">Uses your Anthropic API key (Settings) to answer questions in plain English</span></h3>
+        <div id="vaultAiGate"></div>
+        <div class="chat-box" id="vaultChatBox" style="display:none;">
+          <div class="chat-log" id="vaultChatLog"></div>
+          <div class="chat-input-row">
+            <textarea id="vaultChatInput" placeholder="e.g. What's the coverage amount on my VGLI policy?"></textarea>
+            <button class="chat-send-btn" id="vaultChatSend" onclick="sendVaultChatMessage()">Ask</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4123,7 +4179,7 @@ function setJobLossDate(value) {
 const PAGE_LABELS = {
   dashboard:'Dashboard', personal:'Personal & Family', income:'Income', survivorship:'Survivorship', moneyflows:'Money Flows',
   investments:'Investments', accounts:'Accounts & Cards', housing:'Housing', expenses:'Expenses', debt:'Debt',
-  gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', insurance:'Insurance',
+  gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', vault:'Document Vault', insurance:'Insurance',
   taxes:'Taxes', assumptions:'Assumptions & Guardrails',
   explorers:'Explorers', coach:'Coach', settings:'Settings'
 };
@@ -4159,6 +4215,7 @@ function showPage(pageId) {
   if (pageId === 'explorers') renderExplorers();
   if (pageId === 'coach') { renderCoachTips(); renderCoachAiGate(); }
   if (pageId === 'accounts') { loadTrackerFrame(); renderCCSpendingCharts(); }
+  if (pageId === 'vault') { renderVaultDocuments(); renderVaultAiGate(); renderVaultSearch(); }
   try { localStorage.setItem(ACTIVE_PAGE_KEY, pageId); } catch (e) { /* storage unavailable, ignore */ }
   closeMenu();
 }
@@ -5618,12 +5675,19 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // absorbed by another account — a deliberate exception to the "Trad TSP first everywhere" rule used for
     // everyday spending and Future Expenses, kept separate because LTC is specifically meant to be funded by
     // the dedicated Roth balance and nothing else.
+    // The cost itself is computed here every year, pre- or post-retirement (it's stored on the row below
+    // regardless), but the actual draw only happens right here for pre-retirement years, since there's no
+    // "totalSpending"/"guaranteedIncomeAfterTax" concept yet before retirementAge. Post-retirement years
+    // instead first offset this cost against that year's guaranteed-income surplus (if any) inside the
+    // post-retirement branch, right after `need` is computed further down, and only then fall back to Roth.
     let ltcCostThisYear = 0;
     if (inputs.ltcEnabled && spouseAgeThisYear >= inputs.ltcStartAge && spouseAgeThisYear < inputs.ltcStartAge + inputs.ltcDuration) {
       const medicalInflatorNow = Math.pow(1+inputs.medicalInflation, y);
       ltcCostThisYear = inputs.ltcAnnualCost * medicalInflatorNow;
-      const fromRoth = Math.min(ltcCostThisYear, balRoth); balRoth -= fromRoth; addDirectWithdrawal('roth', fromRoth);
-      if (ltcCostThisYear - fromRoth > 0.01) shortfallEver = true;
+      if (age < inputs.retirementAge) {
+        const fromRoth = Math.min(ltcCostThisYear, balRoth); balRoth -= fromRoth; addDirectWithdrawal('roth', fromRoth);
+        if (ltcCostThisYear - fromRoth > 0.01) shortfallEver = true;
+      }
     }
 
     // Future / one-time planned expenses: hit at a specific age (or a recurring range), drawn in your
@@ -5636,6 +5700,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // Explorers "What If I..." cards (e.g. "an unexpected $50k expense in 5 years") inject a synthetic entry
     // via ctx.futureExpensesOverride instead of touching the real futureExpenses list, so trying a scenario
     // never risks mutating what's actually entered on the Housing/Money Flows page.
+    // The cost itself is computed here every year, pre- or post-retirement (it's stored on the row below
+    // regardless), but the actual draw via withdrawInOrder only happens right here for pre-retirement years,
+    // same reasoning as LTC above. Post-retirement years instead first offset this cost against that year's
+    // guaranteed-income surplus (if any) inside the post-retirement branch, right after `need` is computed
+    // further down, and only pull the remainder (if any) via withdrawInOrder there.
     let futureExpenseCostThisYear = 0;
     (ctx.futureExpensesOverride || futureExpenses).forEach(f => {
       const hits = f.recurring ? (age >= f.age && age <= (f.endAge || f.age)) : (age === f.age);
@@ -5644,7 +5713,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const amt = (survivorshipActive && f.survivorAmount != null && f.survivorAmount !== '') ? (+f.survivorAmount || 0) : (+f.amount || 0);
       futureExpenseCostThisYear += amt * Math.pow(1+inputs.inflation, y);
     });
-    if (futureExpenseCostThisYear > 0) {
+    if (futureExpenseCostThisYear > 0 && age < inputs.retirementAge) {
       const feRemaining = withdrawInOrder(futureExpenseCostThisYear, inputs.withdrawalOrder);
       if (feRemaining > 0.01) shortfallEver = true;
     }
@@ -5980,6 +6049,33 @@ function projectRun(inputs, ctx, randomize, shocks) {
       }
       spending = totalSpending;
       const need = Math.max(0, totalSpending - guaranteedIncomeAfterTax);
+
+      // Long-Term Care and Future Expenses (both computed unconditionally, earlier in this loop iteration,
+      // before this retirement-age branch split) get first claim on this year's guaranteed-income surplus —
+      // whatever's left of guaranteedIncomeAfterTax after totalSpending is covered — before either one
+      // touches an investment account, matching the same "guaranteed income first" principle everyday
+      // spending already follows via `need` just above. LTC claims the shared surplus pool first (essential
+      // care cost), Future Expenses gets whatever's left after that (more discretionary/planned); any amount
+      // beyond the surplus falls back to each draw's normal account order (LTC: Roth only, no fallback
+      // beyond Roth, same rule as the pre-retirement branch above; Future Expenses: withdrawInOrder, same as
+      // the pre-retirement branch above). Pre-retirement years never reach this code — they already drew
+      // immediately, with no surplus check, back at LTC's/Future Expenses' original position earlier in the
+      // loop, since totalSpending/guaranteedIncomeAfterTax have no pre-retirement equivalent.
+      let guaranteedIncomeSurplus = Math.max(0, guaranteedIncomeAfterTax - totalSpending);
+      if (ltcCostThisYear > 0) {
+        const ltcFromSurplus = Math.min(ltcCostThisYear, guaranteedIncomeSurplus);
+        guaranteedIncomeSurplus -= ltcFromSurplus;
+        const ltcRemainingAfterSurplus = ltcCostThisYear - ltcFromSurplus;
+        const fromRoth = Math.min(ltcRemainingAfterSurplus, balRoth); balRoth -= fromRoth; addDirectWithdrawal('roth', fromRoth);
+        if (ltcRemainingAfterSurplus - fromRoth > 0.01) shortfallEver = true;
+      }
+      if (futureExpenseCostThisYear > 0) {
+        const feFromSurplus = Math.min(futureExpenseCostThisYear, guaranteedIncomeSurplus);
+        guaranteedIncomeSurplus -= feFromSurplus;
+        const feRemainingAfterSurplus = futureExpenseCostThisYear - feFromSurplus;
+        const feRemaining = withdrawInOrder(feRemainingAfterSurplus, inputs.withdrawalOrder);
+        if (feRemaining > 0.01) shortfallEver = true;
+      }
 
       // Same cash-vs-equity split applies post-retirement: a cash-like pie keeps growing at its own fixed
       // rate instead of getting swept up in the same market volatility as the rest of the portfolio.
@@ -7211,6 +7307,257 @@ async function sendCoachChatMessage() {
   }
 }
 
+// ---------- Document Vault: client-side-only document upload, keyword search, and AI Q&A ----------
+// Nothing here ever leaves the browser except the specific document text sent to Anthropic if you use
+// Ask AI below (and only after you've added your own API key on Settings) — uploads, extraction, storage,
+// and keyword search all run entirely client-side. Kept in its own localStorage key (VAULT_STORAGE_KEY),
+// separate from the main plan's STORAGE_KEY, so a large vault can never risk corrupting or blocking a
+// save of your actual plan data if it happens to hit the browser's storage quota.
+// Note: a plain `esc()` HTML-escaping helper already exists elsewhere in this file, but it's defined
+// inside the embedded credit-card tracker sub-app (only decoded/loaded once you visit Accounts & Cards),
+// so it can't be relied on here — this exact kind of "defined only if another page happened to load
+// first" bug bit an earlier chart (see the esc() ReferenceError fix). vaultEsc() below is this section's
+// own, always-available copy.
+const VAULT_STORAGE_KEY = 'retirementPlannerVault_v1';
+const VAULT_MAX_FILE_TEXT_BYTES = 300 * 1024;   // ~300 KB of extracted text per document
+const VAULT_MAX_TOTAL_BYTES = 3 * 1024 * 1024;  // ~3 MB total across all documents
+let vaultDocuments = [];
+let vaultChatHistory = [];
+
+function vaultEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function vaultTotalBytes() {
+  return vaultDocuments.reduce((s, d) => s + (d.extractedText ? d.extractedText.length : 0), 0);
+}
+
+function saveVaultState() {
+  try { localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vaultDocuments)); return true; }
+  catch (e) { return false; } // quota exceeded or storage unavailable — never touches STORAGE_KEY, so the rest of your plan data is unaffected
+}
+
+function loadVaultState() {
+  try { const raw = localStorage.getItem(VAULT_STORAGE_KEY); if (raw) vaultDocuments = JSON.parse(raw) || []; }
+  catch (e) { vaultDocuments = []; }
+}
+
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/(1024*1024)).toFixed(2) + ' MB';
+}
+
+// Pulls the plain text out of one uploaded File, using whichever library matches its type. Returns a
+// Promise<string>. PDF/DOCX extraction depends on pdf.js/mammoth.js (loaded via CDN with `defer`) having
+// actually finished loading by the time you upload — if a library didn't load (offline, CDN blocked),
+// this throws a clear, specific error instead of silently producing empty/garbled text.
+async function extractTextFromFile(file) {
+  const name = file.name || '';
+  const ext = name.toLowerCase().split('.').pop();
+  if (ext === 'txt') return await file.text();
+  if (ext === 'pdf') {
+    if (!window.pdfjsLib) throw new Error('PDF reader library did not load (check your internet connection) — try again, or use a .txt/.docx file instead.');
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      text += content.items.map(it => it.str).join(' ') + '\n\n';
+      if (text.length > VAULT_MAX_FILE_TEXT_BYTES * 2) break; // stop scanning a very long PDF early; still trimmed to the cap below
+    }
+    return text.trim();
+  }
+  if (ext === 'docx') {
+    if (!window.mammoth) throw new Error('Word document reader library did not load (check your internet connection) — try again, or use a .txt/.pdf file instead.');
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: buf });
+    return (result.value || '').trim();
+  }
+  throw new Error(`Unsupported file type "${ext}" — only .pdf, .docx, and .txt are supported.`);
+}
+
+async function handleVaultUpload(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+  const status = els('vaultUploadStatus');
+  for (const file of files) {
+    if (status) status.textContent = `Reading ${file.name}…`;
+    try {
+      let text = await extractTextFromFile(file);
+      let truncated = false;
+      if (text.length > VAULT_MAX_FILE_TEXT_BYTES) { text = text.slice(0, VAULT_MAX_FILE_TEXT_BYTES); truncated = true; }
+      if (vaultTotalBytes() + text.length > VAULT_MAX_TOTAL_BYTES) {
+        if (status) status.textContent = `"${file.name}" would push the vault over its ~3 MB limit — remove another document first, or shorten this one.`;
+        continue;
+      }
+      vaultDocuments.push({
+        id: 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        name: file.name,
+        type: (file.name.split('.').pop() || '').toUpperCase(),
+        sizeOriginal: file.size,
+        uploadedDate: new Date().toISOString(),
+        extractedText: text,
+        truncated
+      });
+      if (status) status.textContent = `Added "${file.name}"${truncated ? ' (text truncated to fit the per-document size limit)' : ''}.`;
+    } catch (e) {
+      if (status) status.textContent = `Couldn't read "${file.name}": ${e.message}`;
+    }
+  }
+  saveVaultState();
+  renderVaultDocuments();
+  renderVaultSearch();
+  renderVaultAiGate();
+  event.target.value = '';
+}
+
+function removeVaultDocument(id) {
+  vaultDocuments = vaultDocuments.filter(d => d.id !== id);
+  saveVaultState();
+  renderVaultDocuments();
+  renderVaultSearch();
+  renderVaultAiGate();
+}
+
+function renderVaultDocuments() {
+  const rows = els('vaultDocRows');
+  const emptyNote = els('vaultEmptyNote');
+  const usage = els('vaultStorageUsage');
+  const bar = els('vaultStorageBar');
+  if (usage) usage.textContent = `${fmtBytes(vaultTotalBytes())} of ~3 MB`;
+  if (bar) bar.style.width = Math.min(100, (vaultTotalBytes() / VAULT_MAX_TOTAL_BYTES) * 100) + '%';
+  if (!rows) return;
+  if (emptyNote) emptyNote.style.display = vaultDocuments.length ? 'none' : 'block';
+  rows.innerHTML = vaultDocuments.map(d => `
+    <div class="row-item vault-row">
+      <span title="${vaultEsc(d.name)}">${vaultEsc(d.name)}${d.truncated ? ' <span style="color:var(--muted);font-size:14px;">(truncated)</span>' : ''}</span>
+      <span>${vaultEsc(d.type)}</span>
+      <span>${new Date(d.uploadedDate).toLocaleDateString()}</span>
+      <span>${fmtBytes(d.extractedText ? d.extractedText.length : 0)}</span>
+      <button class="remove-btn" onclick="removeVaultDocument('${d.id}')" title="Remove">×</button>
+    </div>
+  `).join('');
+}
+
+function renderVaultSearch() {
+  const input = els('vaultSearchInput');
+  const results = els('vaultSearchResults');
+  if (!input || !results) return;
+  const q = (input.value || '').trim();
+  if (!q) { results.innerHTML = ''; return; }
+  const qLower = q.toLowerCase();
+  const hits = [];
+  vaultDocuments.forEach(d => {
+    const text = d.extractedText || '';
+    const textLower = text.toLowerCase();
+    let idx = 0, count = 0;
+    const snippets = [];
+    while (count < 3) {
+      const found = textLower.indexOf(qLower, idx);
+      if (found === -1) break;
+      const start = Math.max(0, found - 60);
+      const end = Math.min(text.length, found + q.length + 60);
+      const before = vaultEsc(text.slice(start, found));
+      const match = vaultEsc(text.slice(found, found + q.length));
+      const after = vaultEsc(text.slice(found + q.length, end));
+      snippets.push(`${start > 0 ? '…' : ''}${before}<mark>${match}</mark>${after}${end < text.length ? '…' : ''}`);
+      idx = found + q.length;
+      count++;
+    }
+    if (snippets.length) hits.push({ name: d.name, snippets });
+  });
+  if (!hits.length) { results.innerHTML = `<p style="color:var(--muted);font-size:15.5px;">No matches for "${vaultEsc(q)}".</p>`; return; }
+  results.innerHTML = hits.map(h => `
+    <div class="vault-search-hit">
+      <div class="vault-search-hit-name">${vaultEsc(h.name)}</div>
+      ${h.snippets.map(s => `<div class="vault-search-hit-snippet">${s}</div>`).join('')}
+    </div>
+  `).join('');
+}
+
+function renderVaultAiGate() {
+  const gate = els('vaultAiGate');
+  const box = els('vaultChatBox');
+  if (!gate || !box) return;
+  const key = (els('anthropicApiKey') && els('anthropicApiKey').value || '').trim();
+  if (key) {
+    gate.innerHTML = vaultDocuments.length ? '' : '<p style="font-size:16px;color:var(--muted);line-height:1.55;margin:0;">Upload at least one document above before asking a question.</p>';
+    box.style.display = vaultDocuments.length ? 'block' : 'none';
+  } else {
+    gate.innerHTML = '<p style="font-size:16px;color:var(--muted);line-height:1.55;margin:0;">Add your own Anthropic API key on the <b>Settings</b> page to turn this on. Nothing is sent anywhere until you do.</p>';
+    box.style.display = 'none';
+  }
+}
+
+function buildVaultContextForAI() {
+  // Budget the combined document text so a big vault doesn't blow past a reasonable request size —
+  // includes as many full documents as fit, in upload order, truncating only the last one if needed.
+  const MAX_CONTEXT_CHARS = 60000;
+  let used = 0;
+  const parts = [];
+  for (const d of vaultDocuments) {
+    const text = d.extractedText || '';
+    const remaining = MAX_CONTEXT_CHARS - used;
+    if (remaining <= 0) break;
+    const chunk = text.length > remaining ? text.slice(0, remaining) + '\n[...truncated...]' : text;
+    parts.push(`=== Document: ${d.name} ===\n${chunk}`);
+    used += chunk.length;
+  }
+  return parts.join('\n\n');
+}
+
+async function sendVaultChatMessage() {
+  const input = els('vaultChatInput');
+  const question = (input.value || '').trim();
+  if (!question) return;
+  const key = (els('anthropicApiKey').value || '').trim();
+  if (!key) { renderVaultAiGate(); return; }
+
+  const log = els('vaultChatLog');
+  const sendBtn = els('vaultChatSend');
+  vaultChatHistory.push({ role: 'user', content: question });
+  log.innerHTML += `<div class="chat-msg user">${vaultEsc(question)}</div>`;
+  input.value = '';
+  sendBtn.disabled = true;
+  log.innerHTML += `<div class="chat-msg ai" id="vaultChatPending">Thinking…</div>`;
+  log.scrollTop = log.scrollHeight;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 700,
+        system: `You are a helpful document assistant embedded in a personal retirement planner web app. Answer the user's question using ONLY the document text below as context — if the answer isn't in these documents, say so plainly rather than guessing. Be concise, and quote the relevant part of the document when useful.\n\nUPLOADED DOCUMENTS:\n${buildVaultContextForAI()}`,
+        messages: vaultChatHistory
+      })
+    });
+    const data = await resp.json();
+    const pending = els('vaultChatPending');
+    if (!resp.ok) {
+      const msg = (data && data.error && data.error.message) || `Request failed (${resp.status})`;
+      if (pending) pending.outerHTML = `<div class="chat-msg ai">Error: ${vaultEsc(msg)}</div>`;
+    } else {
+      const text = (data.content && data.content[0] && data.content[0].text) || '(no response)';
+      vaultChatHistory.push({ role: 'assistant', content: text });
+      if (pending) pending.outerHTML = `<div class="chat-msg ai">${vaultEsc(text).replace(/\n/g,'<br>')}</div>`;
+    }
+  } catch (e) {
+    const pending = els('vaultChatPending');
+    if (pending) pending.outerHTML = `<div class="chat-msg ai">Couldn't reach the API from this browser (${vaultEsc(e.message)}). This may be blocked by CORS depending on your browser/extensions.</div>`;
+  } finally {
+    sendBtn.disabled = false;
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
 // ---------- Settings: backup / restore / reset ----------
 function downloadBackup() {
   const state = saveState();
@@ -7688,11 +8035,13 @@ function render() {
   }
   if (activePage && activePage.dataset.page === 'explorers') renderExplorers();
   if (activePage && activePage.dataset.page === 'coach') { renderCoachTips(); renderCoachAiGate(); }
+  if (activePage && activePage.dataset.page === 'vault') { renderVaultDocuments(); renderVaultAiGate(); }
 
   saveState();
 }
 
 const hadSavedState = loadState();
+loadVaultState();
 try {
   const savedDollarView = localStorage.getItem(DOLLAR_VIEW_KEY);
   if (savedDollarView === 'real' || savedDollarView === 'nominal') {
