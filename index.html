@@ -5914,6 +5914,17 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // spouse's own birth month, everything else follows the primary's.
     ssAmount = prorateFirstYear(age, inputs.ssAge, inputs.ssMonthly*12*ssInflator, inputs.birthMonth, inputs.currentAge);
     spousalBenefit = !inputs.spouseWorks ? prorateFirstYear(age, ctx.effectiveSpousalStartAge, inputs.ssMonthly*inputs.spousalPct*12*ssInflator, inputs.spouseBirthMonth, inputs.currentAge) : 0;
+    // Real-world Social Security survivor rule, always on (independent of the separate Survivorship what-if
+    // below, which stays opt-in only) — once you're past your own life expectancy, your spouse steps up
+    // from the ~50% spousal benefit to your full benefit as a 100% survivor benefit. ssAmount itself doesn't
+    // need to change to reflect that (it already computes your full benefit — the dollars just keep flowing,
+    // now to your spouse as the survivor instead of to you), but the spousal supplement goes away since the
+    // survivor benefit replaces it rather than stacking on top of it. Deliberately narrow: this only touches
+    // Social Security/spousal — pension, VA disability, and the rest of full Survivorship modeling (SBP, DIC,
+    // housing/expense overrides) stay in the Survivorship what-if only, per your request to keep that out of
+    // the main plan.
+    const primaryDeceased = age > inputs.lifeExpectancy;
+    if (primaryDeceased) spousalBenefit = 0;
     pensionAmount = prorateFirstYear(age, inputs.pensionAge, inputs.pensionAnnual*pensionInflator, inputs.birthMonth, inputs.currentAge);
     pension2Amount = prorateFirstYear(age, inputs.pension2Age, inputs.pension2Annual*pension2Inflator, inputs.birthMonth, inputs.currentAge);
     vaDisabilityAmount = prorateFirstYear(age, inputs.vaDisabilityAge, inputs.vaDisabilityAnnual*vaInflator, inputs.birthMonth, inputs.currentAge);
@@ -6339,7 +6350,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         contributions, tradContribOut, rothContribOut, matchContribOut,
         guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, pension2Amount, vaDisabilityAmount, annuityAmount, sbpAmount, dicAmount, spending, withdrawal, grossWithdrawal, withdrawalByAccount, ltcCost: ltcCostThisYear,
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
-        medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual, essentialFloor,
+        medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual, essentialFloor, primaryDeceased,
         fedMarginalRate: fedMarginal, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null,
         federalTaxAnnual, stateTaxAnnual, ficaTaxAnnual
       });
@@ -7103,26 +7114,30 @@ function buildYearlyChartConfig(pageId, snap) {
       // this year," so it all belongs in one combined stack).
       const accountKeys = getWithdrawalAccountKeys();
       const usedKeys = accountKeys.filter(k => rows.some(r => (r.withdrawalByAccount && r.withdrawalByAccount[k]) > 0.5));
-      // Survivorship: once the primary passes (age >= survivorshipDeathAge), the engine keeps ssAmount's
-      // dollar figure flowing but repurposes it as the surviving spouse's 100% survivor SS benefit (see the
-      // comment in projectRun's survivorshipActive block) — pension(s)/VA disability/spousal benefit all
-      // correctly drop to $0 that same year, but without this split the "Social Security" bar just kept
-      // going unchanged and with the same label, which looked exactly like still being paid your own SS
-      // after death. Splitting it into two series (one that stops, one that only starts at death) plus
-      // surfacing SBP/DIC — which the engine already computes and adds into guaranteedIncome, but which
-      // never had their own bars here — makes the actual transition visible instead of invisible.
-      const survivorshipActiveFor = r => !!(inputs.survivorshipEnabled && inputs.survivorshipDeathAge && r.age >= inputs.survivorshipDeathAge);
-      const hasSurvivorship = !!inputs.survivorshipEnabled && rows.some(survivorshipActiveFor);
-      const ssSeries = hasSurvivorship ? [
-        { label: 'Social Security (your benefit)', data: rows.map(r => d(survivorshipActiveFor(r) ? 0 : r.ssAmount, r.age)) },
-        { label: 'Social Security (survivor benefit)', data: rows.map(r => d(survivorshipActiveFor(r) ? r.ssAmount : 0, r.age)) }
+      // Whose SS is this? Two separate things can end the "it's still your own SS" story for a row: (1) the
+      // always-on, real-world rule (independent of the opt-in Survivorship what-if) — past your own life
+      // expectancy, r.primaryDeceased is true and your spousal benefit already dropped to $0 in the engine,
+      // with ssAmount's dollar figure now flowing to your spouse as their 100% survivor benefit instead of
+      // to you; or (2) the separate Survivorship what-if page's assumed EARLIER predecease age, which also
+      // zeros pension/VA/spousal and adds SBP/DIC on top — but only when that what-if is actually active
+      // (inputs.survivorshipEnabled), never for your real plan/Dashboard/Monte Carlo score. Either way, the
+      // "Social Security" bar just continuing unchanged with the same label looked exactly like still being
+      // paid your own SS after death, so it's split into two series (one that stops, one that only starts).
+      const deceasedFor = r => !!r.primaryDeceased || !!(inputs.survivorshipEnabled && inputs.survivorshipDeathAge && r.age >= inputs.survivorshipDeathAge);
+      const hasAnyDeath = rows.some(deceasedFor);
+      const ssSeries = hasAnyDeath ? [
+        { label: 'Social Security (your benefit)', data: rows.map(r => d(deceasedFor(r) ? 0 : r.ssAmount, r.age)) },
+        { label: 'Social Security (survivor benefit)', data: rows.map(r => d(deceasedFor(r) ? r.ssAmount : 0, r.age)) }
       ] : [
         { label: 'Social Security (SS COLA)', data: rows.map(r => d(r.ssAmount, r.age)) }
       ];
-      const survivorExtraSeries = hasSurvivorship ? [
+      // SBP/DIC only ever populate from the Survivorship what-if's own block in projectRun (never from the
+      // always-on primaryDeceased rule above, which is narrowly scoped to SS/spousal only) — so these stay
+      // at $0 and get filtered out below unless that what-if is actually active.
+      const survivorExtraSeries = [
         { label: 'SBP Survivor Annuity', data: rows.map(r => d(r.sbpAmount, r.age)) },
         { label: 'DIC (VA Survivor Benefit)', data: rows.map(r => d(r.dicAmount, r.age)) }
-      ].filter(s => s.data.some(v => v > 0.5)) : [];
+      ].filter(s => s.data.some(v => v > 0.5));
       return yearlyBarConfig(ages, [
         { label: 'Job income (annual raise %)', data: rows.map(r => d(r.income, r.age)) },
         ...ssSeries,
@@ -7138,10 +7153,11 @@ function buildYearlyChartConfig(pageId, snap) {
         }))
       ], {
         stacked: true,
-        // Whose age is this bar? Pre-death, it's always yours; once Survivorship has kicked in, the row
-        // is really tracking your spouse living on alone, so the label switches to their age instead of
-        // silently continuing to show your own age climbing past your modeled life expectancy.
-        labels: hasSurvivorship ? rows.map(r => survivorshipActiveFor(r) ? ('Age ' + r.spouseAge + ' (spouse)') : ('Age ' + r.age + ' (you)')) : undefined
+        // Whose age is this bar? Pre-death, it's always yours; once either the always-on primaryDeceased
+        // rule or the opt-in Survivorship what-if has kicked in, the row is really tracking your spouse
+        // living on alone, so the label switches to their age instead of silently continuing to show your
+        // own age climbing past your modeled life expectancy.
+        labels: hasAnyDeath ? rows.map(r => deceasedFor(r) ? ('Age ' + r.spouseAge + ' (spouse)') : ('Age ' + r.age + ' (you)')) : undefined
       });
     }
     case 'medical':
