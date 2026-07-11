@@ -50,6 +50,10 @@
      align-items:center centering a narrow pill's content, was reading as lopsided empty space on one side. */
   .spending-basis-toggle-btn{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:96px;}
   .mc-mini-score{display:inline-flex; align-items:center; justify-content:center; min-width:48px; height:28px; padding:0 9px; border-radius:14px; font-size:15px; font-weight:800; color:#fff; line-height:1;}
+  /* Ending net worth at your spouse's own life expectancy, under that tile's specific spending basis —
+     a third, smaller line under the label so it reads as "extra detail" rather than competing with the
+     confidence-score badge above it for attention. */
+  .mc-mini-longevity{font-size:11px; color:#cfe6e0; line-height:1.2; white-space:nowrap;}
   /* Left-aligned (not flex-end) so the date picker below the toggle lines up under "Job Loss" (the
      first/leftmost button), not under whichever button happens to be widest/last. */
   .header-toggle-group{display:flex; flex-direction:column; gap:6px; align-items:flex-start; max-width:100%;}
@@ -501,9 +505,9 @@
         <span class="dollar-toggle-btn active" data-mode="nominal" onclick="setDollarView('nominal')">Future $</span>
       </div>
       <div class="dollar-toggle" id="spendingBasisToggle" title="Which expense column (Expenses page) drives the whole projection, guardrails, and Monte Carlo — the % next to each option is that option's own Monte Carlo confidence score, computed the same way as the Dashboard's, so you can compare all three without switching">
-        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="jobloss" onclick="setSpendingBasis('jobloss')"><span class="mc-mini-score" id="mcMiniJobloss"></span><span>Job Loss</span></span>
-        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')"><span class="mc-mini-score" id="mcMiniMustspend"></span><span>Must Spend</span></span>
-        <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')"><span class="mc-mini-score" id="mcMiniLiketo"></span><span>Like to Spend</span></span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="jobloss" onclick="setSpendingBasis('jobloss')"><span class="mc-mini-score" id="mcMiniJobloss"></span><span>Job Loss</span><span class="mc-mini-longevity" id="mcMiniLongevityJobloss" title="Ending net worth if your spouse lives to their life expectancy, projected under this basis"></span></span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn" data-mode="mustspend" onclick="setSpendingBasis('mustspend')"><span class="mc-mini-score" id="mcMiniMustspend"></span><span>Must Spend</span><span class="mc-mini-longevity" id="mcMiniLongevityMustspend" title="Ending net worth if your spouse lives to their life expectancy, projected under this basis"></span></span>
+        <span class="dollar-toggle-btn spending-basis-toggle-btn active" data-mode="liketo" onclick="setSpendingBasis('liketo')"><span class="mc-mini-score" id="mcMiniLiketo"></span><span>Like to Spend</span><span class="mc-mini-longevity" id="mcMiniLongevityLiketo" title="Ending net worth if your spouse lives to their life expectancy, projected under this basis"></span></span>
       </div>
       <div class="job-loss-date-wrap" title="If Job Loss is selected above, the projection stays on normal income/Like to Spend until this date, then switches to zero income, zero TSP/brokerage contributions, and the Job Loss expense column">
         <input type="date" id="jobLossDate" onchange="setJobLossDate(this.value)">
@@ -4372,16 +4376,24 @@ function syncRetirementDateFromAge() {
   if (isNaN(targetAge)) return;
   const currentAge = +els('currentAge').value;
   const birthDateStr = els('birthDate') ? els('birthDate').value : '';
-  const monthVal = ageToMonthValue(birthDateStr, targetAge);
-  if (!monthVal) return;
-  const [y, m] = monthVal.split('-').map(Number);
-  const lastDay = new Date(y, m, 0).getDate();
-  dateEl.value = monthVal + '-' + String(lastDay).padStart(2, '0');
+  // Unlike every other age-based milestone field (LTC start age, Medicare age, pension age, etc.), which
+  // are genuinely tied to your actual birthday and correctly use ageToMonthValue's birth-month math,
+  // "Planned last working day" isn't a birthday-triggered event at all — it's just whichever calendar
+  // date you choose to stop working. It used to reuse ageToMonthValue (birth month) here too, which meant
+  // every time the Retirement age field changed — typing a new number, or clicking one of the 55-59 quick
+  // pills — this unconditionally overwrote the date back to the LAST DAY OF YOUR BIRTH MONTH (November 30
+  // for a November birthday), silently discarding a deliberately-chosen date like December 31 every time.
+  // Defaults to December 31 of the year you turn the target age instead, matching this field's own
+  // original "planned last working day of the year" framing (see the two-col label above) — so changing
+  // ages no longer fights a manually-set December 31 (or any other custom month/day already sitting here).
+  const [by] = (birthDateStr || '').split('-').map(Number);
+  const y = by ? (by + Math.round(targetAge)) : (new Date().getFullYear() + Math.round(targetAge - currentAge));
+  dateEl.value = y + '-12-31';
   const hintEl = els('retirementDateHint');
   if (hintEl) {
     const monthsAway = Math.round((targetAge - currentAge) * 12);
     const yrs = Math.floor(Math.abs(monthsAway) / 12), mo = Math.abs(monthsAway) % 12;
-    const label = new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const label = new Date(y, 11, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
     hintEl.textContent = monthsAway >= 0
       ? `≈ ${yrs} yr${yrs !== 1 ? 's' : ''} ${mo} mo from today — ${label}`
       : `That's in the past — ${label}`;
@@ -7360,6 +7372,19 @@ function render() {
       const isOrange = miniScore >= 40 && miniScore < 70;
       el.style.background = miniScore < 40 ? 'var(--danger)' : isOrange ? 'var(--orange)' : 'var(--good)';
       el.style.color = isOrange ? '#000' : '#fff';
+    }
+    // Ending net worth at your spouse's own life expectancy age, run under THIS specific basis — same
+    // calculation as the Dashboard's "Ending balance at spouse's longevity" stat card further down, just
+    // repeated per basis instead of only for whichever one happens to be active. Reuses the deterministic
+    // `rows` already computed at the top of render() for the active basis (no need to run it twice);
+    // the two inactive bases each get one cheap deterministic projectRun() call (not a 1000-run Monte
+    // Carlo like the score above — this is a single pass, so it's not worth reusing/caching further).
+    const basisRows = basis === savedSpendingBasisForMini ? rows : projectRun(inputs, ctx, false).rows;
+    const basisSpouseRow = basisRows.find(r => r.spouseAge === inputs.spouseLifeExpectancy) || basisRows[basisRows.length - 1];
+    const basisSpouseEndingBalance = basisSpouseRow ? basisSpouseRow.netWorth : 0;
+    const longevityEl = els('mcMiniLongevity' + (basis === 'jobloss' ? 'Jobloss' : basis === 'mustspend' ? 'Mustspend' : 'Liketo'));
+    if (longevityEl) {
+      longevityEl.textContent = fmtMoneyK(dv(basisSpouseEndingBalance, basisSpouseRow ? basisSpouseRow.age : retirementAge, inputs));
     }
   });
   spendingBasis = savedSpendingBasisForMini;
