@@ -760,13 +760,13 @@
 
     <!-- ================= SURVIVORSHIP ================= -->
     <div class="page" data-page="survivorship">
-      <div class="page-header"><h2>Survivorship</h2><p>Setting an assumed predecease age below is part of your main plan — it feeds straight into the Dashboard, Income, Income Gap &amp; Withdrawals, and your main confidence score, not just a separate what-if. Leave it at 0 to leave it off entirely.</p></div>
+      <div class="page-header"><h2>Survivorship</h2><p>What-if only — this page never changes your main plan or Monte Carlo confidence score. It only feeds the dynamic survivorship scenario on the Explorers page.</p></div>
 
       <div class="results-grid"><div class="stat" id="survivorshipConfidenceTile"><div class="label">Survivorship confidence score</div><div class="value">Not set</div></div></div>
 
       <div class="card">
-        <h3 onclick="toggleCard(this)">Survivorship: SBP &amp; DIC<span class="sub-label">Part of your main plan once an age is set below</span></h3>
-        <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to build it into your whole plan, not just a separate scenario. From that age forward, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over — everywhere in the tool, including the main confidence score. Leave the age blank/0 to leave this off entirely.</p>
+        <h3 onclick="toggleCard(this)">Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
+        <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
         <div class="three-col">
           <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="70" min="0" max="100"></div>
           <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="55" min="10" max="150" step="5"></div>
@@ -5424,12 +5424,13 @@ function readInputs() {
     pension2Growth: +els('pension2Growth').value/100,
     pension2Age: +els('pension2Age').value,
     survivorshipDeathAge: +els('survivorshipDeathAge').value || 0,
-    // Setting an assumed predecease age IS the toggle — no separate checkbox. Previously this stayed
-    // false for the main plan no matter what (only the Explorers/Survivorship what-if pages forced it to
-    // true internally), so Social Security etc. kept flowing at full strength straight through the plan
-    // horizon even past this age; the Dashboard, Income, Income Gap & Withdrawals, and the main Monte
-    // Carlo score now all honor it directly, the same as every other page already did as a "what if."
-    survivorshipEnabled: (+els('survivorshipDeathAge').value || 0) > 0,
+    // survivorshipEnabled is intentionally NOT set here. Survivorship is a what-if, kept separate from
+    // the main plan/Dashboard/Monte Carlo score by design — it's only ever forced to true inside specific
+    // what-if code paths (the Explorers "You predecease your spouse" scenario, the Dashboard survivorship
+    // tile's own separate simulation, and the Survivorship page's own preview charts). Setting an assumed
+    // predecease age here alone does NOT change your main plan; you have to go look at one of those
+    // what-if surfaces to see its effect. (This was briefly changed to auto-enable directly in the main
+    // plan and then reverted back to what-if-only per explicit request.)
     survivorSpendingPct: +els('survivorSpendingPct').value/100 || 1,
     survivorLifeInsuranceAmount: +els('survivorLifeInsuranceAmount').value || 0,
     sbp1Enabled: els('sbp1Enabled').checked,
@@ -5634,29 +5635,55 @@ function projectRun(inputs, ctx, randomize, shocks) {
       grossWithdrawal += amt;
     };
     // Shared sequential waterfall for "special" draws (Long-Term Care, Future/planned expenses) that can
-    // happen in ANY year, pre- or post-retirement — pulls raw dollar amounts (no tax gross-up; these two
-    // draws have always been modeled as plain balance reductions, unlike the tax-aware post-retirement
-    // takeFrom() further below) strictly one account at a time, in the exact order configured on the Money
-    // Flows page (inputs.withdrawalOrder — Trad TSP, then each brokerage pie individually, then HYSA, then
-    // Roth, by default), fully draining each before moving to the next. Previously LTC and Future Expenses
-    // each had their own hardcoded fallback order (LTC: Roth first, tax-free; Future Expenses: HYSA/savings/
-    // checking first) that ignored the user's configured order and could raid a brokerage pie reserved for
-    // a specific purpose (e.g. "Sequence of Returns Risk" T-bills) well before Traditional TSP was touched.
-    const withdrawInOrder = (amountNeeded, order) => {
+    // happen in ANY year, pre- or post-retirement — strictly one account at a time, in the exact order
+    // configured on the Money Flows page (inputs.withdrawalOrder — Trad TSP, then each brokerage pie
+    // individually, then HYSA, then Roth, by default), fully draining each before moving to the next.
+    // Previously LTC and Future Expenses each had their own hardcoded fallback order (LTC: Roth first,
+    // tax-free; Future Expenses: HYSA/savings/checking first) that ignored the user's configured order and
+    // could raid a brokerage pie reserved for a specific purpose (e.g. "Sequence of Returns Risk" T-bills)
+    // well before Traditional TSP was touched.
+    // Tax gross-up (optional 3rd arg, taxRates — an object like { trad: t2, pie_0: t1, roth: 0, hysa: 0 }):
+    // when supplied, amountNeeded is treated as a NET dollar figure (mirroring takeFrom() below) and the
+    // actual balance drawn from a taxable account is grossed up so the account still nets the full amount
+    // needed after tax, with the tax difference split into federalTaxAnnual/stateTaxAnnual the same way
+    // takeFrom() does. Only usable post-retirement, since that's the only point in the loop where t1/t2
+    // (this year's marginal ordinary-income and LTCG rates) have already been computed — pre-retirement
+    // calls (and the mortgage down payment draw, which runs before those rates exist for the year) omit
+    // this argument and keep pulling plain, ungrossed-up dollar amounts, same as before.
+    const withdrawInOrder = (amountNeeded, order, taxRates) => {
       let remain = amountNeeded;
       for (const key of order) {
         if (remain <= 0.01) break;
-        if (key === 'trad') { const take = Math.min(remain, balTrad); balTrad -= take; remain -= take; addDirectWithdrawal('trad', take); }
+        const rate = taxRates ? (taxRates[key] || 0) : 0;
+        if (key === 'trad') {
+          const maxNet = taxRates ? balTrad * (1 - rate) : balTrad;
+          const netTake = Math.min(remain, Math.max(0, maxNet));
+          const take = (taxRates && rate < 1) ? netTake / (1 - rate) : netTake;
+          balTrad -= take; remain -= netTake; addDirectWithdrawal('trad', take);
+          if (taxRates) { const taxAmt = take - netTake; const stateShare = rate > 0 ? (inputs.idahoRate / rate) : 0; stateTaxAnnual += taxAmt * stateShare; federalTaxAnnual += taxAmt * (1 - stateShare); }
+        }
         else if (key === 'roth') { const take = Math.min(remain, balRoth); balRoth -= take; remain -= take; addDirectWithdrawal('roth', take); }
         else if (key === 'hysa') { const take = Math.min(remain, balHYSA); balHYSA -= take; remain -= take; addDirectWithdrawal('hysa', take); }
         else if (key.startsWith('pie_')) {
           const idx = +key.slice(4);
-          if (balBrokeragePies[idx] !== undefined) { const take = Math.min(remain, balBrokeragePies[idx]); balBrokeragePies[idx] -= take; remain -= take; addDirectWithdrawal(key, take); }
+          if (balBrokeragePies[idx] !== undefined) {
+            const maxNet = taxRates ? balBrokeragePies[idx] * (1 - rate) : balBrokeragePies[idx];
+            const netTake = Math.min(remain, Math.max(0, maxNet));
+            const take = (taxRates && rate < 1) ? netTake / (1 - rate) : netTake;
+            balBrokeragePies[idx] -= take; remain -= netTake; addDirectWithdrawal(key, take);
+            if (taxRates) { const taxAmt = take - netTake; const stateShare = rate > 0 ? (inputs.idahoRate / rate) : 0; stateTaxAnnual += taxAmt * stateShare; federalTaxAnnual += taxAmt * (1 - stateShare); }
+          }
         }
       }
       return remain; // whatever's left unmet, if the whole order runs dry
     };
 
+    // Mortgage down payment: checking/savings/HYSA are already after-tax cash, so no gross-up applies to
+    // those (correct as-is). The brokerage-pie fallback below still pulls a plain dollar amount rather than
+    // grossing up for LTCG tax the way Future Expenses now does above — this runs earlier in the year's
+    // iteration than guaranteedIncome/taxableBeforeWithdrawal/this year's marginal rates are computed, so
+    // there isn't yet a tax rate available to gross up against without a larger reordering of the loop.
+    // Currently inactive for this plan (buyHome is off), so left as the pre-existing simplified behavior.
     if (ctx.mortgageSchedule && y === ctx.mortgageSchedule.purchaseYearIdx) {
       let remaining = ctx.mortgageSchedule.downPayment;
       const t1 = Math.min(remaining, balChecking); balChecking -= t1; remaining -= t1;
@@ -5847,8 +5874,16 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // here rather than into tradContrib/rothContrib/matchContrib above.
       // Job Loss test: recurring living costs switch to the Job Loss expense column once active — same
       // basis the post-retirement branch below uses, just gated by age here too instead of unconditionally.
-      const preRetireNonMedical = jobLossActive ? ctx.expensesJobLossNonMedical : ctx.expensesNonMedical;
-      const preRetireMedical = jobLossActive ? ctx.expensesJobLossMedical : ctx.expensesMedical;
+      // Survivorship what-if: if the assumed predecease age falls before retirementAge, switch to the
+      // survivor-only expense columns here too — mirrors the post-retirement branch's expensesNonMedicalForYear/
+      // expensesMedicalForYear logic (housingCost/debtPaymentThisYear/insurancePremiumAnnual above are already
+      // survivorship-aware regardless of pre/post retirement since they're computed once, hoisted above this split).
+      const preRetireNonMedical = survivorshipActive
+        ? (jobLossActive ? ctx.expensesJobLossNonMedicalSurvivor : ctx.expensesNonMedicalSurvivor)
+        : (jobLossActive ? ctx.expensesJobLossNonMedical : ctx.expensesNonMedical);
+      const preRetireMedical = survivorshipActive
+        ? (jobLossActive ? ctx.expensesJobLossMedicalSurvivor : ctx.expensesMedicalSurvivor)
+        : (jobLossActive ? ctx.expensesJobLossMedical : ctx.expensesMedical);
       const recurringLivingCostThisYear = (preRetireNonMedical * inflator + preRetireMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
       const excessIncomeAvailable = Math.max(0, income + guaranteedIncome - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
       // Paid-off debt redirect: recurringLivingCostThisYear above already reflects a lower debtPaymentThisYear
@@ -6050,6 +6085,18 @@ function projectRun(inputs, ctx, randomize, shocks) {
       spending = totalSpending;
       const need = Math.max(0, totalSpending - guaranteedIncomeAfterTax);
 
+      // Marginal rates for this year's withdrawal-driven tax (moved up from just below the LTC/Future
+      // Expenses block, so LTC/Future Expenses draws — right below — can use the same rates to gross up
+      // and record tax the same way takeFrom() does further down). Traditional TSP withdrawals before 59.5
+      // avoid the 10% early-withdrawal penalty under the Rule of 55 (separating from federal service in the
+      // year you turn 55+); if that assumption is turned off, the penalty applies to any Traditional TSP
+      // withdrawal taken before 59.5. Marginal bracket for the withdrawal itself stacks on top of the same
+      // guaranteed-income taxable base above.
+      const earlyPenalty = (!inputs.ruleOf55Applies && age < 59.5) ? 0.10 : 0;
+      fedMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, FEDERAL_BRACKETS_MFJ);
+      ltcgMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, LTCG_BRACKETS_MFJ);
+      const t1 = ltcgMarginal + inputs.idahoRate, t2 = fedMarginal + inputs.idahoRate + earlyPenalty;
+
       // Long-Term Care and Future Expenses (both computed unconditionally, earlier in this loop iteration,
       // before this retirement-age branch split) get first claim on this year's guaranteed-income surplus —
       // whatever's left of guaranteedIncomeAfterTax after totalSpending is covered — before either one
@@ -6061,6 +6108,12 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // the pre-retirement branch above). Pre-retirement years never reach this code — they already drew
       // immediately, with no surplus check, back at LTC's/Future Expenses' original position earlier in the
       // loop, since totalSpending/guaranteedIncomeAfterTax have no pre-retirement equivalent.
+      // Future Expenses' account draw here (beyond what the guaranteed-income surplus covers) is grossed up
+      // for tax the same way the main spending waterfall's takeFrom() below is — a Trad TSP or brokerage-pie
+      // pull to cover, say, a $12,000 vehicle purchase actually needs to remove more than $12,000 from the
+      // account so the taxable event it triggers doesn't quietly shrink the $12,000 itself, and the resulting
+      // tax bill is now recorded into federalTaxAnnual/stateTaxAnnual like any other withdrawal. LTC stays
+      // untaxed with no gross-up needed, since it's Roth-only and Roth withdrawals are already tax-free.
       let guaranteedIncomeSurplus = Math.max(0, guaranteedIncomeAfterTax - totalSpending);
       if (ltcCostThisYear > 0) {
         const ltcFromSurplus = Math.min(ltcCostThisYear, guaranteedIncomeSurplus);
@@ -6073,7 +6126,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
         const feFromSurplus = Math.min(futureExpenseCostThisYear, guaranteedIncomeSurplus);
         guaranteedIncomeSurplus -= feFromSurplus;
         const feRemainingAfterSurplus = futureExpenseCostThisYear - feFromSurplus;
-        const feRemaining = withdrawInOrder(feRemainingAfterSurplus, inputs.withdrawalOrder);
+        const feTaxRates = { trad: t2, roth: 0, hysa: 0 };
+        balBrokeragePies.forEach((_, i) => { feTaxRates['pie_'+i] = t1; });
+        const feRemaining = withdrawInOrder(feRemainingAfterSurplus, inputs.withdrawalOrder, feTaxRates);
         if (feRemaining > 0.01) shortfallEver = true;
       }
 
@@ -6088,14 +6143,6 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // HYSA now participates in the withdrawal pool, so it's grown here (before withdrawal) instead of the blanket line below.
       let hysaGrown = balHYSA*(1+inputs.hysaRate);
       let remaining = need;
-      // Traditional TSP withdrawals before 59.5 avoid the 10% early-withdrawal penalty under the Rule of 55
-      // (separating from federal service in the year you turn 55+). If that assumption is turned off, the
-      // penalty applies to any Traditional TSP withdrawal taken before 59.5.
-      const earlyPenalty = (!inputs.ruleOf55Applies && age < 59.5) ? 0.10 : 0;
-      // Marginal bracket for the withdrawal itself stacks on top of the same guaranteed-income taxable base above.
-      fedMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, FEDERAL_BRACKETS_MFJ);
-      ltcgMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, LTCG_BRACKETS_MFJ);
-      const t1 = ltcgMarginal + inputs.idahoRate, t2 = fedMarginal + inputs.idahoRate + earlyPenalty;
 
       // Withdrawal accounts: each has a current (post-growth) balance and an effective tax rate that converts
       // a NET dollar taken out into the GROSS dollar removed from the balance (gross = net / (1 - taxRate)).
@@ -7116,12 +7163,14 @@ function renderExplorers() {
   renderWhatIfSavingsChart(inputs, ctx);
   renderMarketExplorer(inputs, ctx);
   const whatIf = WHAT_IF_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
-  // Survivorship (SBP/DIC) used to appear here as a separate dynamically-named what-if card, back when
-  // setting an assumed predecease age on the Survivorship page had no effect anywhere else — comparing
-  // "baseline" against "you predecease your spouse" was the only way to see it. Now that survivorshipEnabled
-  // (readInputs()) is itself derived straight from survivorshipDeathAge > 0, the baseline plan already
-  // includes it, so a separate what-if row here would just duplicate every other scenario's numbers
-  // instead of showing something different. See the Survivorship page for the full year-by-year detail.
+  // Survivorship (SBP/DIC) is a dynamically-named what-if, shown only once an assumed death age is set on the
+  // Survivorship page. It's never enabled in the baseline plan or the Monte Carlo confidence score — Survivorship
+  // is deliberately kept separate from your main plan, so this is the only place (along with the Dashboard
+  // tile and the Survivorship page's own preview) where you actually see its effect.
+  if (inputs.survivorshipDeathAge > 0) {
+    const survivorshipScenario = { name: `You predecease your spouse at age ${inputs.survivorshipDeathAge} (SBP + DIC)`, apply: inp => ({ ...inp, survivorshipEnabled: true }) };
+    whatIf.push(runExplorerScenario(survivorshipScenario, inputs, ctx));
+  }
   const marketRisk = MARKET_RISK_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
 
   const rowsHtml = list => list.map(r => `
@@ -7593,7 +7642,7 @@ function restoreFromFile(file) {
 
 function resetAllData() {
   if (!confirm('This clears everything saved in this browser and reloads the page with defaults. Continue?')) return;
-  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); localStorage.removeItem(SPENDING_BASIS_KEY); } catch (e) {}
+  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); localStorage.removeItem(SPENDING_BASIS_KEY); localStorage.removeItem(JOB_LOSS_DATE_KEY); } catch (e) {}
   location.reload();
 }
 
@@ -7837,18 +7886,17 @@ function render() {
   ['incomePageSurplusNote','expensesPageSurplusNote'].forEach(id => { if (els(id)) els(id).textContent = surplusText; });
   ['incomePageWithdrawalNote','expensesPageWithdrawalNote'].forEach(id => { if (els(id)) els(id).textContent = withdrawalText; });
 
-  // Survivorship tile: used to run its own separate 300-sim Monte Carlo with survivorshipEnabled forced
-  // on, back when the main `score` above never included it at all. Now that survivorshipEnabled is
-  // derived straight from survivorshipDeathAge > 0 (readInputs()), the main score already reflects it
-  // whenever an age is set — so this just mirrors that same number instead of re-running a redundant,
-  // slightly-noisier (300 vs 1000 sims) duplicate simulation that could otherwise drift from it.
+  // Survivorship tile: reuses the same what-if the Explorers page runs (never the baseline
+  // plan/main score) — a smaller 300-run Monte Carlo, only computed when an assumed age is
+  // actually set, so this doesn't add cost to every render for people not using the feature.
   let survivorshipValue = 'Not set';
   let survivorshipClass = '';
   let survivorshipLabel = 'Survivorship confidence score';
   if (inputs.survivorshipDeathAge > 0) {
-    survivorshipValue = Math.round(score) + '%';
-    survivorshipClass = score >= 80 ? 'ok' : (score < 60 ? 'warn' : '');
-    survivorshipLabel = `Confidence score, incl. survivorship (age ${inputs.survivorshipDeathAge})`;
+    const survivorshipScore = runMonteCarlo({ ...inputs, survivorshipEnabled: true }, ctx, 300);
+    survivorshipValue = Math.round(survivorshipScore) + '%';
+    survivorshipClass = survivorshipScore >= 80 ? 'ok' : (survivorshipScore < 60 ? 'warn' : '');
+    survivorshipLabel = `Survivorship confidence score (if age ${inputs.survivorshipDeathAge})`;
   }
   // Same tile, same already-computed score, mirrored onto the Survivorship page itself so it's visible
   // right there without having to go back to the Dashboard.
