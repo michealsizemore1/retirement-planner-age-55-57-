@@ -842,6 +842,12 @@
           <select id="excessIncomeDestinationPie" onchange="updateExcessIncomeDestination(this.value)"></select>
         </div>
         <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">"Leftover" income = your job income, minus TSP/Roth/agency-match/brokerage contributions above, minus recurring expenses, housing, and debt payments for that year. Only applies while you're still working, and goes entirely into the single pie you pick above (edit pie names on the Investments page).</p>
+        <hr class="divider">
+        <div class="checkbox-row">
+          <input type="checkbox" id="redirectPaidOffDebtPayments" checked onchange="render()">
+          <label for="redirectPaidOffDebtPayments">Once a debt is fully paid off, redirect its whole former payment here (100%, not just the % above)</label>
+        </div>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Without this, a paid-off debt (e.g. a car loan) just quietly lowers how much you're spending each year — the freed-up payment is still counted (your projection is correct either way), but it isn't visibly redirected anywhere. With this on, from the month a debt is paid off through retirement, its exact former monthly payment gets swept into the pie above every year on top of the % setting — so it shows up as real, trackable savings instead of just an invisible drop in spending. Only applies before retirement, while you're still earning a paycheck to redirect from — once retired, a paid-off debt still lowers how much your portfolio has to cover each year, it just no longer makes sense to withdraw money you don't need only to immediately reinvest it, which would trigger real, unnecessary tax.</p>
       </div>
 
       <div class="card">
@@ -5327,6 +5333,7 @@ function readInputs() {
     matchCapPct: +els('matchPct').value/100,
     excessIncomeSavingsPct: +els('excessIncomeSavingsPct').value/100,
     excessIncomeDestinationPieName: excessIncomeDestinationPieName,
+    redirectPaidOffDebtPayments: els('redirectPaidOffDebtPayments') ? els('redirectPaidOffDebtPayments').checked : false,
     insurancePremiumMonthly: insurancePolicies.reduce((s,p) => s + (+p.premium || 0), 0),
     // Survivorship what-if: only policies still checked "continues," using each one's edited override
     // amount if the user set one on the Survivorship page, otherwise its normal premium.
@@ -5760,11 +5767,33 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const preRetireMedical = jobLossActive ? ctx.expensesJobLossMedical : ctx.expensesMedical;
       const recurringLivingCostThisYear = (preRetireNonMedical * inflator + preRetireMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
       const excessIncomeAvailable = Math.max(0, income + guaranteedIncome - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
+      // Paid-off debt redirect: recurringLivingCostThisYear above already reflects a lower debtPaymentThisYear
+      // once a debt (e.g. a car loan) is fully paid off, which is what makes excessIncomeAvailable bigger —
+      // but by default that freed amount just blends into the general slack and only gets swept at whatever
+      // % Excess Income Savings is set to (or not at all, if that's 0%), so it can silently look like it just
+      // evaporates instead of visibly going somewhere. With this toggle on, the exact former payment of any
+      // debt that's paid off by this year (100% of it, not just the % above) gets carved out and swept into
+      // the same destination pie unconditionally, on top of the %-based sweep on whatever's left — same
+      // 1:1 index correspondence between ctx.debtSchedules and the debts array used everywhere else that
+      // reads a debt's schedule. Excluded: debts that never pay off, and any that started already at $0
+      // balance (nothing to free). Capped at excessIncomeAvailable so this can never claim more than the
+      // year's actual slack contains.
+      const paidOffDebtRedirectRaw = (inputs.redirectPaidOffDebtPayments && !jobLossActive) ? debts.reduce((sum, d, i) => {
+        const sched = ctx.debtSchedules[i];
+        if (!sched || sched.neverPaysOff || (+d.balance || 0) <= 0) return sum;
+        if ((sched.balanceAtYearEnd[y] ?? 0) > 0.01) return sum;
+        // Prorate the transition year: a debt that pays off mid-year still made some real payments
+        // that year (sched.paymentDuringYear[y]), so only the amount actually freed up (the nominal
+        // annual payment minus what was actually still paid) counts as newly "freed" this year — every
+        // full year after payoff, paymentDuringYear[y] is 0, so the whole payment counts as freed.
+        return sum + Math.max(0, (+d.payment || 0) * 12 - (sched.paymentDuringYear[y] || 0));
+      }, 0) : 0;
+      const paidOffDebtRedirect = Math.min(paidOffDebtRedirectRaw, excessIncomeAvailable);
       // Job Loss test: any surplus left over (typically guaranteed income like a pension/VA disability that
       // keeps flowing and now exceeds Job Loss-level spending) stays as unswept slack rather than getting
       // invested into a brokerage pie — "no longer contributing to TSP or brokerage accounts" means the whole
       // paycheck-era contribution pipeline stops, not just the fixed-dollar/% pieces above.
-      excessIncomeSaved = jobLossActive ? 0 : excessIncomeAvailable * (inputs.excessIncomeSavingsPct || 0);
+      excessIncomeSaved = jobLossActive ? 0 : (Math.max(0, excessIncomeAvailable - paidOffDebtRedirect) * (inputs.excessIncomeSavingsPct || 0) + paidOffDebtRedirect);
       // Job Loss test: pre-retirement years never had a withdrawal mechanism before this feature, because a
       // shortfall wasn't possible — your paycheck was always assumed to at least cover living costs, so any
       // gap just silently zeroed out excessIncomeSaved above instead of drawing anything down. With income
