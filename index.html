@@ -627,7 +627,7 @@
           <input type="date" id="retirementDate" value="2028-12-31" oninput="syncRetirementDate(true)">
           <div id="retirementDateHint" style="font-size:16.5px;color:var(--muted);margin-top:4px;"></div>
         </div>
-        <div class="field"><label>Plan until age (your life expectancy)</label><input type="number" id="lifeExpectancy" value="100" min="60" max="105"></div>
+        <div class="field"><label>Plan until age (your life expectancy)</label><input type="number" id="lifeExpectancy" value="95" min="60" max="105"></div>
         <div class="field">
           <label>Your birthdate</label>
           <input type="date" id="birthDate" value="1973-11-12" oninput="syncAgeFromBirthDate('birthDate','currentAge','birthMonth','birthDateHint')">
@@ -641,7 +641,7 @@
         <h3 onclick="toggleCard(this)">Spouse</h3>
         <div class="two-col">
           <div class="field"><label>Spouse's current age</label><input type="number" id="spouseAge" value="50" min="18" max="90"></div>
-          <div class="field"><label>Spouse's life expectancy</label><input type="number" id="spouseLifeExpectancy" value="100" min="60" max="105"></div>
+          <div class="field"><label>Spouse's life expectancy</label><input type="number" id="spouseLifeExpectancy" value="95" min="60" max="105"></div>
         </div>
         <div class="field">
           <label>Spouse's birthdate</label>
@@ -679,7 +679,7 @@
         <div class="three-col">
           <div class="field"><label>Military Pension ($/yr, today's $)</label><input type="number" id="pensionAnnual" value="29964" step="1"></div>
           <div class="field"><label>Pension start age</label><input type="number" id="pensionAge" value="52" min="40" max="90" oninput="syncDateFromAge('pensionAge','pensionAgeDate','pensionAgeDateHint','currentAge')">
-            <input type="month" id="pensionAgeDate" class="age-date-input" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
+            <input type="month" id="pensionAgeDate" class="age-date-input" value="2026-01" oninput="syncAgeDate('pensionAgeDate','pensionAge','pensionAgeDateHint','currentAge')">
             <div id="pensionAgeDateHint" class="age-date-hint"></div>
           </div>
           <div class="field"><label>Pension yearly increase (%)</label><input type="number" id="pensionGrowth" value="2.5" step="0.1"></div>
@@ -698,7 +698,7 @@
         <div class="three-col">
           <div class="field"><label>VA Disability Compensation ($/yr, tax-free, today's $)</label><input type="number" id="vaDisabilityAnnual" value="49898" step="1"></div>
           <div class="field"><label>VA Disability start age</label><input type="number" id="vaDisabilityAge" value="52" min="40" max="90" oninput="syncDateFromAge('vaDisabilityAge','vaDisabilityAgeDate','vaDisabilityAgeDateHint','currentAge')">
-            <input type="month" id="vaDisabilityAgeDate" class="age-date-input" oninput="syncAgeDate('vaDisabilityAgeDate','vaDisabilityAge','vaDisabilityAgeDateHint','currentAge')">
+            <input type="month" id="vaDisabilityAgeDate" class="age-date-input" value="2026-01" oninput="syncAgeDate('vaDisabilityAgeDate','vaDisabilityAge','vaDisabilityAgeDateHint','currentAge')">
             <div id="vaDisabilityAgeDateHint" class="age-date-hint"></div>
           </div>
           <div class="field"><label>VA yearly increase (%)</label><input type="number" id="vaDisabilityGrowth" value="2.5" step="0.1"></div>
@@ -711,16 +711,16 @@
       <div class="card">
         <h3 onclick="toggleCard(this)">Guaranteed Income</h3>
         <div class="two-col">
-          <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2200" step="50"></div>
+          <div class="field"><label>Your Social Security ($/mo, today's $)</label><input type="number" id="ssMonthly" value="2239" step="50"></div>
           <div class="field"><label>Your SS start age</label><input type="number" id="ssAge" value="65" min="62" max="70" oninput="syncDateFromAge('ssAge','ssAgeDate','ssAgeDateHint','currentAge')">
-            <input type="month" id="ssAgeDate" class="age-date-input" oninput="syncAgeDate('ssAgeDate','ssAge','ssAgeDateHint','currentAge')">
+            <input type="month" id="ssAgeDate" class="age-date-input" value="2038-11" oninput="syncAgeDate('ssAgeDate','ssAge','ssAgeDateHint','currentAge')">
             <div id="ssAgeDateHint" class="age-date-hint"></div>
           </div>
         </div>
         <div class="two-col" id="spousalBenefitFields">
           <div class="field"><label>Spousal benefit (% of your benefit)</label><input type="number" id="spousalPct" value="50" min="0" max="50" step="1"></div>
           <div class="field"><label>Spousal benefit start age (spouse's age)</label><input type="number" id="spousalStartAge" value="67" min="62" max="70" oninput="syncDateFromAge('spousalStartAge','spousalStartAgeDate','spousalStartAgeDateHint','spouseAge')">
-            <input type="month" id="spousalStartAgeDate" class="age-date-input" oninput="syncAgeDate('spousalStartAgeDate','spousalStartAge','spousalStartAgeDateHint','spouseAge')">
+            <input type="month" id="spousalStartAgeDate" class="age-date-input" value="2042-11" oninput="syncAgeDate('spousalStartAgeDate','spousalStartAge','spousalStartAgeDateHint','spouseAge')">
             <div id="spousalStartAgeDateHint" class="age-date-hint"></div>
           </div>
         </div>
@@ -728,7 +728,7 @@
         <div class="mini-label">Annuity</div>
         <div class="three-col">
           <div class="field"><label>Annuity payout ($/mo, today's $)</label><input type="number" id="annuityMonthly" value="0" step="50"></div>
-          <div class="field"><label>Annuity start age</label><input type="number" id="annuityStartAge" value="65" min="40" max="95" oninput="syncDateFromAge('annuityStartAge','annuityStartAgeDate','annuityStartAgeDateHint','currentAge')">
+          <div class="field"><label>Annuity start age</label><input type="number" id="annuityStartAge" value="0" min="40" max="95" oninput="syncDateFromAge('annuityStartAge','annuityStartAgeDate','annuityStartAgeDateHint','currentAge')">
             <input type="month" id="annuityStartAgeDate" class="age-date-input" oninput="syncAgeDate('annuityStartAgeDate','annuityStartAge','annuityStartAgeDateHint','currentAge')">
             <div id="annuityStartAgeDateHint" class="age-date-hint"></div>
           </div>
@@ -747,36 +747,36 @@
 
     <!-- ================= SURVIVORSHIP ================= -->
     <div class="page" data-page="survivorship">
-      <div class="page-header"><h2>Survivorship</h2><p>What-if only — this page never changes your main plan or Monte Carlo confidence score. It only feeds the dynamic survivorship scenario on the Explorers page.</p></div>
+      <div class="page-header"><h2>Survivorship</h2><p>Setting an assumed predecease age below is part of your main plan — it feeds straight into the Dashboard, Income, Income Gap &amp; Withdrawals, and your main confidence score, not just a separate what-if. Leave it at 0 to leave it off entirely.</p></div>
 
       <div class="results-grid"><div class="stat" id="survivorshipConfidenceTile"><div class="label">Survivorship confidence score</div><div class="value">Not set</div></div></div>
 
       <div class="card">
-        <h3 onclick="toggleCard(this)">Survivorship: SBP &amp; DIC<span class="sub-label">What-if only — does not change your main plan or confidence score</span></h3>
-        <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to turn this on as a scenario on the Explorers page. From that age forward in that scenario only, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over. Leave the age blank/0 to leave this off entirely.</p>
+        <h3 onclick="toggleCard(this)">Survivorship: SBP &amp; DIC<span class="sub-label">Part of your main plan once an age is set below</span></h3>
+        <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Set an assumed age below to build it into your whole plan, not just a separate scenario. From that age forward, both pensions and VA disability stop, Social Security drops to the single survivor benefit, and SBP/DIC (if entered) take over — everywhere in the tool, including the main confidence score. Leave the age blank/0 to leave this off entirely.</p>
         <div class="three-col">
-          <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="0" min="0" max="100"></div>
-          <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="100" min="10" max="150" step="5"></div>
-          <div class="field"><label>Life insurance payout to spouse (VGLI, lump sum)</label><input type="number" id="survivorLifeInsuranceAmount" value="400000" min="0" step="1000"></div>
+          <div class="field"><label>Assumed age you predecease your spouse</label><input type="number" id="survivorshipDeathAge" value="70" min="0" max="100"></div>
+          <div class="field"><label>Spouse's spending after you're gone (% of normal)</label><input type="number" id="survivorSpendingPct" value="55" min="10" max="150" step="5"></div>
+          <div class="field"><label>Life insurance payout to spouse (VGLI, lump sum)</label><input type="number" id="survivorLifeInsuranceAmount" value="100000" min="0" step="1000"></div>
         </div>
         <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">Paid out as a one-time lump sum the year this scenario starts, added straight to the brokerage pies as another resource to help fund your spouse's expenses. Set to $0 if not applicable.</p>
         <hr class="divider">
         <div class="mini-label">SBP on Military Pension</div>
-        <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled" onchange="render()"><label for="sbp1Enabled">SBP elected on Military Pension</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="sbp1Enabled" checked onchange="render()"><label for="sbp1Enabled">SBP elected on Military Pension</label></div>
         <div class="two-col">
           <div class="field"><label>SBP coverage (% of pension)</label><input type="number" id="sbp1Pct" value="55" min="0" max="55" step="1"></div>
-          <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="116" step="5"></div>
+          <div class="field"><label>SBP premium you pay now ($/mo)</label><input type="number" id="sbp1PremiumMonthly" value="162" step="5"></div>
         </div>
         <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">= <span id="sbp1Computed">$0</span>/mo to spouse, taxable, based on your current Military Pension amount</p>
         <div class="mini-label">Survivor Annuity on Government Civil Service Pension</div>
-        <div class="checkbox-row"><input type="checkbox" id="sbp2Enabled" onchange="render()"><label for="sbp2Enabled">Survivor annuity elected on Government Civil Service pension</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="sbp2Enabled" checked onchange="render()"><label for="sbp2Enabled">Survivor annuity elected on Government Civil Service pension</label></div>
         <div class="two-col">
           <div class="field"><label>Survivor annuity coverage (% of pension)</label><input type="number" id="sbp2Pct" value="50" min="0" max="50" step="1"></div>
           <div class="field"><label>Premium you pay now ($/mo)</label><input type="number" id="sbp2PremiumMonthly" value="0" step="5"></div>
         </div>
         <p style="font-size:16px;color:var(--muted);margin:2px 0 0;">= <span id="sbp2Computed">$0</span>/mo to spouse, taxable, based on your current Government Civil Service pension amount</p>
         <div class="mini-label">VA Dependency &amp; Indemnity Compensation (DIC)</div>
-        <div class="checkbox-row"><input type="checkbox" id="dicEligible"><label for="dicEligible">Spouse likely DIC-eligible</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="dicEligible" checked><label for="dicEligible">Spouse likely DIC-eligible</label></div>
         <div class="field"><label>DIC amount ($/mo, tax-free — 2026 base rate is $1,699.36)</label><input type="number" id="dicMonthlyAmount" value="1699" step="1"></div>
         <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Military SBP pays 55% of your pension and is taxable income to your spouse; Government Civil Service survivor annuities max out at 50%. Both auto-calculate from your entered pension amounts above and grow at that pension's own yearly increase rate. The premium (paid while you're alive) stops once the survivor annuity starts. DIC is tax-free and, since Jan. 2023, no longer offsets SBP — your spouse can receive both in full at the same time. DIC eligibility depends on cause/duration of a service-connected disability rating, not just having one — worth confirming with the VA.</p>
       </div>
@@ -786,7 +786,7 @@
         <p style="font-size:16.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;">Every recurring cost — housing, medical, and everything from the Expenses, Debt, and Insurance pages — is listed below, checked "continues" by default with its current amount. Uncheck anything that stops once you're gone (paid off by a life insurance payout, a debt that was solely yours, a subscription only you used), or edit the amount if it would change rather than disappear (a smaller place, a new cost like paid help). This feeds both the numbers below and the real projection on the Explorers page.</p>
         <div class="mini-label" style="margin-bottom:2px;">Housing</div>
         <div class="checkbox-row"><input type="checkbox" id="survivorHousingContinues" checked onchange="render()"><label for="survivorHousingContinues">Housing (rent or mortgage/property tax/insurance) continues</label></div>
-        <div class="field"><label>Override housing cost once you're gone ($/mo, today's $ — leave blank to use the actual projected cost)</label><input type="number" id="survivorHousingAmountOverride" placeholder="Use projected cost" step="25"></div>
+        <div class="field"><label>Override housing cost once you're gone ($/mo, today's $ — leave blank to use the actual projected cost)</label><input type="number" id="survivorHousingAmountOverride" value="2000" placeholder="Use projected cost" step="25"></div>
         <hr class="divider">
         <div class="mini-label" style="margin-bottom:2px;">Medical (Tricare / Medicare Part B / FEDVIP)</div>
         <div class="checkbox-row"><input type="checkbox" id="survivorMedicalContinues" checked onchange="render()"><label for="survivorMedicalContinues">Her Tricare/Medicare Part B/FEDVIP continues</label></div>
@@ -837,7 +837,7 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Excess Income Savings<span class="sub-label">Automatically invest a share of whatever's left over each year, on top of the contributions above</span></h3>
-        <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="35" step="5" min="0" max="100"></div>
+        <div class="field"><label>Save this % of leftover income (into Brokerage)</label><input type="number" id="excessIncomeSavingsPct" value="25" step="5" min="0" max="100"></div>
         <div class="field"><label>Deposit into</label>
           <select id="excessIncomeDestinationPie" onchange="updateExcessIncomeDestination(this.value)"></select>
         </div>
@@ -896,9 +896,9 @@
       <div class="card">
         <h3 onclick="toggleCard(this)">Bank Accounts<span class="sub-label">Liquidity — not spent down in this projection</span></h3>
         <div class="three-col">
-          <div class="field"><label>Checking ($)</label><input type="number" id="checkingBalance" value="0" step="500"></div>
-          <div class="field"><label>Savings ($)</label><input type="number" id="savingsBalance" value="0" step="500"></div>
-          <div class="field"><label>HYSA ($)</label><input type="number" id="hysaBalance" value="10000" step="500"></div>
+          <div class="field"><label>Checking ($)</label><input type="number" id="checkingBalance" value="18" step="500"></div>
+          <div class="field"><label>Savings ($)</label><input type="number" id="savingsBalance" value="25" step="500"></div>
+          <div class="field"><label>HYSA ($)</label><input type="number" id="hysaBalance" value="7250" step="500"></div>
         </div>
         <p id="acctSyncNote" style="font-size:15.5px;color:var(--muted);margin:0 0 12px;line-height:1.5;display:none;">These three balances are synced live from your registers on the <b>Accounts &amp; Cards</b> page (Cindy's + Mike's Checking combined, Savings, HYSA) — edit them there instead.</p>
         <div class="two-col">
@@ -1101,10 +1101,10 @@
       </div>
 
       <div class="card">
-        <h3 onclick="toggleCard(this)">Long-Term Care (spouse)<span class="sub-label">Modeled as a temporary cost spike, funded from Roth TSP first</span></h3>
+        <h3 onclick="toggleCard(this)">Long-Term Care (spouse)<span class="sub-label">Modeled as a temporary cost spike, funded strictly from Roth TSP</span></h3>
         <div class="checkbox-row">
           <input type="checkbox" id="ltcEnabled" checked>
-          <label for="ltcEnabled">Model long-term care costs for spouse, funded from Roth TSP</label>
+          <label for="ltcEnabled">Model long-term care costs for spouse, funded strictly from Roth TSP (no fallback to other accounts if Roth runs short)</label>
         </div>
         <div class="sub-fields" id="ltcFields">
           <div class="two-col">
@@ -1117,8 +1117,8 @@
           <div class="field">
             <label>Type of care (Boise, ID area estimates)</label>
             <select id="ltcCareType" onchange="updateLtcCareType(this.value)">
-              <option value="custom" selected>Custom amount (enter below)</option>
-              <option value="inhome_parttime">In-home care — part-time (~20 hrs/wk)</option>
+              <option value="custom">Custom amount (enter below)</option>
+              <option value="inhome_parttime" selected>In-home care — part-time (~20 hrs/wk)</option>
               <option value="inhome_fulltime">In-home care — full-time (~50+ hrs/wk)</option>
               <option value="assisted_living">Assisted living facility</option>
               <option value="memory_care">Memory care</option>
@@ -1127,7 +1127,7 @@
               <option value="none">Will not need long-term care</option>
             </select>
           </div>
-          <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="75000" step="1000"></div>
+          <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="31200" step="1000"></div>
           <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Picking a care type fills in a Boise-area cost estimate below, which you can still edit by hand — it doesn't lock the number. Estimates: in-home care ~$30/hr (Boise-area caregiver rates run roughly $21-$36/hr depending on agency vs. independent hire); assisted living ~$54,000/yr (Boise-area facilities run lower than Idaho's ~$60,000/yr statewide median); memory care ~$72,000/yr; nursing home (semi-private) ~$120,000/yr (Idaho runs above the national median here); family/informal care ~$12,000/yr for incidentals, supplies, and respite care rather than a wage. Source: Genworth/CareScout Cost of Care Survey and local caregiver rate data, today's dollars.</p>
           <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
         </div>
@@ -1270,9 +1270,9 @@
         <div id="marketExplorerCustomPanel" style="display:none;">
           <div class="mini-label" style="margin:4px 0 10px;">Set Your Own Market Conditions</div>
           <div class="three-col">
-            <div class="field"><label>When does the market drop begin? (age)</label><input type="number" id="mktExplorerStartAge" value="" min="0" max="100" placeholder="Retirement age"></div>
-            <div class="field"><label>How long does the downturn last? (years)</label><input type="number" id="mktExplorerDuration" value="3" min="1" max="20"></div>
-            <div class="field"><label>How much do investments drop? (%/yr)</label><input type="number" id="mktExplorerDropPct" value="25" min="0" max="100" step="1"></div>
+            <div class="field"><label>When does the market drop begin? (age)</label><input type="number" id="mktExplorerStartAge" value="56" min="0" max="100" placeholder="Retirement age"></div>
+            <div class="field"><label>How long does the downturn last? (years)</label><input type="number" id="mktExplorerDuration" value="2" min="1" max="20"></div>
+            <div class="field"><label>How much do investments drop? (%/yr)</label><input type="number" id="mktExplorerDropPct" value="15" min="0" max="100" step="1"></div>
           </div>
         </div>
         <div id="marketExplorerResult"></div>
@@ -4598,16 +4598,16 @@ const EXPENSE_CATEGORIES = ['Food & Groceries','Transportation','Healthcare','Ut
 // but doesn't itself change the projection. Existing rows default mustSpend = amount (essential utility
 // bills), except the two clearly-discretionary ones, which default to $0.
 let expenses = [
-  { name:'Intermountain Gas', category:'Utilities', amount:50.00, mustSpend:50.00 },
-  { name:'Verizon', category:'Utilities', amount:154.00, mustSpend:154.00 },
-  { name:'Idaho Power', category:'Utilities', amount:90.00, mustSpend:90.00 },
-  { name:'Centurylink', category:'Utilities', amount:105.00, mustSpend:105.00 },
-  { name:'YouTube Premium', category:'Subscriptions', amount:27.00, mustSpend:0 },
-  { name:'Ring', category:'Subscriptions', amount:10.00, mustSpend:0 },
-  { name:'Sinking Funds', category:'Subscriptions', amount:130.00, mustSpend:0 },
-  { name:'Planet Fitness', category:'Personal Care', amount:21.00, mustSpend:0 },
-  { name:'To Cindy', category:'Personal Support', amount:3466.00, mustSpend:3466.00 },
-  { name:'Fun money / Backup', category:'Personal Support', amount:450.00, mustSpend:0 }
+  { name:'Intermountain Gas', category:'Utilities', amount:50, survivorContinues:true },
+  { name:'Verizon', category:'Utilities', amount:154 },
+  { name:'Idaho Power', category:'Utilities', amount:90 },
+  { name:'Centurylink', category:'Utilities', amount:105 },
+  { name:'YouTube Premium', category:'Subscriptions', amount:27 },
+  { name:'Ring', category:'Subscriptions', amount:10 },
+  { name:'Sinking Funds', category:'Subscriptions', amount:130, survivorAmount:65, jobLoss:75 },
+  { name:'Planet Fitness', category:'Personal Care', amount:21, survivorContinues:false, jobLoss:0 },
+  { name:'To Cindy', category:'Personal Support', amount:3466, survivorAmount:3050, mustSpend:3050, jobLoss:2026 },
+  { name:'Fun money / Backup ', category:'Personal Support', amount:450, survivorContinues:false, jobLoss:0 }
 ];
 function renderExpenseRows() {
   const container = els('expenseRows');
@@ -4909,8 +4909,9 @@ function renderSurvivorExpenseChecklist() {
 
 // ---------- Future / one-time planned expenses (dynamic rows) ----------
 let futureExpenses = [
-  { name:'Vehicle Purchase #1', age: 62, amount: 1000, recurring:true, endAge: 67, dateValue:'2036-01' },
-  { name:'Vehicle Purchase #2', age: 77, amount: 1200, recurring:true, endAge: 82, dateValue:'2051-01' }
+  { name:'Vehicle Purchase #1', age: 62, amount: 12000, recurring:true, endAge: 67, dateValue:'2036-01', survivorContinues:true },
+  { name:'Vehicle Purchase #2', age: 77, amount: 14400, recurring:true, endAge: 82, dateValue:'2051-01', survivorContinues:true },
+  { name:'Vacations & Trips', age: 56, amount: 4992, recurring:true, endAge: 70, dateValue:null, survivorContinues:false }
 ];
 function renderFutureExpenseRows() {
   const container = els('futureExpenseRows');
@@ -5028,7 +5029,7 @@ const INSURANCE_TYPES = ['Life','Long-Term Care','Auto','Home/Renters','Umbrella
 let insurancePolicies = [
   { name:'State Farm: Car, Renters and Life', type:'Other', premium:127, coverage:250000 },
   { name:'Trupanion (Buddy)', type:'Other', premium:41, coverage:0 },
-  { name:'VGLI', type:'Life', premium:116, coverage:400000 }
+  { name:'VGLI', type:'Life', premium:116, coverage:400000, survivorContinues:false }
 ];
 function renderInsuranceRows() {
   const container = els('insuranceRows');
@@ -5056,9 +5057,9 @@ function removeInsurancePolicy(i) { insurancePolicies.splice(i,1); renderInsuran
 
 // ---------- Brokerage pies (dynamic rows, M1 Finance) ----------
 let brokeragePies = [
-  { name:'Secondary Bridge If Needed / Cash Refill', balance:640, contribution:550, riskType:'equity', cashRate:4.5 },
-  { name:'Sequence of Returns Risk (T-Bills)', balance:340, contribution:300, riskType:'cash', cashRate:4.5 },
-  { name:'Taxes Post Age 59.5', balance:11360, contribution:716, riskType:'equity', cashRate:4.5 }
+  { name:'Secondary Bridge If Needed / Cash Refill', balance:640, contribution:550 },
+  { name:'Sequence of Returns Risk (T-Bills)', balance:340, contribution:300, riskType:'cash', cashRate:3.56 },
+  { name:'Taxes Post Age 59.5', balance:11360, contribution:716 }
 ];
 function renderBrokeragePieRows() {
   const container = els('brokeragePieRows');
@@ -5088,7 +5089,7 @@ function addBrokeragePie() { brokeragePies.push({ name:'New pie', balance:1000, 
 function removeBrokeragePie(i) { brokeragePies.splice(i,1); renderBrokeragePieRows(); renderPieContributionRows(); render(); }
 
 // ---------- Excess income savings destination: a single named pie (e.g. a cash-like SGOV pie), not spread across all pies ----------
-let excessIncomeDestinationPieName = '';
+let excessIncomeDestinationPieName = 'Sequence of Returns Risk (T-Bills)';
 function renderExcessIncomeDestinationOptions() {
   const sel = els('excessIncomeDestinationPie');
   if (!sel) return;
@@ -5196,7 +5197,7 @@ function renderWithdrawalOrderRows() {
 // ---------- Debt (dynamic rows) ----------
 const DEBT_CATEGORIES = ['Credit Card','Auto Loan','Student Loan','Personal Loan','Medical Debt','Other'];
 let debts = [
-  { name:'Car Payment', category:'Auto Loan', balance:14028, apr:5.1, payment:712 }
+  { name:'Car Payment', category:'Auto Loan', balance:14028, apr:5.1, payment:712, survivorContinues:false }
 ];
 function renderDebtRows() {
   const container = els('debtRows');
@@ -5366,6 +5367,12 @@ function readInputs() {
     pension2Growth: +els('pension2Growth').value/100,
     pension2Age: +els('pension2Age').value,
     survivorshipDeathAge: +els('survivorshipDeathAge').value || 0,
+    // Setting an assumed predecease age IS the toggle — no separate checkbox. Previously this stayed
+    // false for the main plan no matter what (only the Explorers/Survivorship what-if pages forced it to
+    // true internally), so Social Security etc. kept flowing at full strength straight through the plan
+    // horizon even past this age; the Dashboard, Income, Income Gap & Withdrawals, and the main Monte
+    // Carlo score now all honor it directly, the same as every other page already did as a "what if."
+    survivorshipEnabled: (+els('survivorshipDeathAge').value || 0) > 0,
     survivorSpendingPct: +els('survivorSpendingPct').value/100 || 1,
     survivorLifeInsuranceAmount: +els('survivorLifeInsuranceAmount').value || 0,
     sbp1Enabled: els('sbp1Enabled').checked,
@@ -5569,6 +5576,29 @@ function projectRun(inputs, ctx, randomize, shocks) {
       withdrawalByAccount[key] = (withdrawalByAccount[key] || 0) + amt;
       grossWithdrawal += amt;
     };
+    // Shared sequential waterfall for "special" draws (Long-Term Care, Future/planned expenses) that can
+    // happen in ANY year, pre- or post-retirement — pulls raw dollar amounts (no tax gross-up; these two
+    // draws have always been modeled as plain balance reductions, unlike the tax-aware post-retirement
+    // takeFrom() further below) strictly one account at a time, in the exact order configured on the Money
+    // Flows page (inputs.withdrawalOrder — Trad TSP, then each brokerage pie individually, then HYSA, then
+    // Roth, by default), fully draining each before moving to the next. Previously LTC and Future Expenses
+    // each had their own hardcoded fallback order (LTC: Roth first, tax-free; Future Expenses: HYSA/savings/
+    // checking first) that ignored the user's configured order and could raid a brokerage pie reserved for
+    // a specific purpose (e.g. "Sequence of Returns Risk" T-bills) well before Traditional TSP was touched.
+    const withdrawInOrder = (amountNeeded, order) => {
+      let remain = amountNeeded;
+      for (const key of order) {
+        if (remain <= 0.01) break;
+        if (key === 'trad') { const take = Math.min(remain, balTrad); balTrad -= take; remain -= take; addDirectWithdrawal('trad', take); }
+        else if (key === 'roth') { const take = Math.min(remain, balRoth); balRoth -= take; remain -= take; addDirectWithdrawal('roth', take); }
+        else if (key === 'hysa') { const take = Math.min(remain, balHYSA); balHYSA -= take; remain -= take; addDirectWithdrawal('hysa', take); }
+        else if (key.startsWith('pie_')) {
+          const idx = +key.slice(4);
+          if (balBrokeragePies[idx] !== undefined) { const take = Math.min(remain, balBrokeragePies[idx]); balBrokeragePies[idx] -= take; remain -= take; addDirectWithdrawal(key, take); }
+        }
+      }
+      return remain; // whatever's left unmet, if the whole order runs dry
+    };
 
     if (ctx.mortgageSchedule && y === ctx.mortgageSchedule.purchaseYearIdx) {
       let remaining = ctx.mortgageSchedule.downPayment;
@@ -5582,25 +5612,25 @@ function projectRun(inputs, ctx, randomize, shocks) {
       }
     }
 
-    // Long-term care for spouse: paid from Roth TSP first, tax-free; overflow falls back to Brokerage then Traditional TSP.
+    // Long-term care for spouse: paid strictly from Roth TSP, tax-free — no fallback to Trad TSP, Brokerage,
+    // or HYSA even if Roth runs short. If Roth doesn't have enough to cover a given year's LTC cost, the
+    // uncovered portion is left as a real shortfall in the plan (shortfallEver) rather than quietly getting
+    // absorbed by another account — a deliberate exception to the "Trad TSP first everywhere" rule used for
+    // everyday spending and Future Expenses, kept separate because LTC is specifically meant to be funded by
+    // the dedicated Roth balance and nothing else.
     let ltcCostThisYear = 0;
     if (inputs.ltcEnabled && spouseAgeThisYear >= inputs.ltcStartAge && spouseAgeThisYear < inputs.ltcStartAge + inputs.ltcDuration) {
       const medicalInflatorNow = Math.pow(1+inputs.medicalInflation, y);
       ltcCostThisYear = inputs.ltcAnnualCost * medicalInflatorNow;
-      let ltcRemaining = ltcCostThisYear;
-      const fromRoth = Math.min(ltcRemaining, balRoth); balRoth -= fromRoth; ltcRemaining -= fromRoth;
-      addDirectWithdrawal('roth', fromRoth);
-      const brokerageAvailable = sumPies(balBrokeragePies);
-      const fromBrokerage = Math.min(ltcRemaining, brokerageAvailable); addPooledWithdrawal(applyPooledDelta(balBrokeragePies, -fromBrokerage)); ltcRemaining -= fromBrokerage;
-      const fromTrad = Math.min(ltcRemaining, balTrad); balTrad -= fromTrad; ltcRemaining -= fromTrad;
-      addDirectWithdrawal('trad', fromTrad);
-      if (ltcRemaining > 0.01) shortfallEver = true;
+      const fromRoth = Math.min(ltcCostThisYear, balRoth); balRoth -= fromRoth; addDirectWithdrawal('roth', fromRoth);
+      if (ltcCostThisYear - fromRoth > 0.01) shortfallEver = true;
     }
 
-    // Future / one-time planned expenses: hit at a specific age (or a recurring range), drawn from cash first, then
-    // brokerage, then (if still short) Roth TSP, then Traditional TSP — same fallback order as Long-Term Care below,
-    // so a big planned expense can't be flagged a "failure" just because the small liquid/brokerage buckets are thin
-    // while six-figure TSP balances sit untouched.
+    // Future / one-time planned expenses: hit at a specific age (or a recurring range), drawn in your
+    // configured withdrawal order (Money Flows page) — Traditional TSP first by default, same as everyday
+    // spending and Long-Term Care above — instead of the old cash-first fallback (HYSA/savings/checking),
+    // which used to raid the emergency HYSA reserve for a planned vehicle purchase or vacation before ever
+    // touching Traditional TSP.
     // Survivorship what-if: only items still checked "continues" on the Survivorship page's checklist count,
     // at each item's edited override amount if one was set — same per-item pattern as expenses/debts/insurance.
     // Explorers "What If I..." cards (e.g. "an unexpected $50k expense in 5 years") inject a synthetic entry
@@ -5615,23 +5645,8 @@ function projectRun(inputs, ctx, randomize, shocks) {
       futureExpenseCostThisYear += amt * Math.pow(1+inputs.inflation, y);
     });
     if (futureExpenseCostThisYear > 0) {
-      let feRemaining = futureExpenseCostThisYear;
-      const f1 = Math.min(feRemaining, balHYSA); balHYSA -= f1; feRemaining -= f1;
-      addDirectWithdrawal('hysa', f1);
-      const f2 = Math.min(feRemaining, balSavings); balSavings -= f2; feRemaining -= f2;
-      const f3 = Math.min(feRemaining, balChecking); balChecking -= f3; feRemaining -= f3;
-      if (feRemaining > 0) {
-        const feBrokerageAvailable = sumPies(balBrokeragePies);
-        const fromFeBrokerage = Math.min(feRemaining, feBrokerageAvailable);
-        addPooledWithdrawal(applyPooledDelta(balBrokeragePies, -fromFeBrokerage)); feRemaining -= fromFeBrokerage;
-        if (feRemaining > 0) {
-          const fromFeRoth = Math.min(feRemaining, balRoth); balRoth -= fromFeRoth; feRemaining -= fromFeRoth;
-          addDirectWithdrawal('roth', fromFeRoth);
-          const fromFeTrad = Math.min(feRemaining, balTrad); balTrad -= fromFeTrad; feRemaining -= fromFeTrad;
-          addDirectWithdrawal('trad', fromFeTrad);
-        }
-        if (feRemaining > 0.01) shortfallEver = true;
-      }
+      const feRemaining = withdrawInOrder(futureExpenseCostThisYear, inputs.withdrawalOrder);
+      if (feRemaining > 0.01) shortfallEver = true;
     }
 
     // Windfalls: one-time inflows at a specific age, deposited into the chosen account.
@@ -6784,7 +6799,12 @@ function yearlyBarConfig(ages, series, opts) {
   }));
   return {
     type: 'bar',
-    data: { labels: ages.map(a => 'Age ' + a), datasets },
+    // opts.labels lets a caller override the default "Age 68" x-axis labels — used by the Income chart
+    // once Survivorship is enabled, so a year that's actually tracking the surviving spouse alone (after
+    // the primary's modeled death age) reads as "Age 71 (spouse)" instead of silently continuing to look
+    // like the primary's own age, which is what made it look like SS was still being paid to someone
+    // who'd already passed.
+    data: { labels: opts.labels || ages.map(a => 'Age ' + a), datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -6843,19 +6863,46 @@ function buildYearlyChartConfig(pageId, snap) {
       // this year," so it all belongs in one combined stack).
       const accountKeys = getWithdrawalAccountKeys();
       const usedKeys = accountKeys.filter(k => rows.some(r => (r.withdrawalByAccount && r.withdrawalByAccount[k]) > 0.5));
+      // Survivorship: once the primary passes (age >= survivorshipDeathAge), the engine keeps ssAmount's
+      // dollar figure flowing but repurposes it as the surviving spouse's 100% survivor SS benefit (see the
+      // comment in projectRun's survivorshipActive block) — pension(s)/VA disability/spousal benefit all
+      // correctly drop to $0 that same year, but without this split the "Social Security" bar just kept
+      // going unchanged and with the same label, which looked exactly like still being paid your own SS
+      // after death. Splitting it into two series (one that stops, one that only starts at death) plus
+      // surfacing SBP/DIC — which the engine already computes and adds into guaranteedIncome, but which
+      // never had their own bars here — makes the actual transition visible instead of invisible.
+      const survivorshipActiveFor = r => !!(inputs.survivorshipEnabled && inputs.survivorshipDeathAge && r.age >= inputs.survivorshipDeathAge);
+      const hasSurvivorship = !!inputs.survivorshipEnabled && rows.some(survivorshipActiveFor);
+      const ssSeries = hasSurvivorship ? [
+        { label: 'Social Security (your benefit)', data: rows.map(r => d(survivorshipActiveFor(r) ? 0 : r.ssAmount, r.age)) },
+        { label: 'Social Security (survivor benefit)', data: rows.map(r => d(survivorshipActiveFor(r) ? r.ssAmount : 0, r.age)) }
+      ] : [
+        { label: 'Social Security (SS COLA)', data: rows.map(r => d(r.ssAmount, r.age)) }
+      ];
+      const survivorExtraSeries = hasSurvivorship ? [
+        { label: 'SBP Survivor Annuity', data: rows.map(r => d(r.sbpAmount, r.age)) },
+        { label: 'DIC (VA Survivor Benefit)', data: rows.map(r => d(r.dicAmount, r.age)) }
+      ].filter(s => s.data.some(v => v > 0.5)) : [];
       return yearlyBarConfig(ages, [
         { label: 'Job income (annual raise %)', data: rows.map(r => d(r.income, r.age)) },
-        { label: 'Social Security (SS COLA)', data: rows.map(r => d(r.ssAmount, r.age)) },
+        ...ssSeries,
         { label: 'Spousal Benefit (SS COLA)', data: rows.map(r => d(r.spousalBenefit, r.age)) },
         { label: 'Military Pension (own yearly increase %)', data: rows.map(r => d(r.pensionAmount, r.age)) },
         { label: 'Govt Civil Service (own yearly increase %)', data: rows.map(r => d(r.pension2Amount, r.age)) },
         { label: 'VA Disability (own yearly increase %)', data: rows.map(r => d(r.vaDisabilityAmount, r.age)) },
         { label: 'Annuity (own yearly increase %)', data: rows.map(r => d(r.annuityAmount, r.age)) },
+        ...survivorExtraSeries,
         ...usedKeys.map(k => ({
           label: 'Withdrawn from: ' + withdrawalAccountInfo(k).label,
           data: rows.map(r => d((r.withdrawalByAccount && r.withdrawalByAccount[k]) || 0, r.age))
         }))
-      ], { stacked: true });
+      ], {
+        stacked: true,
+        // Whose age is this bar? Pre-death, it's always yours; once Survivorship has kicked in, the row
+        // is really tracking your spouse living on alone, so the label switches to their age instead of
+        // silently continuing to show your own age climbing past your modeled life expectancy.
+        labels: hasSurvivorship ? rows.map(r => survivorshipActiveFor(r) ? ('Age ' + r.spouseAge + ' (spouse)') : ('Age ' + r.age + ' (you)')) : undefined
+      });
     }
     case 'medical':
       return yearlyBarConfig(ages, [
@@ -6973,12 +7020,12 @@ function renderExplorers() {
   renderWhatIfSavingsChart(inputs, ctx);
   renderMarketExplorer(inputs, ctx);
   const whatIf = WHAT_IF_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
-  // Survivorship (SBP/DIC) is a dynamically-named what-if, shown only once an assumed death age is set on the
-  // Survivorship page. It's never enabled in the baseline plan or the Monte Carlo confidence score.
-  if (inputs.survivorshipDeathAge > 0) {
-    const survivorshipScenario = { name: `You predecease your spouse at age ${inputs.survivorshipDeathAge} (SBP + DIC)`, apply: inp => ({ ...inp, survivorshipEnabled: true }) };
-    whatIf.push(runExplorerScenario(survivorshipScenario, inputs, ctx));
-  }
+  // Survivorship (SBP/DIC) used to appear here as a separate dynamically-named what-if card, back when
+  // setting an assumed predecease age on the Survivorship page had no effect anywhere else — comparing
+  // "baseline" against "you predecease your spouse" was the only way to see it. Now that survivorshipEnabled
+  // (readInputs()) is itself derived straight from survivorshipDeathAge > 0, the baseline plan already
+  // includes it, so a separate what-if row here would just duplicate every other scenario's numbers
+  // instead of showing something different. See the Survivorship page for the full year-by-year detail.
   const marketRisk = MARKET_RISK_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
 
   const rowsHtml = list => list.map(r => `
@@ -7443,17 +7490,18 @@ function render() {
   ['incomePageSurplusNote','expensesPageSurplusNote'].forEach(id => { if (els(id)) els(id).textContent = surplusText; });
   ['incomePageWithdrawalNote','expensesPageWithdrawalNote'].forEach(id => { if (els(id)) els(id).textContent = withdrawalText; });
 
-  // Survivorship tile: reuses the same what-if the Explorers page runs (never the baseline
-  // plan/main score) — a smaller 300-run Monte Carlo, only computed when an assumed age is
-  // actually set, so this doesn't add cost to every render for people not using the feature.
+  // Survivorship tile: used to run its own separate 300-sim Monte Carlo with survivorshipEnabled forced
+  // on, back when the main `score` above never included it at all. Now that survivorshipEnabled is
+  // derived straight from survivorshipDeathAge > 0 (readInputs()), the main score already reflects it
+  // whenever an age is set — so this just mirrors that same number instead of re-running a redundant,
+  // slightly-noisier (300 vs 1000 sims) duplicate simulation that could otherwise drift from it.
   let survivorshipValue = 'Not set';
   let survivorshipClass = '';
   let survivorshipLabel = 'Survivorship confidence score';
   if (inputs.survivorshipDeathAge > 0) {
-    const survivorshipScore = runMonteCarlo({ ...inputs, survivorshipEnabled: true }, ctx, 300);
-    survivorshipValue = Math.round(survivorshipScore) + '%';
-    survivorshipClass = survivorshipScore >= 80 ? 'ok' : (survivorshipScore < 60 ? 'warn' : '');
-    survivorshipLabel = `Survivorship confidence score (if age ${inputs.survivorshipDeathAge})`;
+    survivorshipValue = Math.round(score) + '%';
+    survivorshipClass = score >= 80 ? 'ok' : (score < 60 ? 'warn' : '');
+    survivorshipLabel = `Confidence score, incl. survivorship (age ${inputs.survivorshipDeathAge})`;
   }
   // Same tile, same already-computed score, mirrored onto the Survivorship page itself so it's visible
   // right there without having to go back to the Dashboard.
