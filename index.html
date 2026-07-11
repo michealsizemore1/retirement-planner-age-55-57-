@@ -5429,13 +5429,17 @@ function prorateFirstYear(age, eligibilityAge, fullAmount, birthMonth, currentAg
 function sumPies(arr) { return arr.reduce((s, b) => s + b, 0); }
 // Applies a pooled inflow/outflow across all pies proportionally to their current balance (a positive delta
 // deposits, a negative delta withdraws). Withdrawals "water-fill" over a few rounds so a pie that runs dry
-// hands its unmet share to the others, and every pie is floored at 0.
+// hands its unmet share to the others, and every pie is floored at 0. Returns an array (same length/order as
+// pieBalances) of how much each individual pie's balance actually changed — positive for a deposit, negative
+// for a withdrawal — so callers that need to know (e.g. attributing a Long-Term Care or Future Expense pull
+// to the Income Gap & Withdrawals per-account breakdown) can do so; most callers just ignore the return value.
 function applyPooledDelta(pieBalances, delta) {
-  if (!pieBalances.length || Math.abs(delta) < 1e-9) return;
+  const before = pieBalances.slice();
+  if (!pieBalances.length || Math.abs(delta) < 1e-9) return pieBalances.map(() => 0);
   if (delta > 0) {
     const total = sumPies(pieBalances);
-    if (total <= 0) { pieBalances[0] += delta; return; }
-    for (let i = 0; i < pieBalances.length; i++) pieBalances[i] += delta * (pieBalances[i] / total);
+    if (total <= 0) { pieBalances[0] += delta; }
+    else { for (let i = 0; i < pieBalances.length; i++) pieBalances[i] += delta * (pieBalances[i] / total); }
   } else {
     let remaining = -delta;
     for (let round = 0; round < pieBalances.length && remaining > 0.01; round++) {
@@ -5452,6 +5456,7 @@ function applyPooledDelta(pieBalances, delta) {
     }
     for (let i = 0; i < pieBalances.length; i++) if (pieBalances[i] < 0) pieBalances[i] = 0;
   }
+  return pieBalances.map((b, i) => b - before[i]);
 }
 
 // ---------- RMD (Required Minimum Distribution) ----------
@@ -5519,14 +5524,42 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // baseline, same as if the toggle weren't on at all.
     const jobLossActive = spendingBasis === 'jobloss' && inputs.jobLossAge != null && age >= inputs.jobLossAge;
 
+    // Hoisted up here (rather than declared down near the rest of this year's stats, below) so the
+    // mortgage down payment / Long-Term Care / Future Expenses pulls just below — which can all happen
+    // in ANY year, not just retirement years — can also record which specific account(s) they actually
+    // came out of. Previously only the main retirement withdrawal waterfall (further down) populated
+    // these, so a LTC bill or a planned future expense that dipped into Traditional TSP, Roth TSP, HYSA,
+    // or a brokerage pie would silently vanish from the Income Gap & Withdrawals / Income-by-Year
+    // per-account breakdowns and from the lifetime gross-withdrawal total, even though the account
+    // balance itself was correctly reduced. Checking/savings pulls still aren't tracked here, matching
+    // how the main waterfall itself only ever draws from trad/roth/hysa/pies, never checking/savings.
+    let grossWithdrawal = 0;
+    const withdrawalByAccount = {};
+    const addPooledWithdrawal = (deltas) => {
+      let total = 0;
+      deltas.forEach((delta, i) => {
+        if (delta >= 0) return;
+        const amt = -delta;
+        withdrawalByAccount['pie_'+i] = (withdrawalByAccount['pie_'+i] || 0) + amt;
+        total += amt;
+      });
+      grossWithdrawal += total;
+    };
+    const addDirectWithdrawal = (key, amt) => {
+      if (!(amt > 0)) return;
+      withdrawalByAccount[key] = (withdrawalByAccount[key] || 0) + amt;
+      grossWithdrawal += amt;
+    };
+
     if (ctx.mortgageSchedule && y === ctx.mortgageSchedule.purchaseYearIdx) {
       let remaining = ctx.mortgageSchedule.downPayment;
       const t1 = Math.min(remaining, balChecking); balChecking -= t1; remaining -= t1;
       const t2 = Math.min(remaining, balSavings); balSavings -= t2; remaining -= t2;
       const t3 = Math.min(remaining, balHYSA); balHYSA -= t3; remaining -= t3;
+      addDirectWithdrawal('hysa', t3);
       if (remaining > 0) {
         if (remaining - sumPies(balBrokeragePies) > 0.01) shortfallEver = true;
-        applyPooledDelta(balBrokeragePies, -remaining);
+        addPooledWithdrawal(applyPooledDelta(balBrokeragePies, -remaining));
       }
     }
 
@@ -5537,9 +5570,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
       ltcCostThisYear = inputs.ltcAnnualCost * medicalInflatorNow;
       let ltcRemaining = ltcCostThisYear;
       const fromRoth = Math.min(ltcRemaining, balRoth); balRoth -= fromRoth; ltcRemaining -= fromRoth;
+      addDirectWithdrawal('roth', fromRoth);
       const brokerageAvailable = sumPies(balBrokeragePies);
-      const fromBrokerage = Math.min(ltcRemaining, brokerageAvailable); applyPooledDelta(balBrokeragePies, -fromBrokerage); ltcRemaining -= fromBrokerage;
+      const fromBrokerage = Math.min(ltcRemaining, brokerageAvailable); addPooledWithdrawal(applyPooledDelta(balBrokeragePies, -fromBrokerage)); ltcRemaining -= fromBrokerage;
       const fromTrad = Math.min(ltcRemaining, balTrad); balTrad -= fromTrad; ltcRemaining -= fromTrad;
+      addDirectWithdrawal('trad', fromTrad);
       if (ltcRemaining > 0.01) shortfallEver = true;
     }
 
@@ -5563,15 +5598,18 @@ function projectRun(inputs, ctx, randomize, shocks) {
     if (futureExpenseCostThisYear > 0) {
       let feRemaining = futureExpenseCostThisYear;
       const f1 = Math.min(feRemaining, balHYSA); balHYSA -= f1; feRemaining -= f1;
+      addDirectWithdrawal('hysa', f1);
       const f2 = Math.min(feRemaining, balSavings); balSavings -= f2; feRemaining -= f2;
       const f3 = Math.min(feRemaining, balChecking); balChecking -= f3; feRemaining -= f3;
       if (feRemaining > 0) {
         const feBrokerageAvailable = sumPies(balBrokeragePies);
         const fromFeBrokerage = Math.min(feRemaining, feBrokerageAvailable);
-        applyPooledDelta(balBrokeragePies, -fromFeBrokerage); feRemaining -= fromFeBrokerage;
+        addPooledWithdrawal(applyPooledDelta(balBrokeragePies, -fromFeBrokerage)); feRemaining -= fromFeBrokerage;
         if (feRemaining > 0) {
           const fromFeRoth = Math.min(feRemaining, balRoth); balRoth -= fromFeRoth; feRemaining -= fromFeRoth;
+          addDirectWithdrawal('roth', fromFeRoth);
           const fromFeTrad = Math.min(feRemaining, balTrad); balTrad -= fromFeTrad; feRemaining -= fromFeTrad;
+          addDirectWithdrawal('trad', fromFeTrad);
         }
         if (feRemaining > 0.01) shortfallEver = true;
       }
@@ -5627,10 +5665,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
     const insurancePremiumMonthlyForYear = survivorshipActive ? inputs.insurancePremiumMonthlySurvivor : inputs.insurancePremiumMonthly;
     const insurancePremiumAnnual = (insurancePremiumMonthlyForYear || 0) * 12 * inflator;
 
-    let contributions=0, withdrawal=0, grossWithdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, pension2Amount=0, vaDisabilityAmount=0, annuityAmount=0, sbpAmount=0, dicAmount=0;
-    // How much of this year's gross withdrawal came out of each individual account (trad/roth/hysa/pie_N) —
-    // stays {} for pre-retirement years and any retirement year with no shortfall to cover.
-    const withdrawalByAccount = {};
+    // grossWithdrawal and withdrawalByAccount are declared earlier in this loop iteration (right after
+    // jobLossActive, above the mortgage/LTC/Future Expenses pulls) so those pre-retirement-capable draws
+    // can also feed into them — not redeclared here, just continuing to accumulate onto the same objects.
+    let contributions=0, withdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, pension2Amount=0, vaDisabilityAmount=0, annuityAmount=0, sbpAmount=0, dicAmount=0;
     let fedMarginal=null, ltcgMarginal=null;
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
     let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0;
@@ -5726,15 +5764,18 @@ function projectRun(inputs, ctx, randomize, shocks) {
         if (preRetireNeed > 0.01) {
           let preRemaining = preRetireNeed;
           const j1 = Math.min(preRemaining, balHYSA); balHYSA -= j1; preRemaining -= j1;
+          addDirectWithdrawal('hysa', j1);
           const j2 = Math.min(preRemaining, balSavings); balSavings -= j2; preRemaining -= j2;
           const j3 = Math.min(preRemaining, balChecking); balChecking -= j3; preRemaining -= j3;
           if (preRemaining > 0) {
             const preBrokerageAvailable = sumPies(balBrokeragePies);
             const fromPreBrokerage = Math.min(preRemaining, preBrokerageAvailable);
-            applyPooledDelta(balBrokeragePies, -fromPreBrokerage); preRemaining -= fromPreBrokerage;
+            addPooledWithdrawal(applyPooledDelta(balBrokeragePies, -fromPreBrokerage)); preRemaining -= fromPreBrokerage;
             if (preRemaining > 0) {
               const fromPreRoth = Math.min(preRemaining, balRoth); balRoth -= fromPreRoth; preRemaining -= fromPreRoth;
+              addDirectWithdrawal('roth', fromPreRoth);
               const fromPreTrad = Math.min(preRemaining, balTrad); balTrad -= fromPreTrad; preRemaining -= fromPreTrad;
+              addDirectWithdrawal('trad', fromPreTrad);
             }
             if (preRemaining > 0.01) shortfallEver = true;
           }
