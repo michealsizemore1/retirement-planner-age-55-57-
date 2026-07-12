@@ -5477,6 +5477,11 @@ function readInputs() {
     currentAge: +els('currentAge').value,
     retirementAge: +els('retirementAge').value,
     jobLossAge: dateToAge(jobLossDate, +els('currentAge').value),
+    // Raw calendar strings (not just ages) so the Rule of 55 qualification check below can compare actual
+    // years rather than fractional ages — Rule of 55 is a calendar-year test (separate from federal service
+    // in the year you turn 55, or later), not a birthday-precise one.
+    jobLossDateRaw: jobLossDate,
+    birthDateRaw: els('birthDate') ? els('birthDate').value : '',
     lifeExpectancy: +els('lifeExpectancy').value,
     birthMonth: +els('birthMonth').value || 1,
     currentIncome: +els('currentIncome').value,
@@ -5706,6 +5711,16 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // set from the date field under the toggle) — years before that still run on the normal Like to Spend
     // baseline, same as if the toggle weren't on at all.
     const jobLossActive = spendingBasis === 'jobloss' && inputs.jobLossAge != null && age >= inputs.jobLossAge;
+    // Job Loss test: if this involuntary separation happens before the calendar year you turn 55
+    // (ctx.jobLossQualifiesForRuleOf55 — see buildContext), Traditional TSP isn't just penalized before
+    // 59.5, it's genuinely unavailable as a withdrawal source at all until then — a real TSP/401(k) rule,
+    // independent of the blanket "Rule of 55 applies" toggle (Taxes page), which only reflects the
+    // baseline plan's assumption of separating at 55+. Every place below that could otherwise pull from
+    // Traditional TSP during a Job Loss year checks this first.
+    const tradAvailableForJobLoss = !(jobLossActive && !ctx.jobLossQualifiesForRuleOf55 && age < 59.5);
+    // Same restriction applied to every place that otherwise walks your configured withdrawal order
+    // (LTC is unaffected — it's Roth-only and never touches Trad regardless).
+    const effectiveWithdrawalOrder = tradAvailableForJobLoss ? inputs.withdrawalOrder : inputs.withdrawalOrder.filter(k => k !== 'trad');
 
     // Hoisted up here (rather than declared down near the rest of this year's stats, below) so the
     // mortgage down payment / Long-Term Care / Future Expenses pulls just below — which can all happen
@@ -5840,7 +5855,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       futureExpenseCostThisYear += amt * Math.pow(1+inputs.inflation, y);
     });
     if (futureExpenseCostThisYear > 0 && age < inputs.retirementAge) {
-      const feRemaining = withdrawInOrder(futureExpenseCostThisYear, inputs.withdrawalOrder);
+      const feRemaining = withdrawInOrder(futureExpenseCostThisYear, effectiveWithdrawalOrder);
       if (feRemaining > 0.01) shortfallEver = true;
     }
 
@@ -6044,8 +6059,12 @@ function projectRun(inputs, ctx, randomize, shocks) {
             if (preRemaining > 0) {
               const fromPreRoth = Math.min(preRemaining, balRoth); balRoth -= fromPreRoth; preRemaining -= fromPreRoth;
               addDirectWithdrawal('roth', fromPreRoth);
-              const fromPreTrad = Math.min(preRemaining, balTrad); balTrad -= fromPreTrad; preRemaining -= fromPreTrad;
-              addDirectWithdrawal('trad', fromPreTrad);
+              // Skipped entirely (rather than just penalized) if this Job Loss year doesn't qualify for
+              // Rule of 55 and you're not 59.5 yet — see tradAvailableForJobLoss above.
+              if (preRemaining > 0 && tradAvailableForJobLoss) {
+                const fromPreTrad = Math.min(preRemaining, balTrad); balTrad -= fromPreTrad; preRemaining -= fromPreTrad;
+                addDirectWithdrawal('trad', fromPreTrad);
+              }
             }
             if (preRemaining > 0.01) shortfallEver = true;
           }
@@ -6238,7 +6257,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         const feRemainingAfterSurplus = futureExpenseCostThisYear - feFromSurplus;
         const feTaxRates = { trad: t2, roth: 0, hysa: 0 };
         balBrokeragePies.forEach((_, i) => { feTaxRates['pie_'+i] = t1; });
-        const feRemaining = withdrawInOrder(feRemainingAfterSurplus, inputs.withdrawalOrder, feTaxRates);
+        const feRemaining = withdrawInOrder(feRemainingAfterSurplus, effectiveWithdrawalOrder, feTaxRates);
         if (feRemaining > 0.01) shortfallEver = true;
       }
 
@@ -6312,7 +6331,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
       if (inputs.withdrawalSimultaneous) {
         // Split the need proportionally (by current balance) across the checked accounts, "water-filling"
         // over a few rounds so accounts that run dry hand off their unmet share to the others still selected.
-        let selected = inputs.withdrawalOrder.filter(k => bal[k] !== undefined);
+        // effectiveWithdrawalOrder already excludes 'trad' during a Job Loss year that doesn't qualify for
+        // Rule of 55 and hasn't reached 59.5 yet, so bal.trad simply never gets touched in that case.
+        let selected = effectiveWithdrawalOrder.filter(k => bal[k] !== undefined);
         for (let round = 0; round < selected.length && remaining > 0.01; round++) {
           const active = selected.filter(k => bal[k] > 0.01);
           if (!active.length) break;
@@ -6323,7 +6344,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         }
       } else {
         // Sequential waterfall: drain the 1st account fully before touching the 2nd, then the 3rd.
-        inputs.withdrawalOrder.forEach(key => { if (remaining > 0.01) takeFrom(key, remaining); });
+        effectiveWithdrawalOrder.forEach(key => { if (remaining > 0.01) takeFrom(key, remaining); });
       }
 
       withdrawal = need - remaining;
@@ -6373,6 +6394,17 @@ function buildContext(inputs) {
   const effectiveLifeExpectancy = Math.max(inputs.lifeExpectancy, inputs.spouseLifeExpectancy + ageGap);
   const maxYears = effectiveLifeExpectancy - inputs.currentAge;
   const effectiveSpousalStartAge = Math.max(inputs.ssAge, ageGap + inputs.spousalStartAge);
+  // Job Loss test: Rule of 55 only waives the 10% early-withdrawal penalty (and, more fundamentally, only
+  // makes a TSP "separation withdrawal" available at all before 59.5) if you separate from federal service
+  // in the calendar year you turn 55 or later — a year-based test, not a birthday-precise one. The global
+  // "Rule of 55 applies" toggle (Taxes page) is a blanket assumption for the whole plan, but Job Loss is
+  // specifically testing an involuntary EARLY separation, which could easily land before that threshold —
+  // in which case Traditional TSP isn't just penalized, it's genuinely off-limits as a withdrawal source
+  // until age 59.5, no matter how the global toggle is set. Only meaningful when a Job Loss date is actually
+  // set; defaults to true (no restriction) if it isn't, since there's nothing to disqualify.
+  const jobLossYear = inputs.jobLossDateRaw ? +String(inputs.jobLossDateRaw).slice(0, 4) : null;
+  const turns55Year = inputs.birthDateRaw ? +String(inputs.birthDateRaw).slice(0, 4) + 55 : null;
+  const jobLossQualifiesForRuleOf55 = !jobLossYear || !turns55Year || jobLossYear >= turns55Year;
   const debtSchedules = debts.map(d => buildDebtSchedule(d, maxYears));
   const mortgageSchedule = inputs.buyHome ? buildMortgageSchedule(inputs, maxYears) : null;
   // Expense amounts are entered monthly; annualize here so the rest of the engine works in annual $.
@@ -6417,6 +6449,7 @@ function buildContext(inputs) {
   const expensesJobLossNonMedicalSurvivor = expensesJobLossTotalSurvivor - expensesJobLossMedicalSurvivor;
   return {
     maxYears, ageGap, effectiveLifeExpectancy, effectiveSpousalStartAge, debtSchedules, mortgageSchedule,
+    jobLossQualifiesForRuleOf55,
     expensesTotal, expensesMedical, expensesNonMedical,
     expensesMustSpendTotal, expensesMustSpendMedical, expensesMustSpendNonMedical,
     expensesJobLossTotal, expensesJobLossMedical, expensesJobLossNonMedical,
