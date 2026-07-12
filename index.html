@@ -527,6 +527,7 @@
   .gr-dot-current{background:#132a3e; border:3px solid #fff;}
   .gr-settings{background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:16px 18px 14px; margin-top:4px;}
   .gr-settings-label{font-size:13px; font-weight:700; letter-spacing:.04em; color:#9db1c2; margin-bottom:10px;}
+  .gr-settings-label #grBandReadout{font-weight:400; letter-spacing:normal; color:#7f95a8;}
   .gr-settings-row{display:flex; justify-content:space-between; font-size:15px; font-weight:700; color:#fff; margin-bottom:2px;}
   .gr-band-slider{width:100%; appearance:none; height:6px; border-radius:3px; margin:8px 0 10px;
     background:linear-gradient(90deg, #39c98f 0%, #eaf1f6 50%, #e2564f 100%); cursor:pointer;}
@@ -1380,7 +1381,7 @@
             </div>
 
             <div class="gr-settings">
-              <div class="gr-settings-label">GUARDRAIL SETTINGS</div>
+              <div class="gr-settings-label">GUARDRAIL SETTINGS <span id="grBandReadout">(±20% of initial withdrawal rate)</span></div>
               <div class="gr-settings-row"><span id="grSettingsLow">$0</span><span id="grSettingsHigh">$0</span></div>
               <input type="range" class="gr-band-slider" id="guardBandSlider" min="5" max="40" step="1" value="20"
                 oninput="els('guardBand').value=this.value; render();">
@@ -1389,10 +1390,11 @@
                 <span class="gr-settings-current" id="grSettingsCurrent">$0/mo</span>
                 <span style="text-align:right;">Higher spending<br><small>Higher chance of adjustment</small></span>
               </div>
-              <div class="two-col">
-                <div class="field"><label>Guardrail band (±% of initial withdrawal rate)</label><input type="number" id="guardBand" value="20" step="1" oninput="els('guardBandSlider').value=this.value; render();"></div>
-                <div class="field"><label>Spending adjustment when triggered (%)</label><input type="number" id="guardAdj" value="10" step="1" onchange="render()"></div>
-              </div>
+              <!-- guardBand itself is set via the slider above (same 5-40, 1% range/precision) — this field
+                   stays in the DOM only because readInputs()/saveState()/applyState() read it by id, but it's
+                   no longer shown since it would just duplicate the slider. -->
+              <input type="number" id="guardBand" value="20" step="1" style="display:none;" oninput="render();">
+              <div class="field" style="margin-top:14px;"><label>Spending adjustment when triggered (%)</label><input type="number" id="guardAdj" value="10" step="1" onchange="render()"></div>
             </div>
 
             <p class="gr-note">If your balance ever crosses the upper (green) or lower (red) line above, your monthly spending budget adjusts by the % set below to the amount shown next to that line. A downward adjustment never cuts below your Must Spend essential floor (Expenses page) — housing, debt, insurance, and medical premiums are always fully paid regardless of the cut.</p>
@@ -7912,6 +7914,7 @@ function renderGuardrailsVisual(inputs, rows, retirementAge, result) {
   els('grSettingsLow').textContent = fmtMoney(lowerMonthlyPaycheck);
   els('grSettingsHigh').textContent = fmtMoney(upperMonthlyPaycheck);
   els('grSettingsCurrent').textContent = fmtMoney(monthlySpending) + '/mo';
+  els('grBandReadout').textContent = `(±${Math.round(band * 100)}% of initial withdrawal rate)`;
   const slider = els('guardBandSlider');
   if (slider && document.activeElement !== slider) slider.value = Math.round(band * 100);
 }
