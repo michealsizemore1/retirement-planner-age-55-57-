@@ -5594,8 +5594,14 @@ function readInputs() {
     ssWageBase: +els('ssWageBase').value,
     ruleOf55Applies: els('ruleOf55Applies').checked,
     guardrailsEnabled: els('guardrailsEnabled').checked,
-    guardBand: +els('guardBand').value/100,
-    guardAdj: +els('guardAdj').value/100
+    // A blank field (e.g. from a saved state captured while the field happened to be empty — the
+    // guardBand field itself is now hidden, only ever written by the slider, but guardAdj is still a
+    // plain visible number input someone could clear) silently coerces to 0 via +'' otherwise, which
+    // isn't "no adjustment configured," it's actively wrong: a 0% band or 0% adjustment makes the upper/
+    // current/lower guardrail figures collapse to the exact same number, which looks like a bug rather
+    // than a deliberately-chosen setting. Falls back to each field's own HTML default (20%/10%) instead.
+    guardBand: (els('guardBand').value === '' ? 20 : +els('guardBand').value)/100,
+    guardAdj: (els('guardAdj').value === '' ? 10 : +els('guardAdj').value)/100
   };
 }
 
@@ -7999,6 +8005,12 @@ function render() {
   els('pill57').classList.toggle('active', +els('retirementAge').value === 57);
   els('pill58').classList.toggle('active', +els('retirementAge').value === 58);
   els('pill59').classList.toggle('active', +els('retirementAge').value === 59);
+  // Self-healing: if a saved state (e.g. restored on a different device) left these fields genuinely
+  // blank, re-populate the visible box with its real default now — readInputs() below already treats a
+  // blank field as this same default for the math, but without this the input itself keeps looking empty
+  // (and the next save would just persist "" again) even though the plan is actually using 10%/20%.
+  if (els('guardAdj') && els('guardAdj').value === '') els('guardAdj').value = '10';
+  if (els('guardBand') && els('guardBand').value === '') els('guardBand').value = '20';
 
   const inputs = readInputs();
   const ctx = buildContext(inputs);
