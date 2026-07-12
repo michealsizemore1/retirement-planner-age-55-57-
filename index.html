@@ -365,15 +365,24 @@
 
   .note{font-size:16px; color:var(--muted); line-height:1.65; margin-top:14px; padding:14px 16px; background:#fffaf0; border:1px solid #f0e0bd; border-radius:8px;}
 
-  /* Dashboard notes card — same yellow sticky-note look as the "Notes" boxes on the Accounts & Cards
-     page (embedded tracker), just restyled with this app's own font sizes/family instead of that
-     sub-app's own smaller rem-based ones. Auto-saves on blur the same way every other plain field
-     in this planner does (the delegated .shell change-listener + saveState(), see boot sequence). */
-  .dashboard-notes-card{background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:12px 16px; margin-bottom:16px;}
-  .dashboard-notes-card .dn-hdr{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
-  .dashboard-notes-card .dn-hdr span{font-size:14.5px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:.05em;}
-  .dashboard-notes-card .dn-hdr small{font-size:13.5px; color:#b45309;}
-  .dashboard-notes-card textarea{width:100%; border:none; background:transparent; resize:vertical; font-size:16px; color:var(--text); outline:none; font-family:inherit; line-height:1.55; min-height:70px;}
+  /* Shared Notes card — one per page (19 total, one right below each page's header), all showing/
+     editing the SAME underlying text (see sharedNotesText / updateSharedNotes() / renderSharedNotes
+     Textareas() in the script), styled after the yellow sticky-note "Notes" boxes on the Accounts &
+     Cards page (embedded tracker) but full-bleed: it breaks out of .shell's 1100px/20px-padded
+     container and spans the full viewport width edge-to-edge, using the standard
+     left:50%/margin-left:-50vw full-bleed technique (works regardless of .shell's own width/padding
+     since it's positioned relative to the viewport, not the parent). Inner horizontal padding keeps
+     the header/textarea text from touching the screen edges even though the background does.
+     Height/line-count (min-height below) is unchanged from the original Dashboard-only version. */
+  .shared-notes-card{background:#fefce8; border-top:1px solid #fde68a; border-bottom:1px solid #fde68a; padding:12px calc(50vw - 550px + 20px); margin:0 0 16px; width:100vw; position:relative; left:50%; right:50%; margin-left:-50vw; margin-right:-50vw;}
+  .shared-notes-card .dn-hdr{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; max-width:1060px; margin-left:auto; margin-right:auto;}
+  .shared-notes-card .dn-hdr span{font-size:14.5px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:.05em;}
+  .shared-notes-card .dn-hdr small{font-size:13.5px; color:#b45309;}
+  .shared-notes-card textarea{display:block; width:100%; max-width:1060px; margin:0 auto; border:none; background:transparent; resize:vertical; font-size:16px; color:var(--text); outline:none; font-family:inherit; line-height:1.55; min-height:70px;}
+  /* Below .shell's own 1100px breakpoint there's no extra side gutter to preserve, so the padding
+     collapses back to a plain 20px on each side — same horizontal margin the rest of the page content
+     already gets from .shell{padding:20px}. */
+  @media (max-width:1100px){ .shared-notes-card{padding-left:20px; padding-right:20px;} }
 
   .tip{display:flex; gap:12px; padding:14px 16px; border-radius:8px; margin-bottom:10px; border:1px solid var(--border); background:#fbfcfc; align-items:flex-start;}
   .tip .tip-icon{font-size:20px; flex-shrink:0; line-height:1.4;}
@@ -636,9 +645,9 @@
 
       <div class="results-grid" id="statCards"></div>
 
-      <div class="dashboard-notes-card">
-        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved</small></div>
-        <textarea id="dashboardNotes" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
       </div>
 
       <div class="compare-box" id="compareBox"></div>
@@ -679,6 +688,10 @@
     <!-- ================= PERSONAL ================= -->
     <div class="page" data-page="personal">
       <div class="page-header"><h2>Personal &amp; Family</h2><p>Ages and household details that drive every other section.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card"><canvas id="chart_personal"></canvas></div>
 
       <div class="card">
@@ -736,6 +749,10 @@
     <!-- ================= INCOME & CONTRIBUTIONS ================= -->
     <div class="page" data-page="income">
       <div class="page-header"><h2>Income</h2><p>What comes in — job income, pensions, VA disability, Social Security, and annuity. How it's invested and withdrawn lives on the <b>Money Flows</b> page.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
 
       <div class="mini-chart-card chart-horizontal"><canvas id="chart_income"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income by year</div><canvas id="chart_income_yearly"></canvas><div class="chart-range-nav" data-chart="income_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('income_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('income_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('income_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="income_yearly"></div></div>
@@ -823,6 +840,10 @@
     <!-- ================= SURVIVORSHIP ================= -->
     <div class="page" data-page="survivorship">
       <div class="page-header"><h2>Survivorship</h2><p>What-if only — this page never changes your main plan or Monte Carlo confidence score. It only feeds the dynamic survivorship scenario on the Explorers page.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
 
       <div class="results-grid"><div class="stat" id="survivorshipConfidenceTile"><div class="label">Survivorship confidence score</div><div class="value">Not set</div></div></div>
 
@@ -890,6 +911,10 @@
     <!-- ================= MONEY FLOWS ================= -->
     <div class="page" data-page="moneyflows">
       <div class="page-header"><h2>Money Flows</h2><p>How your paycheck gets invested each pay period, and how accounts get drawn down in retirement.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card"><canvas id="chart_moneyflows"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income &amp; contributions by year</div><canvas id="chart_moneyflows_yearly"></canvas><div class="chart-range-nav" data-chart="moneyflows_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('moneyflows_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('moneyflows_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('moneyflows_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="moneyflows_yearly"></div></div>
       <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Brokerage contribution by portfolio</div><canvas id="chart_moneyflows_pies"></canvas></div>
@@ -946,6 +971,10 @@
     <!-- ================= INVESTMENTS ================= -->
     <div class="page" data-page="investments">
       <div class="page-header"><h2>Investments</h2><p>Current balances across your retirement and brokerage accounts.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card"><canvas id="chart_investments"></canvas></div>
       <div class="mini-chart-card chart-horizontal"><div class="mini-label" style="margin-bottom:8px;">Brokerage balance by portfolio</div><canvas id="chart_investments_pies"></canvas></div>
 
@@ -986,6 +1015,10 @@
     <!-- ================= ACCOUNTS & CARDS ================= -->
     <div class="page" data-page="accounts">
       <div class="page-header"><h2>Accounts &amp; Cards</h2><p>Your household transaction registers — credit card, both checking accounts, savings, and HYSA. This is the same tracker you already use; it runs right here so its balances feed the Investments page live, with no manual copying.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="card" style="padding:0;overflow:hidden;">
         <div id="trackerHost" style="width:100%;height:82vh;min-height:560px;overflow:hidden;background:#fff;"></div>
       </div>
@@ -1008,6 +1041,10 @@
     <!-- ================= HOUSING ================= -->
     <div class="page" data-page="housing">
       <div class="page-header"><h2>Housing</h2><p>Currently renting — optionally model a future purchase.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card"><canvas id="chart_housing"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Housing cost by year</div><canvas id="chart_housing_yearly"></canvas><div class="chart-range-nav" data-chart="housing_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('housing_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('housing_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('housing_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="housing_yearly"></div></div>
 
@@ -1045,6 +1082,10 @@
     <!-- ================= EXPENSES ================= -->
     <div class="page" data-page="expenses">
       <div class="page-header"><h2>Expenses</h2><p>Recurring monthly bills, in today's dollars. Amounts are entered monthly and annualized automatically for the projection. The Healthcare category grows using the Medical Inflation Rate (set on the Assumptions page); every other category uses General Inflation.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card chart-horizontal"><canvas id="chart_expenses"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Expenses by year</div><canvas id="chart_expenses_yearly"></canvas><div class="chart-range-nav" data-chart="expenses_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('expenses_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('expenses_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('expenses_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="expenses_yearly"></div></div>
 
@@ -1086,6 +1127,10 @@
     <!-- ================= DEBT ================= -->
     <div class="page" data-page="debt">
       <div class="page-header"><h2>Debt</h2><p>Loans and balances, amortized and paid off over time.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card chart-horizontal"><canvas id="chart_debt"></canvas></div>
 
       <div class="card">
@@ -1115,6 +1160,10 @@
     <!-- ================= INCOME GAP & WITHDRAWALS ================= -->
     <div class="page" data-page="gap">
       <div class="page-header"><h2>Income Gap &amp; Withdrawals</h2><p>Whenever guaranteed income — Social Security, spousal benefit, both pensions, VA disability, annuity, after income tax — falls short of spending, the shortfall (the gap) has to come out of your accounts. This page shows the surplus/gap and the resulting portfolio withdrawal side by side, year by year.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card"><canvas id="chart_gap"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Surplus / (gap) &amp; withdrawals by year</div><canvas id="chart_gap_yearly"></canvas><div class="chart-range-nav" data-chart="gap_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('gap_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('gap_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('gap_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="gap_yearly"></div></div>
 
@@ -1133,6 +1182,10 @@
     <!-- ================= MEDICAL ================= -->
     <div class="page" data-page="medical">
       <div class="page-header"><h2>Medical</h2><p>Healthcare premiums before and after Medicare eligibility — separate from the Healthcare category on the Expenses page, which is for extra out-of-pocket costs.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card"><canvas id="chart_medical"></canvas></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Medical premiums &amp; LTC cost by year</div><canvas id="chart_medical_yearly"></canvas><div class="chart-range-nav" data-chart="medical_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('medical_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('medical_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('medical_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="medical_yearly"></div></div>
 
@@ -1212,6 +1265,10 @@
     <!-- ================= ESTATE PLANNING ================= -->
     <div class="page" data-page="estate">
       <div class="page-header"><h2>Estate Planning</h2><p>A checklist — informational, doesn't feed the projection math.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card chart-horizontal"><canvas id="chart_estate"></canvas></div>
 
       <div class="card">
@@ -1228,6 +1285,10 @@
     <!-- ================= DOCUMENT VAULT ================= -->
     <div class="page" data-page="vault">
       <div class="page-header"><h2>Document Vault</h2><p>Upload important documents (PDF, Word, or plain text) to keep them searchable — informational only, doesn't feed the projection math.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
 
       <div class="note" style="margin-top:0;">For storage efficiency, only the extracted <b>text</b> of each document is saved (not the original file, so formatting/images aren't preserved) — this keeps everything searchable while staying well under the browser's storage limit. Everything stays in this browser only, unless you use Ask AI below with your own Anthropic API key, in which case the relevant document text is sent to Anthropic to answer your question.</div>
 
@@ -1271,6 +1332,10 @@
     <!-- ================= INSURANCE ================= -->
     <div class="page" data-page="insurance">
       <div class="page-header"><h2>Insurance</h2><p>A policy tracker. Total monthly premiums below are added to your spending every year (growing with General Inflation) in both the deterministic projection and the Monte Carlo simulation — coverage amounts are informational only.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card chart-horizontal"><canvas id="chart_insurance"></canvas></div>
 
       <div class="card">
@@ -1286,6 +1351,10 @@
     <!-- ================= TAXES ================= -->
     <div class="page" data-page="taxes">
       <div class="page-header"><h2>Taxes</h2><p>Real 2026 federal marginal brackets (Married Filing Jointly) plus Idaho's flat state rate, applied to your guaranteed income and Traditional TSP withdrawals each year. Capital gains use federal long-term capital gains brackets; Idaho taxes gains as ordinary income at its flat rate.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card"><canvas id="chart_taxes"></canvas></div>
 
       <div class="results-grid" id="taxStats"></div>
@@ -1351,6 +1420,10 @@
     <!-- ================= ASSUMPTIONS ================= -->
     <div class="page" data-page="assumptions">
       <div class="page-header"><h2>Assumptions &amp; Guardrails</h2><p>Growth, volatility, and how spending adapts to market performance.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
       <div class="mini-chart-card chart-horizontal"><canvas id="chart_assumptions"></canvas></div>
 
       <div class="card">
@@ -1445,6 +1518,10 @@
     <!-- ================= EXPLORERS ================= -->
     <div class="page" data-page="explorers">
       <div class="page-header"><h2>Explorers</h2><p>What-if and market-risk scenarios, each compared against your current plan. Dollar columns respect the Today's $ / Future $ toggle in the header.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">What If I...<span class="sub-label">Pick a quick scenario and see the impact on your savings over time</span></h3>
@@ -1513,6 +1590,10 @@
     <!-- ================= COACH ================= -->
     <div class="page" data-page="coach">
       <div class="page-header"><h2>Coach</h2><p>Automated suggestions based on your current plan, plus an optional AI chat for open-ended questions.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Suggestions</h3>
@@ -1529,6 +1610,10 @@
     <!-- ================= SETTINGS ================= -->
     <div class="page" data-page="settings">
       <div class="page-header"><h2>Settings</h2><p>Backup, restore, and integrations.</p></div>
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Backup &amp; Restore</h3>
@@ -4792,6 +4877,36 @@ const BACKUP_REMINDER_DISMISSED_KEY = 'retirementPlannerBackupReminderDismissed_
 const BACKUP_REMINDER_STALE_DAYS = 30;
 const BACKUP_REMINDER_SNOOZE_DAYS = 7;
 
+// ---------- Shared Notes (one card per page, all editing the SAME text) ----------
+// A single note that follows you across every page — type on Taxes, switch to Income, it's already
+// there. Every page has its own <textarea class="shared-notes-textarea" ...> in the DOM at once (only
+// the active page's is visible, via the normal .page/.page.active CSS), so "sync" just means keeping
+// all of those textareas' .value in lockstep with one shared in-memory string. Persists via its own
+// direct localStorage key (SHARED_NOTES_KEY) on every keystroke — deliberately NOT routed through the
+// full render()/saveState() pipeline (see the .shell change-listener above), since that reruns a
+// 1000-simulation Monte Carlo and would make typing feel laggy. It's also folded into saveState()'s
+// returned state object (see `sharedNotesText` there) purely so it round-trips through the JSON
+// backup/restore file, not because typing itself relies on that path.
+const SHARED_NOTES_KEY = 'retirementPlannerSharedNotes_v1';
+let sharedNotesText = '';
+function loadSharedNotes() {
+  try { return localStorage.getItem(SHARED_NOTES_KEY) || ''; } catch (e) { return ''; }
+}
+// Skips the textarea the user is actively typing in (document.activeElement) so syncing the OTHER
+// (currently hidden) pages' copies never yanks the caret position out from under whichever one is
+// focused — every other instance still gets the latest text immediately, so switching pages mid-edit
+// always shows what was just typed.
+function renderSharedNotesTextareas() {
+  document.querySelectorAll('.shared-notes-textarea').forEach(el => {
+    if (el !== document.activeElement && el.value !== sharedNotesText) el.value = sharedNotesText;
+  });
+}
+function updateSharedNotes(value) {
+  sharedNotesText = value;
+  try { localStorage.setItem(SHARED_NOTES_KEY, value); } catch (e) { /* storage unavailable, ignore */ }
+  renderSharedNotesTextareas();
+}
+
 function daysSince(isoString) {
   if (!isoString) return Infinity;
   const then = new Date(isoString).getTime();
@@ -4824,14 +4939,11 @@ function dismissBackupReminder() {
 
 function saveState() {
   const fields = {};
-  // .page textarea included so the Dashboard Notes box (and any other textarea, e.g. the Ask AI
-  // chat inputs) round-trips through the same save/restore path as every plain input/select —
-  // applyState() below already just sets el.value either way, so no extra field-specific code needed.
-  document.querySelectorAll('.page input, .page select, .page textarea').forEach(el => {
+  document.querySelectorAll('.page input, .page select').forEach(el => {
     if (!el.id) return;
     fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   });
-  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, excessIncomeDestinationPieName, rothConversionSourceName };
+  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, excessIncomeDestinationPieName, rothConversionSourceName, sharedNotesText };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, ignore */ }
   return state;
 }
@@ -4848,6 +4960,10 @@ function applyState(state) {
   if (typeof state.withdrawalModeCustom === 'boolean') withdrawalModeCustom = state.withdrawalModeCustom;
   if (typeof state.excessIncomeDestinationPieName === 'string') excessIncomeDestinationPieName = state.excessIncomeDestinationPieName;
   if (typeof state.rothConversionSourceName === 'string') rothConversionSourceName = state.rothConversionSourceName;
+  // Routed through updateSharedNotes() (not a bare assignment) so a restored backup also writes
+  // through to SHARED_NOTES_KEY, the dedicated key boot reads from — otherwise the next page load
+  // would silently revert to whatever was in that key before this restore, discarding it.
+  if (typeof state.sharedNotesText === 'string') updateSharedNotes(state.sharedNotesText);
   if (state.fields) {
     Object.keys(state.fields).forEach(id => {
       const el = els(id);
@@ -8128,7 +8244,7 @@ function restoreFromFile(file) {
 
 function resetAllData() {
   if (!confirm('This clears everything saved in this browser and reloads the page with defaults. Continue?')) return;
-  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); localStorage.removeItem(SPENDING_BASIS_KEY); localStorage.removeItem(JOB_LOSS_DATE_KEY); localStorage.removeItem(LAST_BACKUP_KEY); localStorage.removeItem(BACKUP_REMINDER_DISMISSED_KEY); } catch (e) {}
+  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); localStorage.removeItem(SPENDING_BASIS_KEY); localStorage.removeItem(JOB_LOSS_DATE_KEY); localStorage.removeItem(LAST_BACKUP_KEY); localStorage.removeItem(BACKUP_REMINDER_DISMISSED_KEY); localStorage.removeItem(SHARED_NOTES_KEY); } catch (e) {}
   location.reload();
 }
 
@@ -8697,6 +8813,11 @@ function render() {
 }
 
 const hadSavedState = loadState();
+// Runs AFTER loadState() (which may have just set sharedNotesText from the older copy bundled inside
+// the main state blob) so the dedicated SHARED_NOTES_KEY — updated on every keystroke, so always the
+// freshest — wins and every page's textarea shows the true latest text from boot.
+sharedNotesText = loadSharedNotes();
+renderSharedNotesTextareas();
 loadVaultState();
 renderBackupReminder();
 try {
@@ -8744,7 +8865,11 @@ renderInsuranceRows();
 const shellEl = document.querySelector('.shell');
 if (shellEl) {
   shellEl.addEventListener('change', function(e) {
-    if (e.target && e.target.matches && e.target.matches('input, select, textarea')) render();
+    // Shared Notes textareas (class="shared-notes-textarea", one per page) are deliberately excluded
+    // here — they persist directly via updateSharedNotes()'s own oninput handler instead of the full
+    // render() pipeline, so typing/blurring in a notes box never triggers a 1000-simulation Monte
+    // Carlo re-run just to save a few words of text.
+    if (e.target && e.target.matches && e.target.matches('input, select')) render();
   });
 }
 
