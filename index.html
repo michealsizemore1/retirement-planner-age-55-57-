@@ -614,6 +614,8 @@
         <p>The full picture, pulled from every section.</p>
       </div>
 
+      <div class="info-banner" id="backupReminderBanner" style="display:none;"><span id="backupReminderText"></span><button class="info-banner-close" onclick="dismissBackupReminder()" aria-label="Dismiss">×</button></div>
+
       <div class="score-card">
         <div class="score-ring" id="scoreRing">—</div>
         <div class="score-text">
@@ -1308,6 +1310,27 @@
         </div>
         <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">You separate from federal service in the year you turn 55 or later, so Traditional TSP withdrawals avoid the usual 10% penalty before age 59½. Uncheck this to see what happens if that assumption doesn't hold (e.g. money later rolled into an IRA loses Rule of 55 protection).</p>
       </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Roth Conversion Planner<span class="sub-label">Move Traditional TSP into Roth TSP a bit at a time, on your terms</span></h3>
+        <p style="font-size:16.5px;color:var(--muted);margin:0 0 12px;line-height:1.55;">Converts a set dollar amount from Traditional to Roth TSP every year during the window below, paying the resulting tax bill from a separate account instead of out of the TSP itself — so the full converted amount actually lands in Roth. Off by default; turning it on only affects this plan, nothing else changes until you enable it.</p>
+        <div class="checkbox-row">
+          <input type="checkbox" id="rothConversionEnabled" onchange="render()">
+          <label for="rothConversionEnabled">Enable Roth conversions</label>
+        </div>
+        <div class="two-col" style="margin-top:12px;">
+          <div class="field"><label>Start age</label><input type="number" id="rothConversionStartAge" value="55" min="40" max="90" onchange="render()"></div>
+          <div class="field"><label>End age</label><input type="number" id="rothConversionEndAge" value="75" min="40" max="90" onchange="render()"></div>
+        </div>
+        <div class="field"><label>Amount to convert each year ($)</label><input type="number" id="rothConversionAnnualAmount" value="20000" step="1000" onchange="render()"></div>
+        <div class="field"><label>Pay the conversion tax from</label><select id="rothConversionTaxSource" onchange="updateRothConversionSource(this.value)"></select></div>
+        <p style="font-size:15px;color:var(--muted);margin:6px 0 0;line-height:1.5;">If the chosen account can't fully cover the tax bill in a given year, that year's conversion is scaled down to whatever it can cover — never paid out of the TSP itself, and never overdrawn.</p>
+        <div id="rothConversionComparisonWrap" style="display:none;">
+          <hr class="divider">
+          <div class="mini-label" style="margin-bottom:10px;">Impact of This Strategy<span class="sub-label" style="display:inline; text-transform:none; font-weight:400;"> — deterministic (average-return) projection, with vs. without conversions</span></div>
+          <div class="results-grid" id="rothConversionStats"></div>
+        </div>
+      </div>
     </div>
 
     <!-- ================= ASSUMPTIONS ================= -->
@@ -1458,7 +1481,18 @@
         </div>
       </div>
 
-      <div class="note">Each scenario re-runs your full plan with one change applied (or, for market risk, a specific sequence of returns/inflation pinned in). "Confidence Score" is a 1000-simulation Monte Carlo success rate for that scenario alone — the same simulation count as your baseline score on the Dashboard, so every number on this page is directly comparable.</div>
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Sensitivity Analysis<span class="sub-label">Which single input moves your confidence score the most</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Nudges five key levers up and down — one at a time, holding everything else at your current plan — and shows how much each one alone swings your confidence score. Sorted so the biggest swings are on top, which is usually where your attention is best spent. This runs 11 separate simulation batches (~3,300 runs total), so it's not automatic like the rest of this page — click below whenever you want a fresh read.</p>
+        <button class="add-btn" id="sensitivityRunBtn" onclick="runSensitivityAnalysisAndRender()">Run Analysis</button>
+        <div id="sensitivityResultWrap" style="display:none;">
+          <div class="mini-label" style="margin:16px 0 8px;">Impact on Confidence Score</div>
+          <div class="mini-chart-card chart-horizontal"><canvas id="chart_sensitivity"></canvas></div>
+          <p style="font-size:15px;color:var(--muted);margin:8px 0 0;">Dashed line marks your current plan's baseline confidence score (<span id="sensitivityBaselineReadout"></span>). Each bar spans the low-outcome to high-outcome score for that one change — hover a bar for which side is which.</p>
+        </div>
+      </div>
+
+      <div class="note">Each scenario re-runs your full plan with one change applied (or, for market risk, a specific sequence of returns/inflation pinned in). "Confidence Score" is a 1000-simulation Monte Carlo success rate for that scenario alone — the same simulation count as your baseline score on the Dashboard, so every number on this page is directly comparable. The Sensitivity Analysis card above uses 300 simulations per side instead, since it runs 11 batches at once.</div>
     </div>
 
     <!-- ================= COACH ================= -->
@@ -4166,6 +4200,35 @@ if (typeof Chart !== 'undefined') {
       }
     }
   });
+  // Draws a dashed vertical baseline marker on the Sensitivity/Tornado chart (Explorers page) at the
+  // plan's current confidence score, so each lever's low→high span reads visually against where you
+  // actually stand today. Opt-in via chart.tornadoBaselineValue (a plain number set directly on the
+  // chart instance after creation) rather than chart.options.plugins, same reasoning as barValueLabels
+  // above — a plain instance property is guaranteed to survive Chart.js's internal option merging.
+  Chart.register({
+    id: 'tornadoBaseline',
+    afterDatasetsDraw(chart) {
+      try {
+        if (chart.tornadoBaselineValue == null) return;
+        const xScale = chart.scales && chart.scales.x;
+        if (!xScale) return;
+        const xPos = xScale.getPixelForValue(chart.tornadoBaselineValue);
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        ctx.save();
+        ctx.strokeStyle = '#7f95a8';
+        ctx.setLineDash([5, 4]);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(xPos, chartArea.top);
+        ctx.lineTo(xPos, chartArea.bottom);
+        ctx.stroke();
+        ctx.restore();
+      } catch (err) {
+        console.error('tornadoBaseline plugin error (ignored, chart rendering continues):', err);
+      }
+    }
+  });
 }
 // ---------- Mobile-aware chart sizing ----------
 // The chart CSS/canvas system below was tuned on a wide desktop screen: fixed pixel font sizes for
@@ -4704,6 +4767,45 @@ function updateLtcCareType(type) {
 // ---------- Persistence (localStorage) so values survive a page refresh ----------
 const STORAGE_KEY = 'retirementPlannerState_v1';
 const ACTIVE_PAGE_KEY = 'retirementPlannerActivePage_v1';
+// Backup reminder: since this tool is a single offline HTML file with no server, everything you enter
+// only ever lives in this one browser's localStorage unless you explicitly download a JSON backup — a
+// browser data wipe, a new device, or even just clearing site data loses it all silently. LAST_BACKUP_KEY
+// tracks when you last actually clicked "Download backup," separate from STORAGE_KEY (which just tracks
+// your plan data itself and says nothing about whether it's ever been exported anywhere else).
+const LAST_BACKUP_KEY = 'retirementPlannerLastBackup_v1';
+const BACKUP_REMINDER_DISMISSED_KEY = 'retirementPlannerBackupReminderDismissed_v1';
+const BACKUP_REMINDER_STALE_DAYS = 30;
+const BACKUP_REMINDER_SNOOZE_DAYS = 7;
+
+function daysSince(isoString) {
+  if (!isoString) return Infinity;
+  const then = new Date(isoString).getTime();
+  if (isNaN(then)) return Infinity;
+  return (Date.now() - then) / (1000*60*60*24);
+}
+
+function renderBackupReminder() {
+  const banner = els('backupReminderBanner');
+  if (!banner) return;
+  let lastBackup = null, lastDismissed = null;
+  try { lastBackup = localStorage.getItem(LAST_BACKUP_KEY); lastDismissed = localStorage.getItem(BACKUP_REMINDER_DISMISSED_KEY); } catch (e) { /* storage unavailable, ignore */ }
+  const stale = daysSince(lastBackup) >= BACKUP_REMINDER_STALE_DAYS;
+  const recentlyDismissed = daysSince(lastDismissed) < BACKUP_REMINDER_SNOOZE_DAYS;
+  if (!stale || recentlyDismissed) { banner.style.display = 'none'; return; }
+  const textEl = els('backupReminderText');
+  if (textEl) {
+    textEl.textContent = lastBackup
+      ? `It's been over ${BACKUP_REMINDER_STALE_DAYS} days since your last backup (Settings page) — everything here only lives in this browser until you download one.`
+      : "You haven't downloaded a backup yet — everything you enter only lives in this browser (Settings page has a one-click download).";
+  }
+  banner.style.display = 'flex';
+}
+
+function dismissBackupReminder() {
+  try { localStorage.setItem(BACKUP_REMINDER_DISMISSED_KEY, new Date().toISOString()); } catch (e) { /* storage unavailable, ignore */ }
+  const banner = els('backupReminderBanner');
+  if (banner) banner.style.display = 'none';
+}
 
 function saveState() {
   const fields = {};
@@ -4711,7 +4813,7 @@ function saveState() {
     if (!el.id) return;
     fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   });
-  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, excessIncomeDestinationPieName };
+  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, excessIncomeDestinationPieName, rothConversionSourceName };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, ignore */ }
   return state;
 }
@@ -4727,6 +4829,7 @@ function applyState(state) {
   if (Array.isArray(state.withdrawalOrderState)) withdrawalOrderState = state.withdrawalOrderState;
   if (typeof state.withdrawalModeCustom === 'boolean') withdrawalModeCustom = state.withdrawalModeCustom;
   if (typeof state.excessIncomeDestinationPieName === 'string') excessIncomeDestinationPieName = state.excessIncomeDestinationPieName;
+  if (typeof state.rothConversionSourceName === 'string') rothConversionSourceName = state.rothConversionSourceName;
   if (state.fields) {
     Object.keys(state.fields).forEach(id => {
       const el = els(id);
@@ -5233,11 +5336,12 @@ function renderBrokeragePieRows() {
   `).join('');
   els('brokeragePieTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.balance||0), 0));
   renderExcessIncomeDestinationOptions();
+  renderRothConversionSourceOptions();
 }
 function updateBrokeragePie(i, field, value) {
   brokeragePies[i][field] = (field==='balance' || field==='cashRate') ? +value : value;
   els('brokeragePieTotal').textContent = fmtMoney(brokeragePies.reduce((s,p) => s + (+p.balance||0), 0));
-  if (field === 'name') { renderPieContributionRows(); renderExcessIncomeDestinationOptions(); }
+  if (field === 'name') { renderPieContributionRows(); renderExcessIncomeDestinationOptions(); renderRothConversionSourceOptions(); }
   if (field === 'riskType') { renderBrokeragePieRows(); }
   render();
 }
@@ -5256,6 +5360,25 @@ function renderExcessIncomeDestinationOptions() {
 }
 function updateExcessIncomeDestination(name) {
   excessIncomeDestinationPieName = name;
+  render();
+}
+
+// ---------- Roth Conversion: tax-payment source account (HYSA or a specific brokerage pie) ----------
+// Same pattern as excessIncomeDestinationPieName above — a dynamically-populated <select> whose
+// options get rebuilt via innerHTML whenever brokeragePies changes, so the selected value has to be
+// tracked in its own module-level variable rather than relying on the DOM to remember it.
+let rothConversionSourceName = 'hysa';
+function renderRothConversionSourceOptions() {
+  const sel = els('rothConversionTaxSource');
+  if (!sel) return;
+  if (rothConversionSourceName !== 'hysa' && !brokeragePies.some(p => p.name === rothConversionSourceName)) {
+    rothConversionSourceName = 'hysa';
+  }
+  const pieOptions = brokeragePies.map((p,i) => `<option value="${p.name}" ${p.name===rothConversionSourceName?'selected':''}>${p.name || 'Pie '+(i+1)}</option>`).join('');
+  sel.innerHTML = `<option value="hysa" ${rothConversionSourceName==='hysa'?'selected':''}>HYSA (bank)</option>` + pieOptions;
+}
+function updateRothConversionSource(name) {
+  rothConversionSourceName = name;
   render();
 }
 
@@ -5601,7 +5724,17 @@ function readInputs() {
     // current/lower guardrail figures collapse to the exact same number, which looks like a bug rather
     // than a deliberately-chosen setting. Falls back to each field's own HTML default (20%/10%) instead.
     guardBand: (els('guardBand').value === '' ? 20 : +els('guardBand').value)/100,
-    guardAdj: (els('guardAdj').value === '' ? 10 : +els('guardAdj').value)/100
+    guardAdj: (els('guardAdj').value === '' ? 10 : +els('guardAdj').value)/100,
+    // Roth Conversion planner (Taxes page): converts Traditional TSP to Roth TSP each year during a
+    // configured post-retirement window, paying the resulting tax bill from a separate account (never
+    // from the TSP itself, which would shrink the value of the conversion). rothConversionTaxSource is
+    // a dynamically-populated select (HYSA or a specific brokerage pie) tracked the same way
+    // excessIncomeDestinationPieName is — see rothConversionSourceName below.
+    rothConversionEnabled: els('rothConversionEnabled') ? els('rothConversionEnabled').checked : false,
+    rothConversionStartAge: els('rothConversionStartAge') ? +els('rothConversionStartAge').value || 55 : 55,
+    rothConversionEndAge: els('rothConversionEndAge') ? +els('rothConversionEndAge').value || 75 : 75,
+    rothConversionAnnualAmount: els('rothConversionAnnualAmount') ? +els('rothConversionAnnualAmount').value || 0 : 0,
+    rothConversionTaxSource: rothConversionSourceName
   };
 }
 
@@ -5699,6 +5832,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
   let depletionAge = null, shortfallEver = false;
   let investableAtRetirement = null, cashAtRetirement = null;
   let initialWithdrawalRate = null;
+  // Roth Conversion planner lifetime totals — accumulated across every year the conversion runs,
+  // returned at the end alongside the other summary figures (see the return statement below).
+  let totalRothConverted = 0, totalRothConversionTax = 0;
   // IRMAA lookback proxy: last iteration's approximate MAGI, used as this year's IRMAA basis (see the
   // comment above medicarePremiumBase below) — starts at 0 since there's no prior year before the plan begins.
   let prevYearMagi = 0;
@@ -5925,6 +6061,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // Taxes page ("Estimated Taxes" chart) — Federal income tax + Idaho state tax (split back out of the
     // blended withdrawal rate below) plus FICA payroll tax (Social Security + Medicare, working years only).
     let federalTaxAnnual=0, stateTaxAnnual=0, ficaTaxAnnual=0;
+    let rothConversionAmount=0, rothConversionTax=0;
 
     // Guaranteed income streams each start on their own eligibility age (Pension/VA Disability/SS/etc.
     // pages), independent of the "retirement age" used for the contribution-vs-withdrawal split below.
@@ -6334,6 +6471,55 @@ function projectRun(inputs, ctx, randomize, shocks) {
         }
       }
 
+      // Roth Conversion planner (Taxes page): during the configured post-retirement window, move
+      // Traditional TSP dollars into Roth TSP each year, taxed as ordinary income the same way any
+      // other Trad withdrawal is (progressive federal brackets + Idaho flat rate), but the resulting
+      // tax bill is paid from a SEPARATE account (HYSA or a specific brokerage pie) rather than out of
+      // the TSP itself — pulling the tax from inside the conversion would shrink the amount that
+      // actually lands in Roth, defeating the point of converting in the first place. Runs after RMD
+      // above (real IRS rule: this year's RMD isn't itself convertible — it has to come out as a normal
+      // distribution first, then whatever's left in Trad can be converted), and is NOT gated by
+      // tradAvailableForJobLoss/Rule of 55 the way an actual distribution is — a Roth conversion is an
+      // in-plan rollover, not a "separation withdrawal," so it isn't subject to the 10%-early-withdrawal/
+      // Rule-of-55 restriction that only applies to money actually leaving the TSP as spendable cash.
+      if (inputs.rothConversionEnabled && age >= inputs.rothConversionStartAge && age <= inputs.rothConversionEndAge && bal.trad > 0.01) {
+        const desiredConversion = Math.min(inputs.rothConversionAnnualAmount, bal.trad);
+        if (desiredConversion > 0.01) {
+          // Ordinary-income marginal rate stacked on top of guaranteed income + this year's withdrawal
+          // need (taxableBeforeWithdrawal + need already represents that base — see t2 above) plus the
+          // conversion amount itself, same flat-marginal-rate simplification the rest of this engine
+          // uses for withdrawal tax (a single rate applied to the whole amount, not true bracket-by-
+          // bracket accumulation). No early-withdrawal penalty — conversions aren't distributions.
+          const convStackTop = taxableBeforeWithdrawal + need + desiredConversion;
+          const convFedMarginal = marginalRateFromBrackets(convStackTop, FEDERAL_BRACKETS_MFJ);
+          const convTaxRate = convFedMarginal + inputs.idahoRate;
+          const desiredTax = desiredConversion * convTaxRate;
+          // Cap the conversion so its tax bill never exceeds what the configured source account can
+          // actually cover this year — better to convert less than to overdraw HYSA/a brokerage pie
+          // negative, and better than silently paying the tax out of the TSP itself.
+          const sourceKey = inputs.rothConversionTaxSource === 'hysa' ? 'hysa' : ('pie_' + brokeragePies.findIndex(p => p.name === inputs.rothConversionTaxSource));
+          const sourceAvailable = bal[sourceKey] !== undefined ? Math.max(0, bal[sourceKey]) : 0;
+          const scale = desiredTax > sourceAvailable && desiredTax > 0 ? sourceAvailable / desiredTax : 1;
+          const actualConversion = desiredConversion * scale;
+          const actualTax = desiredTax * scale;
+          if (actualConversion > 0.01) {
+            bal.trad -= actualConversion;
+            bal.roth += actualConversion;
+            if (bal[sourceKey] !== undefined) bal[sourceKey] -= actualTax;
+            rothConversionAmount = actualConversion;
+            rothConversionTax = actualTax;
+            totalRothConverted += actualConversion;
+            totalRothConversionTax += actualTax;
+            // Recorded into the same Federal/Idaho split as every other withdrawal-driven tax on this
+            // page, so the conversion's tax bill shows up in the Estimated Taxes chart and lifetime
+            // totals without any extra wiring there.
+            const convStateShare = convTaxRate > 0 ? (inputs.idahoRate / convTaxRate) : 0;
+            stateTaxAnnual += actualTax * convStateShare;
+            federalTaxAnnual += actualTax * (1 - convStateShare);
+          }
+        }
+      }
+
       if (inputs.withdrawalSimultaneous) {
         // Split the need proportionally (by current balance) across the checked accounts, "water-filling"
         // over a few rounds so accounts that run dry hand off their unmet share to the others still selected.
@@ -6381,7 +6567,8 @@ function projectRun(inputs, ctx, randomize, shocks) {
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
         medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual, essentialFloor, primaryDeceased,
         fedMarginalRate: fedMarginal, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null,
-        federalTaxAnnual, stateTaxAnnual, ficaTaxAnnual
+        federalTaxAnnual, stateTaxAnnual, ficaTaxAnnual,
+        balTrad, balRoth, rothConversionAmount, rothConversionTax
       });
     }
   }
@@ -6391,7 +6578,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
     cashAtRetirement = balChecking + balSavings + balHYSA;
   }
 
-  return { rows, investableAtRetirement, cashAtRetirement, depletionAge, success: !shortfallEver, initialWithdrawalRate };
+  return { rows, investableAtRetirement, cashAtRetirement, depletionAge, success: !shortfallEver, initialWithdrawalRate, totalRothConverted, totalRothConversionTax };
 }
 
 function buildContext(inputs) {
@@ -6532,6 +6719,126 @@ function runExplorerScenario(scenario, baseInputs, baseCtx) {
     endAge: lastRow ? lastRow.age : inputs.retirementAge,
     score
   };
+}
+
+// ---------- Explorers: Sensitivity / Tornado analysis ----------
+// Nudges five key single levers up and down (one at a time, everything else held at the current
+// plan) so you can see which input actually moves the confidence score the most. Deliberately NOT
+// run automatically inside renderExplorers() — 5 levers x 2 sides x 300 sims, plus a 300-sim
+// baseline, is ~3,300 Monte Carlo runs, too expensive to re-run on every keystroke-driven render()
+// the way the rest of this page does. Triggered manually via the "Run Analysis" button instead, and
+// cached in sensitivityResults (module-level, below) until re-run.
+const SENSITIVITY_LEVERS = [
+  { name: 'Retirement age',
+    low: inp => ({ ...inp, retirementAge: inp.retirementAge - 2 }), lowLabel: '2 yrs earlier',
+    high: inp => ({ ...inp, retirementAge: inp.retirementAge + 2 }), highLabel: '2 yrs later' },
+  { name: 'Retirement spending',
+    low: inp => ({ ...inp, spendingMultiplier: 0.9 }), lowLabel: '10% less',
+    high: inp => ({ ...inp, spendingMultiplier: 1.1 }), highLabel: '10% more' },
+  { name: 'Investment returns',
+    low: inp => ({ ...inp, preReturn: inp.preReturn - 0.01, postReturn: inp.postReturn - 0.01 }), lowLabel: '1%/yr lower',
+    high: inp => ({ ...inp, preReturn: inp.preReturn + 0.01, postReturn: inp.postReturn + 0.01 }), highLabel: '1%/yr higher' },
+  { name: 'Social Security claiming age',
+    low: inp => ({ ...inp, ssAge: 62, ssMonthly: inp.ssMonthly * 0.7 }), lowLabel: 'Claim at 62',
+    high: inp => ({ ...inp, ssAge: 70, ssMonthly: inp.ssMonthly * 1.24 }), highLabel: 'Delay to 70' },
+  { name: 'Guardrail band width',
+    low: inp => ({ ...inp, guardBand: Math.max(0.05, inp.guardBand - 0.10) }), lowLabel: '10pp narrower',
+    high: inp => ({ ...inp, guardBand: Math.min(0.40, inp.guardBand + 0.10) }), highLabel: '10pp wider' }
+];
+
+function runSensitivityAnalysis(inputs, ctx) {
+  // Same sim count on every side (300) so every bar is directly comparable to every other bar and
+  // to the baseline — matching the spirit of the 1000-sim convention used elsewhere on this page,
+  // just cheaper since there are 11 separate runs here instead of 1. ctx is reused unchanged for
+  // every variant (none of these five levers change anything buildContext() derives), same
+  // established convention as WHAT_IF_SCENARIOS/runExplorerScenario above.
+  const baselineScore = runMonteCarlo(inputs, ctx, 300);
+  const results = SENSITIVITY_LEVERS.map(lever => {
+    const scoreLow = runMonteCarlo(lever.low(inputs), ctx, 300);
+    const scoreHigh = runMonteCarlo(lever.high(inputs), ctx, 300);
+    const lowIsLowerScore = scoreLow <= scoreHigh;
+    return {
+      name: lever.name,
+      lowScore: Math.min(scoreLow, scoreHigh),
+      highScore: Math.max(scoreLow, scoreHigh),
+      // Labels follow whichever variant actually produced the lower/higher score, not which side of
+      // the lever ("low"/"high" input value) they came from — a tornado bar reads left-to-right by
+      // resulting score, so the label needs to track the score, not the input direction.
+      lowVariantLabel: lowIsLowerScore ? lever.lowLabel : lever.highLabel,
+      highVariantLabel: lowIsLowerScore ? lever.highLabel : lever.lowLabel,
+      span: Math.abs(scoreHigh - scoreLow)
+    };
+  });
+  results.sort((a, b) => b.span - a.span);
+  return { baselineScore, results };
+}
+
+let sensitivityResults = null;
+function runSensitivityAnalysisAndRender() {
+  const btn = els('sensitivityRunBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
+  // setTimeout lets the browser actually paint the disabled/"Running…" button state before the
+  // synchronous ~3,300-simulation loop below blocks the main thread for a moment.
+  setTimeout(() => {
+    const inputs = readInputs();
+    const ctx = buildContext(inputs);
+    sensitivityResults = runSensitivityAnalysis(inputs, ctx);
+    renderSensitivityAnalysis();
+    if (btn) { btn.disabled = false; btn.textContent = 'Re-run Analysis'; }
+  }, 20);
+}
+
+function renderSensitivityAnalysis() {
+  const wrap = els('sensitivityResultWrap');
+  if (!wrap) return;
+  if (!sensitivityResults) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  const readout = els('sensitivityBaselineReadout');
+  if (readout) readout.textContent = Math.round(sensitivityResults.baselineScore) + '%';
+
+  const canvas = els('chart_sensitivity');
+  if (!canvas) return;
+  const labels = sensitivityResults.results.map(r => wrapChartLabel(r.name));
+  const data = sensitivityResults.results.map(r => [r.lowScore, r.highScore]);
+  const colors = sensitivityResults.results.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+  const config = {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 4 }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          displayColors: false,
+          callbacks: {
+            label: item => {
+              const r = sensitivityResults.results[item.dataIndex];
+              return `${r.lowVariantLabel}: ${Math.round(r.lowScore)}%  →  ${r.highVariantLabel}: ${Math.round(r.highScore)}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
+        y: { ticks: { autoSkip: false, font: { size: isMobile() ? 11 : 13 } } }
+      }
+    }
+  };
+  sizeHorizontalChartCard(canvas, labels);
+  if (charts.explorers_sensitivity) {
+    charts.explorers_sensitivity.data = config.data;
+    charts.explorers_sensitivity.options = config.options;
+    charts.explorers_sensitivity.tornadoBaselineValue = sensitivityResults.baselineScore;
+    charts.explorers_sensitivity.update();
+  } else {
+    charts.explorers_sensitivity = new Chart(canvas.getContext('2d'), config);
+    charts.explorers_sensitivity.tornadoBaselineValue = sensitivityResults.baselineScore;
+    charts.explorers_sensitivity.update();
+  }
 }
 
 // ---------- "What If I..." card selector (Explorers page, mimics Boldin's own What-If screen) ----------
@@ -7360,6 +7667,11 @@ function renderExplorers() {
   } else {
     if (marketRiskCanvas) charts.explorers_marketrisk = new Chart(marketRiskCanvas.getContext('2d'), marketRiskConfig);
   }
+
+  // Cheap redraw only — never recomputes. If sensitivityResults is still null (never run yet, or
+  // Reset Everything cleared it), renderSensitivityAnalysis() just keeps the card's placeholder
+  // state hidden and returns.
+  renderSensitivityAnalysis();
 }
 
 // ---------- Coach: rule-based suggestions ----------
@@ -7773,6 +8085,8 @@ function downloadBackup() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  try { localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString()); } catch (e) { /* storage unavailable, ignore */ }
+  renderBackupReminder();
 }
 
 function restoreFromFile(file) {
@@ -7796,7 +8110,7 @@ function restoreFromFile(file) {
 
 function resetAllData() {
   if (!confirm('This clears everything saved in this browser and reloads the page with defaults. Continue?')) return;
-  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); localStorage.removeItem(SPENDING_BASIS_KEY); localStorage.removeItem(JOB_LOSS_DATE_KEY); } catch (e) {}
+  try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ACTIVE_PAGE_KEY); localStorage.removeItem(DOLLAR_VIEW_KEY); localStorage.removeItem(SPENDING_BASIS_KEY); localStorage.removeItem(JOB_LOSS_DATE_KEY); localStorage.removeItem(LAST_BACKUP_KEY); localStorage.removeItem(BACKUP_REMINDER_DISMISSED_KEY); } catch (e) {}
   location.reload();
 }
 
@@ -7993,6 +8307,52 @@ function renderGapTable(rows, inputs, retirementAge) {
   }).join('');
 }
 
+// ---------- Roth Conversion planner: before/after comparison (Taxes page) ----------
+// Two extra deterministic (non-randomized) projectRun() calls, not Monte Carlo — cheap enough to run
+// on every render() alongside the age-comparison table just below it, which already does five. Only
+// actually runs when the toggle is on; otherwise the card just hides itself.
+function renderRothConversionComparison(inputs, ctx) {
+  const wrap = els('rothConversionComparisonWrap');
+  const statsEl = els('rothConversionStats');
+  if (!wrap || !statsEl) return;
+  if (!inputs.rothConversionEnabled) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+
+  const withConv = projectRun(inputs, ctx, false);
+  const withoutConv = projectRun({ ...inputs, rothConversionEnabled: false }, ctx, false);
+
+  const lifetimeTaxWith = withConv.rows.reduce((s,r) => s + dv((r.federalTaxAnnual||0) + (r.stateTaxAnnual||0), r.age, inputs), 0);
+  const lifetimeTaxWithout = withoutConv.rows.reduce((s,r) => s + dv((r.federalTaxAnnual||0) + (r.stateTaxAnnual||0), r.age, inputs), 0);
+
+  const lastWith = withConv.rows.length ? withConv.rows[withConv.rows.length-1] : null;
+  const lastWithout = withoutConv.rows.length ? withoutConv.rows[withoutConv.rows.length-1] : null;
+
+  const netWorthWith = lastWith ? dv(lastWith.netWorth, lastWith.age, inputs) : 0;
+  const netWorthWithout = lastWithout ? dv(lastWithout.netWorth, lastWithout.age, inputs) : 0;
+  const tradWith = lastWith ? dv(lastWith.balTrad, lastWith.age, inputs) : 0;
+  const tradWithout = lastWithout ? dv(lastWithout.balTrad, lastWithout.age, inputs) : 0;
+  const rothWith = lastWith ? dv(lastWith.balRoth, lastWith.age, inputs) : 0;
+  const rothWithout = lastWithout ? dv(lastWithout.balRoth, lastWithout.age, inputs) : 0;
+
+  // 'ok'/'warn' are the same two .stat modifier classes the header tiles above use (green/red value
+  // text) — 'ok' when the conversion strategy comes out ahead on that particular figure, 'warn' when
+  // it comes out behind, blank when the difference is negligible either way.
+  const cls = (withVal, withoutVal, higherIsBetter) => {
+    if (Math.abs(withVal - withoutVal) < 1) return '';
+    const better = higherIsBetter ? withVal > withoutVal : withVal < withoutVal;
+    return better ? 'ok' : 'warn';
+  };
+
+  statsEl.innerHTML = `
+    <div class="stat"><div class="label">Total converted to Roth (lifetime)</div><div class="value">${fmtMoney(withConv.totalRothConverted)}</div></div>
+    <div class="stat"><div class="label">Tax paid on conversions (lifetime)</div><div class="value">${fmtMoney(withConv.totalRothConversionTax)}</div></div>
+    <div class="stat ${cls(lifetimeTaxWith, lifetimeTaxWithout, false)}"><div class="label">Lifetime taxes: with vs. without</div><div class="value">${fmtMoneyK(lifetimeTaxWith)} vs ${fmtMoneyK(lifetimeTaxWithout)}</div></div>
+    <div class="stat"><div class="label">Ending Traditional TSP: with vs. without</div><div class="value">${fmtMoneyK(tradWith)} vs ${fmtMoneyK(tradWithout)}</div></div>
+    <div class="stat"><div class="label">Ending Roth TSP: with vs. without</div><div class="value">${fmtMoneyK(rothWith)} vs ${fmtMoneyK(rothWithout)}</div></div>
+    <div class="stat ${cls(netWorthWith, netWorthWithout, true)}"><div class="label">Ending net worth: with vs. without</div><div class="value">${fmtMoneyK(netWorthWith)} vs ${fmtMoneyK(netWorthWithout)}</div></div>
+  `;
+}
+
 function render() {
   // Must run before readInputs() below, since it's what sets checkingBalance/savingsBalance/hysaBalance
   // from the live Accounts & Cards tracker (when it's been used) before those fields get read.
@@ -8183,6 +8543,8 @@ function render() {
     `;
   }
 
+  renderRothConversionComparison(inputs, ctx);
+
   const ageOptions = [55, 56, 57, 58, 59];
   const ageRuns = ageOptions.map(age => ({
     age,
@@ -8318,6 +8680,7 @@ function render() {
 
 const hadSavedState = loadState();
 loadVaultState();
+renderBackupReminder();
 try {
   const savedDollarView = localStorage.getItem(DOLLAR_VIEW_KEY);
   if (savedDollarView === 'real' || savedDollarView === 'nominal') {
