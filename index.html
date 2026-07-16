@@ -282,6 +282,17 @@
   .withdraw-order-row.withdraw-order-excluded{opacity:0.5;}
   .withdraw-order-pct-wrap{display:flex; align-items:center; gap:4px; flex:0 0 auto; font-size:16px; font-weight:600; color:var(--navy);}
   .withdraw-order-pct{width:56px; padding:6px 7px; border:1px solid var(--border); border-radius:6px; font-size:15.5px; text-align:right;}
+  /* On a phone in portrait, the row's fixed-width pieces (checkbox, number circle, balance, and the
+     arrows or % input) leave the flexible name/badge column too narrow — the badge text (e.g. "Roth ·
+     Excluded") has nowhere to wrap and runs into the balance/percent input next to it. Below 700px,
+     let the row wrap: checkbox + number stay on the first line, the name/badge column takes its own
+     full-width line (name still ellipses if genuinely too long, badge wraps normally), and the balance
+     plus arrows/% input drop to a third line together, pushed to the right edge. */
+  @media (max-width:700px){
+    .withdraw-order-row{flex-wrap:wrap; row-gap:6px;}
+    .withdraw-order-info{flex-basis:100%;}
+    .withdraw-order-balance{margin-left:auto;}
+  }
   .row-header{display:grid; gap:8px; margin-bottom:6px; font-size:16.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
   .row-header.cols-2{grid-template-columns:1.3fr 0.9fr 26px;}
   .row-header.cols-pie{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
