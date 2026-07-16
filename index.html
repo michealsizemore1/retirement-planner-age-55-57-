@@ -573,6 +573,47 @@
     .gr-bar-row{grid-template-columns:1fr; text-align:center; gap:6px;}
     .gr-bar-side{text-align:center;}
   }
+
+  /* ---------- Print: "Print Full Plan" (Settings page) ---------- */
+  /* Screen-only layout normally shows one .page at a time (display:none on the rest) and hides a
+     card's body once collapsed — both are exactly wrong for a printed copy meant to be read end to
+     end by someone who never touches the app itself. printFullPlan() (see JS) briefly visits every
+     page first so each one's charts/tables actually exist in the DOM, then calls window.print();
+     these rules do the rest, and only ever apply to the print output itself — the on-screen app is
+     completely unaffected, since @media print never matches outside of an actual print/print-preview. */
+  @media print {
+    body{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    header, .sidenav, .nav-overlay, .ask-ai-fab, .floating-ai-panel,
+    #backupReminderBanner, .info-banner-close,
+    .chart-range-nav, .range-readout,
+    .remove-btn, .add-btn, .withdraw-order-arrows,
+    input[type="file"], input[type="range"],
+    .chat-box, #vaultAiGate, #vaultSearchInput, #vaultUploadStatus,
+    .open-btn,
+    .shared-notes-card small
+    { display:none !important; }
+
+    .shell{ max-width:none !important; padding:0 !important; margin:0 !important; }
+
+    /* Every page prints, one after another, instead of only whichever was active on screen. */
+    .page{ display:block !important; page-break-before:always; break-before:page; }
+    .page:first-of-type{ page-break-before:auto; break-before:auto; }
+
+    /* A collapsed card's body is exactly the content someone printing the plan wants to see — force
+       every card fully open regardless of its on-screen collapsed/expanded state. */
+    .card.collapsed > *:not(h3){ display:block !important; }
+    .card h3::after{ display:none !important; }
+
+    /* Wide tables/registers normally scroll horizontally on screen; paper can't scroll, so let them
+       run their natural width instead of getting clipped. */
+    .table-scroll{ overflow:visible !important; }
+
+    /* The shared-notes full-bleed trick (100vw + negative margins) is a screen-viewport technique
+       that doesn't translate to a printed page — fall back to a normal block box. */
+    .shared-notes-card{ width:auto !important; position:static !important; left:auto !important; right:auto !important; margin:0 0 16px !important; }
+
+    canvas{ max-width:100% !important; }
+  }
 </style>
 </head>
 <body>
@@ -1676,6 +1717,12 @@
         </div>
         <hr class="divider">
         <button class="add-btn" style="background:#fdf3f1; color:var(--danger);" onclick="resetAllData()">Reset everything to defaults</button>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Print Full Plan<span class="sub-label">Every section, one document — good for handing off to a financial advisor or CPA</span></h3>
+        <p style="font-size:16px;color:var(--muted);margin:0 0 12px;line-height:1.55;">Generates a printable version of the entire plan — every page, chart, and table, fully expanded — using your browser's own print dialog. From there you can print to paper or choose "Save as PDF" to get a file you can send or upload elsewhere. This can take a few seconds to prepare since it briefly visits every section first.</p>
+        <button class="add-btn" onclick="printFullPlan()">Print Full Plan</button>
       </div>
 
       <div class="card">
@@ -8577,6 +8624,36 @@ function restoreFromFile(file) {
   };
   reader.readAsText(file);
 }
+
+// ---------- Print Full Plan ----------
+// Charts are normally only ever created for whichever page happens to be active on screen — printing
+// needs every page's canvas populated at once, so this briefly visits every page (building any chart
+// that hasn't been created yet, exactly like a normal page visit already does) before handing off to
+// the browser's own print dialog. The @media print stylesheet does the actual "show every page instead
+// of just the active one" work; this function's job is just to make sure there's real content in the
+// DOM for it to show. Whichever page was open before Print Full Plan was clicked is restored once the
+// print dialog closes (or is cancelled), via the afterprint event.
+function printFullPlan() {
+  render();
+  const activePageEl = document.querySelector('.page.active');
+  const originalPageId = activePageEl ? activePageEl.dataset.page : 'dashboard';
+  const restoreOriginalPage = () => {
+    showPage(originalPageId);
+    window.removeEventListener('afterprint', restoreOriginalPage);
+  };
+  window.addEventListener('afterprint', restoreOriginalPage);
+  document.querySelectorAll('.nav-item[data-page]').forEach(n => showPage(n.dataset.page));
+  window.print();
+}
+
+// A chart built while some OTHER page was the visible one is still sized for that page's own on-screen
+// layout, not for print's "every page visible at once, stacked" layout — beforeprint fires once the
+// browser has actually applied the @media print rules, so this is the right moment to tell every
+// existing chart to recompute its size against whatever it's really sitting inside now. Registered
+// globally (not just from the Print Full Plan button) so it also covers a plain Ctrl/Cmd+P.
+window.addEventListener('beforeprint', () => {
+  Object.values(charts).forEach(c => { try { c.resize(); } catch (e) { /* a stale/destroyed chart instance can safely be skipped */ } });
+});
 
 function resetAllData() {
   if (!confirm('This clears everything saved in this browser and reloads the page with defaults. Continue?')) return;
