@@ -5018,10 +5018,17 @@ function applyState(state) {
   if (typeof state.withdrawalModeCustom === 'boolean') withdrawalModeCustom = state.withdrawalModeCustom;
   if (typeof state.excessIncomeDestinationPieName === 'string') excessIncomeDestinationPieName = state.excessIncomeDestinationPieName;
   if (typeof state.rothConversionSourceName === 'string') rothConversionSourceName = state.rothConversionSourceName;
-  // Routed through updateSharedNotes() (not a bare assignment) so a restored backup also writes
-  // through to SHARED_NOTES_KEY, the dedicated key boot reads from — otherwise the next page load
-  // would silently revert to whatever was in that key before this restore, discarding it.
-  if (typeof state.sharedNotesText === 'string') updateSharedNotes(state.sharedNotesText);
+  // Deliberately NOT syncing state.sharedNotesText here. This function runs on every normal boot (via
+  // loadState()), and the copy of sharedNotesText baked into this state blob is only as fresh as the
+  // last time saveState() happened to run for some unrelated field — notes themselves persist through
+  // their own dedicated key (SHARED_NOTES_KEY) on every keystroke and deliberately skip the full
+  // saveState() pipeline (see the Shared Notes section) to avoid a laggy Monte Carlo re-run on every
+  // character typed. If this function overwrote SHARED_NOTES_KEY with whatever stale copy is sitting in
+  // this blob, a note typed since the last unrelated field edit would get silently discarded the very
+  // next time the page loads — that was exactly the bug (notes not sticking, or seeming to have a size
+  // limit as they got reverted to an older, shorter version). The one legitimate case where a backup's
+  // notes SHOULD win — an explicit Restore from Backup — handles this itself, right after calling this
+  // function, instead of it happening implicitly on every single boot.
   if (state.fields) {
     Object.keys(state.fields).forEach(id => {
       const el = els(id);
@@ -8554,6 +8561,11 @@ function restoreFromFile(file) {
     try {
       const state = JSON.parse(e.target.result);
       applyState(state);
+      // Notes are the one field applyState() deliberately doesn't touch (see the comment there) — an
+      // explicit restore is the one legitimate case where the backup's notes SHOULD overwrite whatever
+      // is currently in this browser, so it's synced here instead, routed through updateSharedNotes()
+      // so it also writes through to the dedicated SHARED_NOTES_KEY, not just the in-memory copy.
+      if (typeof state.sharedNotesText === 'string') updateSharedNotes(state.sharedNotesText);
       renderExpenseRows(); renderBrokeragePieRows(); renderPieContributionRows(); renderDebtRows();
       renderFutureExpenseRows(); renderWindfallRows(); renderInsuranceRows();
       saveState();
@@ -9139,9 +9151,9 @@ function render() {
 }
 
 const hadSavedState = loadState();
-// Runs AFTER loadState() (which may have just set sharedNotesText from the older copy bundled inside
-// the main state blob) so the dedicated SHARED_NOTES_KEY — updated on every keystroke, so always the
-// freshest — wins and every page's textarea shows the true latest text from boot.
+// loadState() never touches sharedNotesText (see applyState()) — notes live only in their own
+// dedicated key, always updated on every keystroke, so this is the one and only source of truth for
+// what shows up in every page's textarea at boot.
 sharedNotesText = loadSharedNotes();
 renderSharedNotesTextareas();
 // Async (IndexedDB) — fires and forgets rather than being awaited, so a slow or failing Vault load can
