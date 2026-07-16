@@ -278,6 +278,10 @@
   }
   .withdraw-order-arrows button:disabled{opacity:0.35; cursor:not-allowed;}
   .withdraw-order-arrows button:not(:disabled):hover{background:var(--teal-light); color:var(--teal);}
+  .withdraw-order-checkbox{width:20px; height:20px; flex:0 0 auto; accent-color:var(--teal); cursor:pointer;}
+  .withdraw-order-row.withdraw-order-excluded{opacity:0.5;}
+  .withdraw-order-pct-wrap{display:flex; align-items:center; gap:4px; flex:0 0 auto; font-size:16px; font-weight:600; color:var(--navy);}
+  .withdraw-order-pct{width:56px; padding:6px 7px; border:1px solid var(--border); border-radius:6px; font-size:15.5px; text-align:right;}
   .row-header{display:grid; gap:8px; margin-bottom:6px; font-size:16.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
   .row-header.cols-2{grid-template-columns:1.3fr 0.9fr 26px;}
   .row-header.cols-pie{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
@@ -1007,7 +1011,7 @@
           <span class="pill active" id="withdrawModeTraditionalPill" onclick="setWithdrawalMode(false)">Traditional</span>
           <span class="pill" id="withdrawModeCustomPill" onclick="setWithdrawalMode(true)">Customized</span>
         </div>
-        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 10px;line-height:1.5;">Edit the order of your accounts based on when you expect to make withdrawals from them. <b>Traditional</b> uses a conventional taxable → tax-deferred → tax-free sequence; switch to <b>Customized</b> to use the ▲▼ arrows and set your own order.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 10px;line-height:1.5;">Edit the order of your accounts based on when you expect to make withdrawals from them. <b>Traditional</b> uses a conventional taxable → tax-deferred → tax-free sequence; switch to <b>Customized</b> to use the ▲▼ arrows and set your own order. Uncheck an account below to remove it from the withdrawal order entirely — it will never be drawn from to cover a spending gap (Required Minimum Distributions still apply regardless, since those are IRS-mandated, not optional).</p>
         <div class="mini-label">Account Order</div>
         <div id="withdrawalOrderRows"></div>
         <hr class="divider">
@@ -1015,7 +1019,12 @@
           <input type="checkbox" id="withdrawSimultaneous" onchange="render()">
           <label for="withdrawSimultaneous">Withdraw from multiple accounts at the same time (proportionally), instead of one at a time</label>
         </div>
-        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split proportionally across all the accounts above by their balance that year — the order numbers stop mattering, since every account participates at once.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">When this is off, money is drawn fully from account #1 above before touching #2, and so on. When it's on, each year's withdrawal need is split across every checked account above at once — either automatically by that year's balance, or by fixed percentages you set yourself — and the order numbers above stop mattering.</p>
+        <div class="pill-row" id="withdrawalProportionModeRow" style="margin:10px 0 2px; display:none;">
+          <span class="pill" id="withdrawProportionBalancePill" onclick="setWithdrawalProportionMode('balance')">By Balance</span>
+          <span class="pill" id="withdrawProportionPercentPill" onclick="setWithdrawalProportionMode('percent')">By Percentage</span>
+        </div>
+        <p id="withdrawalPctTotal" style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;display:none;"></p>
       </div>
     </div>
 
@@ -5048,7 +5057,7 @@ function saveState() {
     if (!el.id) return;
     fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   });
-  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, excessIncomeDestinationPieName, rothConversionSourceName, sharedNotesText };
+  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, withdrawalExcludedKeys, withdrawalProportionMode, withdrawalProportions, excessIncomeDestinationPieName, rothConversionSourceName, sharedNotesText };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, ignore */ }
   return state;
 }
@@ -5063,6 +5072,9 @@ function applyState(state) {
   if (Array.isArray(state.insurancePolicies)) insurancePolicies = state.insurancePolicies;
   if (Array.isArray(state.withdrawalOrderState)) withdrawalOrderState = state.withdrawalOrderState;
   if (typeof state.withdrawalModeCustom === 'boolean') withdrawalModeCustom = state.withdrawalModeCustom;
+  if (Array.isArray(state.withdrawalExcludedKeys)) withdrawalExcludedKeys = state.withdrawalExcludedKeys;
+  if (state.withdrawalProportionMode === 'balance' || state.withdrawalProportionMode === 'percent') withdrawalProportionMode = state.withdrawalProportionMode;
+  if (state.withdrawalProportions && typeof state.withdrawalProportions === 'object') withdrawalProportions = { ...state.withdrawalProportions };
   if (typeof state.excessIncomeDestinationPieName === 'string') excessIncomeDestinationPieName = state.excessIncomeDestinationPieName;
   if (typeof state.rothConversionSourceName === 'string') rothConversionSourceName = state.rothConversionSourceName;
   // Deliberately NOT syncing state.sharedNotesText here. This function runs on every normal boot (via
@@ -5650,6 +5662,18 @@ function updatePieContribution(i, value) {
 // Order is a flat array of account keys: 'trad', 'roth', 'hysa', and 'pie_0'..'pie_N-1' (index into brokeragePies).
 let withdrawalOrderState = ['trad', 'pie_0', 'pie_1', 'hysa', 'pie_2', 'roth'];
 let withdrawalModeCustom = true;
+// Accounts checked OFF in the Withdrawal Strategy list — kept as a separate array (rather than removing
+// them from withdrawalOrderState) so an excluded account still shows in the list at its usual position,
+// with its usual balance, and un-excluding it later doesn't lose whatever order position it had. Only
+// affects the voluntary spending-gap waterfall below; Required Minimum Distributions are still forced
+// out of Trad TSP regardless (see rmdAge below), since those aren't optional.
+let withdrawalExcludedKeys = [];
+// How a simultaneous ("multiple accounts at once") withdrawal splits across the accounts that ARE
+// included: 'balance' (default — proportional to that year's actual balance, exactly the original
+// behavior) or 'percent' (fixed weights you set yourself in withdrawalProportions, independent of how
+// each account's balance drifts over time).
+let withdrawalProportionMode = 'balance';
+let withdrawalProportions = {}; // { [accountKey]: percent } — only read when withdrawalProportionMode === 'percent'
 
 function getWithdrawalAccountKeys() {
   return ['trad', ...brokeragePies.map((_, i) => 'pie_' + i), 'hysa', 'roth'];
@@ -5666,6 +5690,28 @@ function normalizeWithdrawalOrder() {
   const validKeys = getWithdrawalAccountKeys();
   withdrawalOrderState = withdrawalOrderState.filter(k => validKeys.includes(k));
   validKeys.forEach(k => { if (!withdrawalOrderState.includes(k)) withdrawalOrderState.push(k); });
+}
+
+// Drops exclusions for accounts that no longer exist (e.g. a removed brokerage pie) — a newly-added
+// account is never excluded by default, same as it's never left out of withdrawalOrderState by default.
+function normalizeWithdrawalExclusions() {
+  const validKeys = getWithdrawalAccountKeys();
+  withdrawalExcludedKeys = withdrawalExcludedKeys.filter(k => validKeys.includes(k));
+}
+
+// Drops stale keys and gives any newly-relevant included account an even starting share of 100%, so a
+// just-added account (or one just un-excluded) doesn't silently sit at 0% — used as relative weights at
+// withdrawal time (see projectRun()), so this doesn't need to add up to exactly 100, but starting even
+// keeps the numbers meaning what they look like they mean until the user adjusts them.
+function normalizeWithdrawalProportions() {
+  const validKeys = getWithdrawalAccountKeys();
+  Object.keys(withdrawalProportions).forEach(k => { if (!validKeys.includes(k)) delete withdrawalProportions[k]; });
+  const included = validKeys.filter(k => !withdrawalExcludedKeys.includes(k));
+  const missing = included.filter(k => withdrawalProportions[k] === undefined);
+  if (missing.length) {
+    const evenShare = included.length ? Math.round(100 / included.length) : 0;
+    missing.forEach(k => { withdrawalProportions[k] = evenShare; });
+  }
 }
 
 function withdrawalAccountInfo(key) {
@@ -5693,30 +5739,84 @@ function moveWithdrawalOrder(index, direction) {
   render();
 }
 
+function toggleWithdrawalExcluded(key) {
+  const idx = withdrawalExcludedKeys.indexOf(key);
+  if (idx === -1) withdrawalExcludedKeys.push(key); else withdrawalExcludedKeys.splice(idx, 1);
+  renderWithdrawalOrderRows();
+  render();
+}
+
+function setWithdrawalProportionMode(mode) {
+  withdrawalProportionMode = mode === 'percent' ? 'percent' : 'balance';
+  renderWithdrawalOrderRows();
+  render();
+}
+
+function updateWithdrawalProportion(key, value) {
+  withdrawalProportions[key] = Math.max(0, +value || 0);
+  renderWithdrawalOrderRows();
+  render();
+}
+
 function renderWithdrawalOrderRows() {
   const container = els('withdrawalOrderRows');
   if (!container) return;
   normalizeWithdrawalOrder();
+  normalizeWithdrawalExclusions();
+  normalizeWithdrawalProportions();
   const tPill = els('withdrawModeTraditionalPill'), cPill = els('withdrawModeCustomPill');
   if (tPill) tPill.classList.toggle('active', !withdrawalModeCustom);
   if (cPill) cPill.classList.toggle('active', withdrawalModeCustom);
+
+  const simultaneous = !!(els('withdrawSimultaneous') && els('withdrawSimultaneous').checked);
+  const percentMode = simultaneous && withdrawalProportionMode === 'percent';
+
+  const modeRow = els('withdrawalProportionModeRow');
+  if (modeRow) modeRow.style.display = simultaneous ? 'flex' : 'none';
+  const balPill = els('withdrawProportionBalancePill'), pctPill = els('withdrawProportionPercentPill');
+  if (balPill) balPill.classList.toggle('active', withdrawalProportionMode !== 'percent');
+  if (pctPill) pctPill.classList.toggle('active', withdrawalProportionMode === 'percent');
+
   container.innerHTML = withdrawalOrderState.map((key, i) => {
     const info = withdrawalAccountInfo(key);
-    const disabledAttr = withdrawalModeCustom ? '' : 'disabled';
+    const excluded = withdrawalExcludedKeys.includes(key);
+    const disabledAttr = (withdrawalModeCustom && !simultaneous && !excluded) ? '' : 'disabled';
+    const pct = withdrawalProportions[key] || 0;
+    const trailing = (percentMode && !excluded)
+      ? `<div class="withdraw-order-pct-wrap"><input type="number" class="withdraw-order-pct" min="0" max="100" step="1" value="${pct}" onchange="updateWithdrawalProportion('${key}', this.value)">%</div>`
+      : `<div class="withdraw-order-arrows">
+          <button type="button" ${disabledAttr} onclick="moveWithdrawalOrder(${i}, -1)" aria-label="Move up">▲</button>
+          <button type="button" ${disabledAttr} onclick="moveWithdrawalOrder(${i}, 1)" aria-label="Move down">▼</button>
+        </div>`;
     return `
-    <div class="withdraw-order-row">
+    <div class="withdraw-order-row${excluded ? ' withdraw-order-excluded' : ''}">
+      <input type="checkbox" class="withdraw-order-checkbox" ${excluded ? '' : 'checked'} onchange="toggleWithdrawalExcluded('${key}')" title="${excluded ? 'Excluded — never drawn from to cover a spending gap' : 'Included in the withdrawal order'}">
       <span class="withdraw-order-num">${i + 1}</span>
       <div class="withdraw-order-info">
         <div class="withdraw-order-name">${info.label}</div>
-        <div class="withdraw-order-badge">${info.badge}</div>
+        <div class="withdraw-order-badge">${info.badge}${excluded ? ' · Excluded' : ''}</div>
       </div>
       <div class="withdraw-order-balance">${fmtMoney(info.balance)}</div>
-      <div class="withdraw-order-arrows">
-        <button type="button" ${disabledAttr} onclick="moveWithdrawalOrder(${i}, -1)" aria-label="Move up">▲</button>
-        <button type="button" ${disabledAttr} onclick="moveWithdrawalOrder(${i}, 1)" aria-label="Move down">▼</button>
-      </div>
+      ${trailing}
     </div>`;
   }).join('');
+
+  // Live total so setting fixed percentages doesn't require doing the arithmetic by hand — these are
+  // used as relative weights at withdrawal time (see projectRun()), so it doesn't strictly need to add
+  // up to 100, but it should for the numbers on screen to mean what they look like they mean.
+  const pctTotalEl = els('withdrawalPctTotal');
+  if (pctTotalEl) {
+    if (percentMode) {
+      const included = withdrawalOrderState.filter(k => !withdrawalExcludedKeys.includes(k));
+      const total = included.reduce((s, k) => s + (withdrawalProportions[k] || 0), 0);
+      pctTotalEl.style.display = 'block';
+      pctTotalEl.textContent = Math.abs(total - 100) < 0.5
+        ? `Total: ${total}%`
+        : `Total: ${total}% — these are used as relative weights, so this doesn't have to be exactly 100%, but it usually should be for the percentages above to mean what they say.`;
+    } else {
+      pctTotalEl.style.display = 'none';
+    }
+  }
 }
 
 // ---------- Debt (dynamic rows) ----------
@@ -5875,8 +5975,15 @@ function readInputs() {
     brokeragePieContributionsMonthly: brokeragePies.map(p => +p.contribution || 0),
     brokeragePieRiskTypes: brokeragePies.map(p => p.riskType || 'equity'),
     brokeragePieCashRates: brokeragePies.map(p => (+p.cashRate || 4.5)/100),
-    withdrawalOrder: withdrawalOrderState.slice(),
+    // Excluded accounts are dropped here rather than in the engine itself — effectiveWithdrawalOrder
+    // (projectRun()) is built directly from this array, so an excluded account is simply never a
+    // candidate to draw from, in both the sequential and simultaneous paths, with no further engine
+    // changes needed. withdrawalOrderState itself (the full list, used for the on-screen order/UI)
+    // stays untouched so an excluded account keeps its position if it's ever re-included.
+    withdrawalOrder: withdrawalOrderState.filter(k => !withdrawalExcludedKeys.includes(k)),
     withdrawalSimultaneous: els('withdrawSimultaneous').checked,
+    withdrawalProportionMode,
+    withdrawalProportions: { ...withdrawalProportions },
     checkingBalance: +els('checkingBalance').value,
     savingsBalance: +els('savingsBalance').value,
     hysaBalance: +els('hysaBalance').value,
@@ -6790,18 +6897,34 @@ function projectRun(inputs, ctx, randomize, shocks) {
       }
 
       if (inputs.withdrawalSimultaneous) {
-        // Split the need proportionally (by current balance) across the checked accounts, "water-filling"
-        // over a few rounds so accounts that run dry hand off their unmet share to the others still selected.
-        // effectiveWithdrawalOrder already excludes 'trad' during a Job Loss year that doesn't qualify for
-        // Rule of 55 and hasn't reached 59.5 yet, so bal.trad simply never gets touched in that case.
+        // Split the need across the checked accounts, "water-filling" over a few rounds so accounts
+        // that run dry hand off their unmet share to the others still selected. effectiveWithdrawalOrder
+        // already excludes 'trad' during a Job Loss year that doesn't qualify for Rule of 55 and hasn't
+        // reached 59.5 yet, so bal.trad simply never gets touched in that case.
         let selected = effectiveWithdrawalOrder.filter(k => bal[k] !== undefined);
-        for (let round = 0; round < selected.length && remaining > 0.01; round++) {
-          const active = selected.filter(k => bal[k] > 0.01);
-          if (!active.length) break;
-          const totalBal = active.reduce((s, k) => s + bal[k], 0);
-          if (totalBal <= 0) break;
-          const roundTarget = remaining;
-          active.forEach(k => takeFrom(k, roundTarget * (bal[k] / totalBal)));
+        if (inputs.withdrawalProportionMode === 'percent') {
+          // Fixed weights the user set on the Money Flows page, instead of that year's balance — an
+          // account's share of each year's withdrawal stays constant even as balances drift apart over
+          // time, unlike the balance-weighted path below. Weights are relative (renormalized against
+          // whichever accounts are still active each round), so they don't need to add up to exactly 100.
+          for (let round = 0; round < selected.length && remaining > 0.01; round++) {
+            const active = selected.filter(k => bal[k] > 0.01);
+            if (!active.length) break;
+            const totalPct = active.reduce((s, k) => s + (inputs.withdrawalProportions[k] || 0), 0);
+            if (totalPct <= 0) break; // none of the still-active accounts have a weight set — nothing left to allocate this round
+            const roundTarget = remaining;
+            active.forEach(k => takeFrom(k, roundTarget * ((inputs.withdrawalProportions[k] || 0) / totalPct)));
+          }
+        } else {
+          // Default: split proportionally by that year's actual balance.
+          for (let round = 0; round < selected.length && remaining > 0.01; round++) {
+            const active = selected.filter(k => bal[k] > 0.01);
+            if (!active.length) break;
+            const totalBal = active.reduce((s, k) => s + bal[k], 0);
+            if (totalBal <= 0) break;
+            const roundTarget = remaining;
+            active.forEach(k => takeFrom(k, roundTarget * (bal[k] / totalBal)));
+          }
         }
       } else {
         // Sequential waterfall: drain the 1st account fully before touching the 2nd, then the 3rd.
