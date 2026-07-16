@@ -254,7 +254,7 @@
      Amount (both start at the same y), while the month picker hangs below on its own. This
      value works the same in both the desktop grid layout and the mobile flex-wrap layout. */
   .row-item.insurance-row{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
-  .row-item.vault-row{grid-template-columns:1.4fr 0.6fr 0.8fr 0.7fr 26px;}
+  .row-item.vault-row{grid-template-columns:1.3fr 0.5fr 0.7fr 0.6fr 56px 26px;}
   .row-item input, .row-item select{padding:8px 9px; border:1px solid var(--border); border-radius:6px; font-size:16.5px; background:#fbfcfc; width:100%;}
   .age-cell{display:flex; flex-direction:column; gap:4px;}
   .age-cell input[type="month"]{font-size:16.5px; padding:5px 7px;}
@@ -289,7 +289,7 @@
   .row-header.cols-windfall{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px;}
   .row-header.cols-expense{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 0.7fr 26px;}
   .row-header.cols-insurance{grid-template-columns:1.2fr 0.8fr 0.7fr 0.7fr 26px;}
-  .row-header.cols-vault{grid-template-columns:1.4fr 0.6fr 0.8fr 0.7fr 26px;}
+  .row-header.cols-vault{grid-template-columns:1.3fr 0.5fr 0.7fr 0.6fr 56px 26px;}
   .vault-search-hit{background:#fbfcfc; border:1px solid var(--border); border-radius:8px; padding:10px 13px; margin-bottom:8px;}
   .vault-search-hit-name{font-size:16.5px; font-weight:700; color:var(--navy); margin-bottom:4px;}
   .vault-search-hit-snippet{font-size:16px; color:var(--text); line-height:1.5;}
@@ -297,6 +297,8 @@
   .row-item.contrib-row{grid-template-columns:1.6fr 0.9fr; align-items:center;}
   .pie-name-label{font-size:16.5px; color:var(--text);}
   .remove-btn{background:none; border:none; color:var(--danger); cursor:pointer; font-size:20px; line-height:1; padding:2px;}
+  .open-btn{background:var(--teal-light); color:var(--teal); border:none; border-radius:5px; padding:3px 10px; font-size:13.5px; font-weight:600; cursor:pointer; white-space:nowrap;}
+  .open-btn:disabled{opacity:0.45; cursor:default;}
   .add-btn{background:var(--teal-light); color:var(--teal); border:none; border-radius:6px; padding:8px 13px; font-size:16.5px; font-weight:600; cursor:pointer; margin-top:6px;}
   .total-row{display:flex; justify-content:space-between; font-size:17px; font-weight:700; color:var(--navy); margin-top:10px; padding-top:10px; border-top:1px solid var(--border);}
 
@@ -483,7 +485,7 @@
     .row-item > *:first-child, .row-header > *:first-child{
       flex:1 1 100%;
     }
-    .row-item > *:not(:first-child):not(.remove-btn),
+    .row-item > *:not(:first-child):not(.remove-btn):not(.open-btn),
     .row-header > *:not(:first-child){
       flex:1 1 calc(50% - 4px);
       min-width:0;
@@ -492,6 +494,13 @@
       flex:1 1 calc(50% - 4px);
     }
     .row-item .remove-btn{
+      flex:0 0 auto;
+      margin-left:auto;
+    }
+    /* Document Vault rows end in two action buttons (Open, then remove ×) instead of just one — keep
+       them together on their own trailing line instead of the generic rule stretching "Open" to 50%
+       width like it's just another data field. */
+    .row-item.vault-row .open-btn{
       flex:0 0 auto;
       margin-left:auto;
     }
@@ -1291,22 +1300,22 @@
       </div>
       <div class="page-header"><h2>Document Vault</h2><p>Upload important documents (PDF, Word, or plain text) to keep them searchable — informational only, doesn't feed the projection math.</p></div>
 
-      <div class="note" style="margin-top:0;">For storage efficiency, only the extracted <b>text</b> of each document is saved (not the original file, so formatting/images aren't preserved) — this keeps everything searchable while staying well under the browser's storage limit. Everything stays in this browser only, unless you use Ask AI below with your own Anthropic API key, in which case the relevant document text is sent to Anthropic to answer your question.</div>
+      <div class="note" style="margin-top:0;">The original file is saved (up to ~25 MB each) so you can open or download it again later, alongside its extracted <b>text</b> for search and Ask AI (up to ~1 MB of text per document — very long documents just won't be fully searchable past that point, but the original file itself is never truncated). Stored in this browser's own document storage, separate from the rest of your plan data. Everything stays in this browser only, unless you use Ask AI below with your own Anthropic API key, in which case the relevant document text is sent to Anthropic to answer your question.</div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Upload</h3>
         <div class="field">
-          <label>Add documents (.pdf, .docx, .txt — up to ~300 KB of extracted text each)</label>
+          <label>Add documents (.pdf, .docx, .txt — up to ~25 MB each)</label>
           <input type="file" id="vaultFileInput" multiple accept=".pdf,.docx,.txt" onchange="handleVaultUpload(event)">
         </div>
         <p id="vaultUploadStatus" style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;"></p>
-        <div style="display:flex;justify-content:space-between;padding:10px 0 0;color:var(--muted);font-size:15.5px;"><span>Storage used</span><span id="vaultStorageUsage">0 KB of ~3 MB</span></div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0 0;color:var(--muted);font-size:15.5px;"><span>Storage used</span><span id="vaultStorageUsage">0 KB of ~150 MB</span></div>
         <div style="background:rgba(120,120,120,0.18);border-radius:6px;height:6px;overflow:hidden;margin-top:4px;"><div id="vaultStorageBar" style="height:100%;width:0%;background:#3f9c7a;transition:width 0.3s;"></div></div>
       </div>
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Your Documents</h3>
-        <div class="row-header cols-vault"><span>Name</span><span>Type</span><span>Uploaded</span><span>Text size</span><span></span></div>
+        <div class="row-header cols-vault"><span>Name</span><span>Type</span><span>Uploaded</span><span>Size</span><span></span><span></span></div>
         <div class="row-list" id="vaultDocRows"></div>
         <p id="vaultEmptyNote" style="color:var(--muted);font-size:15.5px;margin:8px 0 0;">No documents uploaded yet.</p>
       </div>
@@ -8154,37 +8163,115 @@ async function sendCoachChatMessage() {
   }
 }
 
-// ---------- Document Vault: client-side-only document upload, keyword search, and AI Q&A ----------
+// ---------- Document Vault: client-side document upload, keyword search, and AI Q&A ----------
+// Storage: IndexedDB, not localStorage. Two problems came out of the original localStorage-only design:
+// (1) localStorage's small, synchronous, per-origin quota (often just a few MB — sometimes tighter still
+// on a file:// page, which is how this tool is normally opened) is shared with the main plan's own
+// STORAGE_KEY. A handful of large documents could push total usage over that limit, and depending on the
+// browser a quota failure can end up costing more than just the one write that failed. (2) Only extracted
+// text was ever kept, never the original file, so there was never anything to actually open or download —
+// "Your Documents" only ever showed searchable text, never the document itself.
+// IndexedDB fixes both: it's a completely separate storage mechanism from localStorage, so a large vault
+// can never contend with or endanger the main plan's saved data; it stores the original file as a real
+// Blob with no size penalty; and its real-world quota is dramatically larger than localStorage's (typically
+// a meaningful share of free disk space, easily hundreds of MB or more, vs. localStorage's usual 5-10 MB).
 // Nothing here ever leaves the browser except the specific document text sent to Anthropic if you use
-// Ask AI below (and only after you've added your own API key on Settings) — uploads, extraction, storage,
-// and keyword search all run entirely client-side. Kept in its own localStorage key (VAULT_STORAGE_KEY),
-// separate from the main plan's STORAGE_KEY, so a large vault can never risk corrupting or blocking a
-// save of your actual plan data if it happens to hit the browser's storage quota.
+// Ask AI below (and only after you've added your own API key on Settings).
 // Note: a plain `esc()` HTML-escaping helper already exists elsewhere in this file, but it's defined
 // inside the embedded credit-card tracker sub-app (only decoded/loaded once you visit Accounts & Cards),
 // so it can't be relied on here — this exact kind of "defined only if another page happened to load
 // first" bug bit an earlier chart (see the esc() ReferenceError fix). vaultEsc() below is this section's
 // own, always-available copy.
-const VAULT_STORAGE_KEY = 'retirementPlannerVault_v1';
-const VAULT_MAX_FILE_TEXT_BYTES = 300 * 1024;   // ~300 KB of extracted text per document
-const VAULT_MAX_TOTAL_BYTES = 3 * 1024 * 1024;  // ~3 MB total across all documents
+const VAULT_STORAGE_KEY = 'retirementPlannerVault_v1'; // old localStorage key — read once at boot to migrate, then left empty/unused
+const VAULT_DB_NAME = 'retirementPlannerVaultDB_v1';
+const VAULT_DB_STORE = 'documents';
+const VAULT_MAX_FILE_BYTES = 25 * 1024 * 1024;    // ~25 MB per original file — generous for any real statement or policy PDF
+const VAULT_MAX_TEXT_BYTES = 1024 * 1024;         // ~1 MB of extracted text kept per document for search/Ask AI — the original file is always saved in full regardless of this cap
+const VAULT_MAX_TOTAL_BYTES = 150 * 1024 * 1024;  // ~150 MB total across all original files — well inside IndexedDB's real-world quota
 let vaultDocuments = [];
 let vaultChatHistory = [];
+let vaultDBPromise = null;
 
 function vaultEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// Storage used is now measured by the original file size (what's actually sitting in IndexedDB), not
+// the length of the extracted text — the two can differ a lot, and it's the file bytes that matter for
+// the quota check below.
 function vaultTotalBytes() {
-  return vaultDocuments.reduce((s, d) => s + (d.extractedText ? d.extractedText.length : 0), 0);
+  return vaultDocuments.reduce((s, d) => s + (d.sizeOriginal || 0), 0);
 }
 
-function saveVaultState() {
-  try { localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(vaultDocuments)); return true; }
-  catch (e) { return false; } // quota exceeded or storage unavailable — never touches STORAGE_KEY, so the rest of your plan data is unaffected
+function openVaultDB() {
+  if (vaultDBPromise) return vaultDBPromise;
+  vaultDBPromise = new Promise((resolve, reject) => {
+    if (!window.indexedDB) { reject(new Error('This browser does not support IndexedDB — Document Vault storage is unavailable.')); return; }
+    const req = indexedDB.open(VAULT_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(VAULT_DB_STORE)) db.createObjectStore(VAULT_DB_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('Could not open Document Vault storage.'));
+  });
+  return vaultDBPromise;
 }
 
-function loadVaultState() {
-  try { const raw = localStorage.getItem(VAULT_STORAGE_KEY); if (raw) vaultDocuments = JSON.parse(raw) || []; }
-  catch (e) { vaultDocuments = []; }
+async function vaultDBPut(doc) {
+  const db = await openVaultDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(VAULT_DB_STORE, 'readwrite');
+    tx.objectStore(VAULT_DB_STORE).put(doc);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('The browser reported a storage error while saving this document.'));
+  });
+}
+
+async function vaultDBDelete(id) {
+  const db = await openVaultDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(VAULT_DB_STORE, 'readwrite');
+    tx.objectStore(VAULT_DB_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('Could not remove this document from storage.'));
+  });
+}
+
+async function vaultDBGetAll() {
+  const db = await openVaultDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(VAULT_DB_STORE, 'readonly');
+    const req = tx.objectStore(VAULT_DB_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error || new Error('Could not read Document Vault storage.'));
+  });
+}
+
+// One-time migration: documents uploaded before this feature existed were saved as extracted text only,
+// in a single localStorage key. Moves any of those into IndexedDB (fileBlob stays null on these records
+// — the original file was never kept for them, so Open/Download will ask you to re-upload) and clears
+// the old key so this only ever runs once.
+async function migrateVaultFromLocalStorage() {
+  let old = null;
+  try { const raw = localStorage.getItem(VAULT_STORAGE_KEY); if (raw) old = JSON.parse(raw); } catch (e) { /* ignore corrupt old data */ }
+  if (!old || !old.length) return;
+  for (const d of old) {
+    try { await vaultDBPut({ ...d, fileBlob: null, sizeOriginal: d.sizeOriginal || (d.extractedText ? d.extractedText.length : 0) }); }
+    catch (e) { /* best-effort — skip any record that fails to migrate rather than blocking the rest */ }
+  }
+  try { localStorage.removeItem(VAULT_STORAGE_KEY); } catch (e) { /* ignore */ }
+}
+
+async function initVaultStorage() {
+  try {
+    await migrateVaultFromLocalStorage();
+    vaultDocuments = await vaultDBGetAll();
+  } catch (e) {
+    console.error('Document Vault failed to load:', e);
+    vaultDocuments = [];
+  }
+  renderVaultDocuments();
+  renderVaultSearch();
+  renderVaultAiGate();
 }
 
 function fmtBytes(n) {
@@ -8196,13 +8283,14 @@ function fmtBytes(n) {
 // Pulls the plain text out of one uploaded File, using whichever library matches its type. Returns a
 // Promise<string>. PDF/DOCX extraction depends on pdf.js/mammoth.js (loaded via CDN with `defer`) having
 // actually finished loading by the time you upload — if a library didn't load (offline, CDN blocked),
-// this throws a clear, specific error instead of silently producing empty/garbled text.
+// this throws a clear, specific error instead of silently producing empty/garbled text. A failure here
+// only costs search/Ask AI text — the original file still gets saved and can still be opened.
 async function extractTextFromFile(file) {
   const name = file.name || '';
   const ext = name.toLowerCase().split('.').pop();
   if (ext === 'txt') return await file.text();
   if (ext === 'pdf') {
-    if (!window.pdfjsLib) throw new Error('PDF reader library did not load (check your internet connection) — try again, or use a .txt/.docx file instead.');
+    if (!window.pdfjsLib) throw new Error('PDF reader library did not load (check your internet connection) — the file is still saved so you can open it, just without searchable text yet.');
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
@@ -8211,12 +8299,12 @@ async function extractTextFromFile(file) {
       const page = await pdf.getPage(p);
       const content = await page.getTextContent();
       text += content.items.map(it => it.str).join(' ') + '\n\n';
-      if (text.length > VAULT_MAX_FILE_TEXT_BYTES * 2) break; // stop scanning a very long PDF early; still trimmed to the cap below
+      if (text.length > VAULT_MAX_TEXT_BYTES * 2) break; // stop scanning a very long PDF early; still trimmed to the cap below
     }
     return text.trim();
   }
   if (ext === 'docx') {
-    if (!window.mammoth) throw new Error('Word document reader library did not load (check your internet connection) — try again, or use a .txt/.pdf file instead.');
+    if (!window.mammoth) throw new Error('Word document reader library did not load (check your internet connection) — the file is still saved so you can open it, just without searchable text yet.');
     const buf = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer: buf });
     return (result.value || '').trim();
@@ -8229,42 +8317,77 @@ async function handleVaultUpload(event) {
   if (!files.length) return;
   const status = els('vaultUploadStatus');
   for (const file of files) {
+    if (file.size > VAULT_MAX_FILE_BYTES) {
+      if (status) status.textContent = `"${file.name}" is ${fmtBytes(file.size)} — the per-file limit is ${fmtBytes(VAULT_MAX_FILE_BYTES)}.`;
+      continue;
+    }
+    if (vaultTotalBytes() + file.size > VAULT_MAX_TOTAL_BYTES) {
+      if (status) status.textContent = `"${file.name}" would push the vault over its ~${fmtBytes(VAULT_MAX_TOTAL_BYTES)} limit — remove another document first.`;
+      continue;
+    }
     if (status) status.textContent = `Reading ${file.name}…`;
+    let text = '', truncated = false;
     try {
-      let text = await extractTextFromFile(file);
-      let truncated = false;
-      if (text.length > VAULT_MAX_FILE_TEXT_BYTES) { text = text.slice(0, VAULT_MAX_FILE_TEXT_BYTES); truncated = true; }
-      if (vaultTotalBytes() + text.length > VAULT_MAX_TOTAL_BYTES) {
-        if (status) status.textContent = `"${file.name}" would push the vault over its ~3 MB limit — remove another document first, or shorten this one.`;
-        continue;
-      }
-      vaultDocuments.push({
-        id: 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-        name: file.name,
-        type: (file.name.split('.').pop() || '').toUpperCase(),
-        sizeOriginal: file.size,
-        uploadedDate: new Date().toISOString(),
-        extractedText: text,
-        truncated
-      });
-      if (status) status.textContent = `Added "${file.name}"${truncated ? ' (text truncated to fit the per-document size limit)' : ''}.`;
+      text = await extractTextFromFile(file);
+      if (text.length > VAULT_MAX_TEXT_BYTES) { text = text.slice(0, VAULT_MAX_TEXT_BYTES); truncated = true; }
     } catch (e) {
-      if (status) status.textContent = `Couldn't read "${file.name}": ${e.message}`;
+      // Text extraction failing doesn't stop the upload — the original file is still worth saving, it
+      // just won't be searchable or usable with Ask AI (unless re-uploaded once the issue is fixed, or
+      // ever, for a scanned/image-only PDF with no real text layer).
+      if (status) status.textContent = `"${file.name}": ${e.message}`;
+    }
+    const doc = {
+      id: 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      name: file.name,
+      type: (file.name.split('.').pop() || '').toUpperCase(),
+      sizeOriginal: file.size,
+      uploadedDate: new Date().toISOString(),
+      extractedText: text,
+      truncated,
+      fileBlob: file
+    };
+    try {
+      await vaultDBPut(doc);
+      vaultDocuments.push(doc);
+      if (status) status.textContent = `Added "${file.name}"${truncated ? ' (searchable text truncated — the full original file is saved)' : ''}.`;
+    } catch (e) {
+      if (status) status.textContent = `Couldn't save "${file.name}": ${e.message}`;
     }
   }
-  saveVaultState();
   renderVaultDocuments();
   renderVaultSearch();
   renderVaultAiGate();
   event.target.value = '';
 }
 
-function removeVaultDocument(id) {
+async function removeVaultDocument(id) {
   vaultDocuments = vaultDocuments.filter(d => d.id !== id);
-  saveVaultState();
   renderVaultDocuments();
   renderVaultSearch();
   renderVaultAiGate();
+  try { await vaultDBDelete(id); }
+  catch (e) { console.error('Failed to remove document from storage:', e); }
+}
+
+// Opens (PDF/TXT, which browsers render directly) or downloads (DOCX, which they can't) the original
+// file — the whole reason a Blob is kept, not just its extracted text.
+async function openVaultDocument(id) {
+  const doc = vaultDocuments.find(d => d.id === id);
+  if (!doc || !doc.fileBlob) return;
+  try {
+    const url = URL.createObjectURL(doc.fileBlob);
+    const ext = (doc.type || '').toLowerCase();
+    if (ext === 'pdf' || ext === 'txt') {
+      window.open(url, '_blank');
+    } else {
+      const a = document.createElement('a');
+      a.href = url; a.download = doc.name || ('document.' + ext);
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    alert('Could not open this document: ' + e.message);
+  }
 }
 
 function renderVaultDocuments() {
@@ -8272,16 +8395,19 @@ function renderVaultDocuments() {
   const emptyNote = els('vaultEmptyNote');
   const usage = els('vaultStorageUsage');
   const bar = els('vaultStorageBar');
-  if (usage) usage.textContent = `${fmtBytes(vaultTotalBytes())} of ~3 MB`;
+  if (usage) usage.textContent = `${fmtBytes(vaultTotalBytes())} of ~${fmtBytes(VAULT_MAX_TOTAL_BYTES)}`;
   if (bar) bar.style.width = Math.min(100, (vaultTotalBytes() / VAULT_MAX_TOTAL_BYTES) * 100) + '%';
   if (!rows) return;
   if (emptyNote) emptyNote.style.display = vaultDocuments.length ? 'none' : 'block';
   rows.innerHTML = vaultDocuments.map(d => `
     <div class="row-item vault-row">
-      <span title="${vaultEsc(d.name)}">${vaultEsc(d.name)}${d.truncated ? ' <span style="color:var(--muted);font-size:14px;">(truncated)</span>' : ''}</span>
+      <span title="${vaultEsc(d.name)}">${vaultEsc(d.name)}${d.truncated ? ' <span style="color:var(--muted);font-size:14px;">(search text truncated)</span>' : ''}</span>
       <span>${vaultEsc(d.type)}</span>
       <span>${new Date(d.uploadedDate).toLocaleDateString()}</span>
-      <span>${fmtBytes(d.extractedText ? d.extractedText.length : 0)}</span>
+      <span>${fmtBytes(d.sizeOriginal || 0)}</span>
+      ${d.fileBlob
+        ? `<button class="open-btn" onclick="openVaultDocument('${d.id}')" title="Open / download the original file">Open</button>`
+        : `<button class="open-btn" disabled title="Original file not saved for this document — re-upload it to enable Open">Open</button>`}
       <button class="remove-btn" onclick="removeVaultDocument('${d.id}')" title="Remove">×</button>
     </div>
   `).join('');
@@ -9018,7 +9144,10 @@ const hadSavedState = loadState();
 // freshest — wins and every page's textarea shows the true latest text from boot.
 sharedNotesText = loadSharedNotes();
 renderSharedNotesTextareas();
-loadVaultState();
+// Async (IndexedDB) — fires and forgets rather than being awaited, so a slow or failing Vault load can
+// never hold up the rest of boot; it renders the Vault page's own DOM once it resolves, same as any
+// other in-page async fetch, and reports its own errors to the console instead of throwing here.
+initVaultStorage();
 renderBackupReminder();
 try {
   const savedDollarView = localStorage.getItem(DOLLAR_VIEW_KEY);
