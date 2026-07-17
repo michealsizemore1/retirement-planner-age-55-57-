@@ -8172,16 +8172,38 @@ function buildYearlyChartConfig(pageId, snap) {
       // above already work); r.recurringLivingCostThisYear is its pre-retirement-years counterpart (same
       // underlying formula, just computed before the withdrawal engine exists to track against).
       const totalExpensesForYear = r => r.age < inputs.retirementAge ? (r.recurringLivingCostThisYear || 0) : (r.spending || 0);
-      // Distinct stack ids (rather than leaving `stack` unset on both) plus { stacked: true } below is the
-      // same technique the 'gap' case above uses to keep its Surplus/(Gap) bar and per-account withdrawal
-      // bars as two separate side-by-side columns instead of one merged/overlapping bar per age — without
-      // it, Chart.js's default bar-grouping doesn't reliably separate two datasets that share one (empty)
-      // stack, and green/orange ended up drawn on top of each other at the same x position instead of as
-      // two adjacent bars.
-      return yearlyBarConfig(ages, [
-        { label: 'Total Income (job + guaranteed, before tax)', data: rows.map(r => d((r.income || 0) + (r.guaranteedIncome || 0), r.age)), backgroundColor: '#1f7a6c', stack: 'income' },
-        { label: 'Total Expenses', data: rows.map(r => -d(totalExpensesForYear(r), r.age)), backgroundColor: '#c0392b', stack: 'expenses' }
-      ], { stacked: true });
+      const incomeVals = rows.map(r => d((r.income || 0) + (r.guaranteedIncome || 0), r.age));
+      const expenseVals = rows.map(r => d(totalExpensesForYear(r), r.age));
+      // Distinct `stack` ids + { stacked: true } (the technique the 'gap' case above uses successfully
+      // for its Surplus/(Gap) bar vs per-account withdrawal columns) turned out not to reliably separate
+      // these two specific series — green/orange still rendered as one merged column per age in practice,
+      // even though Chart.js's own grouped-stack algorithm should keep same-index bars apart. Rather than
+      // keep fighting that ambiguity, each age is given its OWN pair of genuinely separate category slots
+      // (income in the first slot, expense in the second, the other left null) — an ordinary bar chart
+      // with one bar per category has no grouping/stacking logic to get wrong, so this guarantees visible
+      // side-by-side bars by construction. The two nulled-out interleaved datasets keep the legend down to
+      // the intended 2 entries; a custom tooltip below re-merges both values back into one "Age N" tooltip
+      // (the default per-item tooltip would otherwise only show whichever single bar was hovered).
+      const pairedAges = ages.flatMap(a => [a, a]);
+      const pairedLabels = pairedAges.map(a => 'Age ' + a);
+      const cfg = yearlyBarConfig(pairedAges, [
+        { label: 'Total Income (job + guaranteed, before tax)', data: incomeVals.flatMap(v => [v, null]), backgroundColor: '#1f7a6c' },
+        { label: 'Total Expenses', data: expenseVals.flatMap(v => [null, -v]), backgroundColor: '#c0392b' }
+      ], { labels: pairedLabels });
+      cfg.options.plugins.tooltip.callbacks = {
+        title: items => items.length ? 'Age ' + ages[Math.floor(items[0].dataIndex / 2)] : '',
+        label: () => null,
+        filter: () => false,
+        beforeBody: items => {
+          if (!items.length) return [];
+          const ageIdx = Math.floor(items[0].dataIndex / 2);
+          return [
+            'Total Income (job + guaranteed, before tax): ' + fmtMoney(incomeVals[ageIdx]),
+            'Total Expenses: ' + fmtMoney(expenseVals[ageIdx])
+          ];
+        }
+      };
+      return cfg;
     }
     default:
       return null;
@@ -8197,16 +8219,25 @@ function ensureOrUpdateYearlyChart(pageId, snap) {
   // narrow phone viewport that's not enough pixels for every bar to stay legible, so give the chart
   // a guaranteed minimum width and let the card scroll horizontally instead of squeezing bars thin.
   const numBars = (config.data.labels || []).length;
+  // A page with 2+ distinct stack groups (e.g. Income vs Expenses' 'income'/'expenses' columns, or
+  // Gap's 'surplus'/'withdrawal' columns) renders that many side-by-side bars per age instead of 1 —
+  // at the base 13px/age budget, Chart.js's categoryPercentage/barPercentage math (0.8 * 0.9, split
+  // across N columns) leaves each bar only a couple px wide with a sub-pixel gap between them, which
+  // visually reads as one merged/stacked bar even though the two are technically separate elements.
+  // Scaling the per-age pixel budget by the number of stack groups keeps each bar (and the gap
+  // between them) wide enough to actually look side by side instead of touching.
+  const stackGroupCount = new Set((config.data.datasets || []).map(ds => ds.stack || '_default')).size;
+  const pxPerBar = 13 + Math.max(0, stackGroupCount - 1) * 10;
   if (charts[key]) {
     charts[key].data = config.data;
     charts[key].options = config.options;
-    ensureChartHorizontalScroll(charts[key].canvas, numBars * 13);
+    ensureChartHorizontalScroll(charts[key].canvas, numBars * pxPerBar);
     charts[key].update();
     applyChartRange(key);
   } else {
     const canvas = els('chart_' + pageId + '_yearly');
     if (!canvas) return;
-    ensureChartHorizontalScroll(canvas, numBars * 13);
+    ensureChartHorizontalScroll(canvas, numBars * pxPerBar);
     charts[key] = new Chart(canvas.getContext('2d'), config);
     applyChartRange(key);
   }
