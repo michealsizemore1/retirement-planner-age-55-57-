@@ -4601,6 +4601,18 @@ const JOB_LOSS_DATE_KEY = 'retirementPlannerJobLossDate_v1';
 // annual simulation even though the date picker itself is precise to the day.
 function dateToAge(dateStr, currentAge) {
   if (!dateStr) return null;
+  // Anchor on the actual birth date (day precision, same logic as computeAgeFromBirthDate) rather
+  // than approximating via elapsed time from today — see monthToAge for why the old approach was
+  // off by one for anyone whose birthday hasn't occurred yet this calendar year.
+  const birthDateStr = els('birthDate') ? els('birthDate').value : '';
+  const [by, bm, bd] = (birthDateStr || '').split('-').map(Number);
+  if (by && bm) {
+    const [ty, tm, td] = dateStr.split('-').map(Number);
+    let age = ty - by;
+    const hadBirthday = (tm > bm) || (tm === bm && (bd ? td >= bd : true));
+    if (!hadBirthday) age--;
+    return Math.max(0, age);
+  }
   const target = new Date(dateStr + 'T00:00:00');
   const today = new Date();
   const yearsAway = (target - today) / (365.25*24*60*60*1000);
@@ -4891,7 +4903,16 @@ function syncRetirementDate(force) {
   const msPerYear = 365.25*24*60*60*1000;
   const yearsAway = (target - today) / msPerYear;
   const currentAge = +els('currentAge').value;
-  const impliedAge = Math.round(currentAge + yearsAway);
+  // Anchor the implied age on the real birth date (day precision), not elapsed-time-from-today —
+  // same fix as monthToAge/dateToAge/syncAgeDate. The date itself is still a freely-chosen calendar
+  // date (not birthday-locked, see comment above syncAgeFromRetirementAge), but whatever date you
+  // land on still corresponds to one specific real age, which this now computes exactly.
+  const birthDateStr = els('birthDate') ? els('birthDate').value : '';
+  const [by, bm, bd] = (birthDateStr || '').split('-').map(Number);
+  const [ty, tm, td] = dateVal.split('-').map(Number);
+  const impliedAge = (by && bm)
+    ? (ty - by - ((tm > bm || (tm === bm && (bd ? td >= bd : true))) ? 0 : 1))
+    : Math.round(currentAge + yearsAway);
   if (force) els('retirementAge').value = Math.max(1, impliedAge);
   const months = Math.round(yearsAway*12);
   const y = Math.floor(months/12), m = months%12;
@@ -4914,7 +4935,13 @@ function syncAgeDate(dateFieldId, ageFieldId, hintFieldId, basisAgeFieldId) {
   const [y, m] = dateVal.split('-').map(Number);
   const today = new Date();
   const monthsAway = (y - today.getFullYear()) * 12 + (m - 1 - today.getMonth());
-  const impliedAge = Math.round(basisAge + monthsAway / 12);
+  // Anchor the actual stored age on the real birth year/month (same fix as monthToAge/dateToAge)
+  // rather than the "today + elapsed months" approximation — spouse-basis fields (spousalStartAge,
+  // ltcStartAge) anchor on the spouse's own birth date, mirroring syncDateFromAge's reverse direction.
+  const birthDateFieldId = basisAgeFieldId === 'spouseAge' ? 'spouseBirthDate' : 'birthDate';
+  const birthDateStr = els(birthDateFieldId) ? els(birthDateFieldId).value : '';
+  const [by, bm] = (birthDateStr || '').split('-').map(Number);
+  const impliedAge = (by && bm) ? (y - by - (m < bm ? 1 : 0)) : Math.round(basisAge + monthsAway / 12);
   els(ageFieldId).value = Math.max(1, impliedAge);
   if (hintEl) {
     const yrs = Math.floor(Math.abs(monthsAway) / 12), mo = Math.abs(monthsAway) % 12;
@@ -5545,9 +5572,21 @@ function removeFutureExpense(i) { futureExpenses.splice(i,1); renderFutureExpens
 // Shared month/year -> age converter for dynamic-row date pickers (future expenses, windfalls).
 function monthToAge(monthVal, basisAge) {
   if (!monthVal) return basisAge;
-  const [y, m] = monthVal.split('-').map(Number);
+  const [ty, tm] = monthVal.split('-').map(Number);
+  // Anchor on the person's actual birth year/month (same precise calendar-age logic as
+  // computeAgeFromBirthDate) rather than approximating from "today" + elapsed months from
+  // basisAge — the old approximation assumed basisAge was exact as of today, which is only
+  // true if today happens to fall on the birthday, and silently produced off-by-one ages
+  // for anyone whose birthday hasn't occurred yet this calendar year.
+  const birthDateStr = els('birthDate') ? els('birthDate').value : '';
+  const [by, bm] = (birthDateStr || '').split('-').map(Number);
+  if (by && bm) {
+    let age = ty - by;
+    if (tm < bm) age--;
+    return Math.max(1, age);
+  }
   const today = new Date();
-  const monthsAway = (y - today.getFullYear()) * 12 + (m - 1 - today.getMonth());
+  const monthsAway = (ty - today.getFullYear()) * 12 + (tm - 1 - today.getMonth());
   return Math.max(1, Math.round(basisAge + monthsAway / 12));
 }
 // Inverse of monthToAge: given a whole-years-away target age (e.g. a debt payoff age from the
