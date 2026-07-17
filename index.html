@@ -8093,10 +8093,16 @@ function buildYearlyChartConfig(pageId, snap) {
       // above already work); r.recurringLivingCostThisYear is its pre-retirement-years counterpart (same
       // underlying formula, just computed before the withdrawal engine exists to track against).
       const totalExpensesForYear = r => r.age < inputs.retirementAge ? (r.recurringLivingCostThisYear || 0) : (r.spending || 0);
+      // Distinct stack ids (rather than leaving `stack` unset on both) plus { stacked: true } below is the
+      // same technique the 'gap' case above uses to keep its Surplus/(Gap) bar and per-account withdrawal
+      // bars as two separate side-by-side columns instead of one merged/overlapping bar per age — without
+      // it, Chart.js's default bar-grouping doesn't reliably separate two datasets that share one (empty)
+      // stack, and green/orange ended up drawn on top of each other at the same x position instead of as
+      // two adjacent bars.
       return yearlyBarConfig(ages, [
-        { label: 'Total Income (job + guaranteed, before tax)', data: rows.map(r => d((r.income || 0) + (r.guaranteedIncome || 0), r.age)), backgroundColor: '#1f7a6c' },
-        { label: 'Total Expenses', data: rows.map(r => -d(totalExpensesForYear(r), r.age)), backgroundColor: '#c0392b' }
-      ]);
+        { label: 'Total Income (job + guaranteed, before tax)', data: rows.map(r => d((r.income || 0) + (r.guaranteedIncome || 0), r.age)), backgroundColor: '#1f7a6c', stack: 'income' },
+        { label: 'Total Expenses', data: rows.map(r => -d(totalExpensesForYear(r), r.age)), backgroundColor: '#c0392b', stack: 'expenses' }
+      ], { stacked: true });
     }
     default:
       return null;
