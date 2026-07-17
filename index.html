@@ -4360,6 +4360,44 @@ function taxOwedFromBrackets(taxableIncome, brackets) {
   }
   return tax;
 }
+// Tax owed on an INCREMENTAL amount stacked on top of baseTaxableIncome — e.g. the real tax bill
+// triggered by a withdrawal when other taxable income already fills the lower brackets — computed
+// bracket-by-bracket (not a single flat rate applied to the whole increment, which is what you get by
+// naively using marginalRateFromBrackets on the total and multiplying it by the whole withdrawal: that
+// overstates the tax, and therefore the gross withdrawal needed, any time the withdrawal itself spans
+// more than one bracket). flatAddOnRate is a rate that applies uniformly regardless of which federal
+// bracket a dollar falls in (Idaho's flat state rate, and/or the Rule-of-55 10% early-withdrawal
+// penalty for Traditional TSP) — added on top of the bracket-blended federal amount.
+function taxOwedOnIncrement(baseTaxableIncome, grossAmount, brackets, flatAddOnRate) {
+  if (grossAmount <= 0) return 0;
+  const base = Math.max(0, baseTaxableIncome);
+  return (taxOwedFromBrackets(base + grossAmount, brackets) - taxOwedFromBrackets(base, brackets)) + flatAddOnRate * grossAmount;
+}
+// Inverse of taxOwedOnIncrement: solves for the GROSS amount that must be withdrawn so that, after tax
+// on just that increment (bracket-by-bracket, stacked on top of baseTaxableIncome), the account nets
+// exactly netTarget. Walks the brackets from baseTaxableIncome upward, using each bracket's own rate
+// only for the slice of the withdrawal that actually falls in it.
+function solveGrossForNet(baseTaxableIncome, netTarget, brackets, flatAddOnRate) {
+  if (netTarget <= 0) return 0;
+  let cursor = Math.max(0, baseTaxableIncome);
+  let remainingNet = netTarget;
+  let gross = 0;
+  for (const b of brackets) {
+    if (cursor >= b.upTo) continue;
+    const roomInSegment = b.upTo - cursor; // Infinity for the top, open-ended bracket
+    const combinedRate = b.rate + flatAddOnRate;
+    const netAvailableInSegment = roomInSegment * (1 - combinedRate);
+    if (remainingNet <= netAvailableInSegment) {
+      gross += remainingNet / (1 - combinedRate);
+      remainingNet = 0;
+      break;
+    }
+    gross += roomInSegment;
+    remainingNet -= netAvailableInSegment;
+    cursor = b.upTo;
+  }
+  return gross;
+}
 
 // ---------- Page navigation (hamburger drawer) ----------
 if (typeof Chart !== 'undefined') {
@@ -6407,36 +6445,56 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // tax-free; Future Expenses: HYSA/savings/checking first) that ignored the user's configured order and
     // could raid a brokerage pie reserved for a specific purpose (e.g. "Sequence of Returns Risk" T-bills)
     // well before Traditional TSP was touched.
-    // Tax gross-up (optional 3rd arg, taxRates — an object like { trad: t2, pie_0: t1, roth: 0, hysa: 0 }):
-    // when supplied, amountNeeded is treated as a NET dollar figure (mirroring takeFrom() below) and the
+    // When supplied, amountNeeded is treated as a NET dollar figure (mirroring takeFrom() below) and the
     // actual balance drawn from a taxable account is grossed up so the account still nets the full amount
-    // needed after tax, with the tax difference split into federalTaxAnnual/stateTaxAnnual the same way
-    // takeFrom() does. Only usable post-retirement, since that's the only point in the loop where t1/t2
-    // (this year's marginal ordinary-income and LTCG rates) have already been computed — pre-retirement
-    // calls (and the mortgage down payment draw, which runs before those rates exist for the year) omit
-    // this argument and keep pulling plain, ungrossed-up dollar amounts, same as before.
-    const withdrawInOrder = (amountNeeded, order, taxRates) => {
+    // needed after tax, with the tax split into federalTaxAnnual/stateTaxAnnual the same way takeFrom()
+    // does. Only usable post-retirement, since that's the only point in the loop where ordinaryIncomeStack
+    // exists — pre-retirement calls (and the mortgage down payment draw, which runs before that for the
+    // year) omit this argument and keep pulling plain, ungrossed-up dollar amounts, same as before.
+    // taxCtx (optional 3rd arg) is { earlyPenalty, stackBox: { v: <running ordinary-taxable-income
+    // total for this year, boxed in an object so this closure — declared outside the post-retirement
+    // block where that running total actually lives — can read/update it across the call> } }. Gross-up
+    // is bracket-blended (solveGrossForNet/taxOwedOnIncrement) rather than one flat rate applied to the
+    // whole amount — see those functions for why that matters.
+    const withdrawInOrder = (amountNeeded, order, taxCtx) => {
       let remain = amountNeeded;
       for (const key of order) {
         if (remain <= 0.01) break;
-        const rate = taxRates ? (taxRates[key] || 0) : 0;
         if (key === 'trad') {
-          const maxNet = taxRates ? balTrad * (1 - rate) : balTrad;
-          const netTake = Math.min(remain, Math.max(0, maxNet));
-          const take = (taxRates && rate < 1) ? netTake / (1 - rate) : netTake;
-          balTrad -= take; remain -= netTake; addDirectWithdrawal('trad', take);
-          if (taxRates) { const taxAmt = take - netTake; const stateShare = rate > 0 ? (inputs.idahoRate / rate) : 0; stateTaxAnnual += taxAmt * stateShare; federalTaxAnnual += taxAmt * (1 - stateShare); }
+          if (taxCtx) {
+            const flatAdd = inputs.idahoRate + taxCtx.earlyPenalty;
+            const desiredGross = solveGrossForNet(taxCtx.stackBox.v, remain, FEDERAL_BRACKETS_MFJ, flatAdd);
+            const take = Math.min(desiredGross, Math.max(0, balTrad));
+            const taxAmt = taxOwedOnIncrement(taxCtx.stackBox.v, take, FEDERAL_BRACKETS_MFJ, flatAdd);
+            const netTake = Math.min(remain, take - taxAmt);
+            balTrad -= take; remain -= netTake; addDirectWithdrawal('trad', take);
+            taxCtx.stackBox.v += take;
+            const stateTaxAmt = inputs.idahoRate * take;
+            stateTaxAnnual += stateTaxAmt; federalTaxAnnual += taxAmt - stateTaxAmt;
+          } else {
+            const take = Math.min(remain, balTrad);
+            balTrad -= take; remain -= take; addDirectWithdrawal('trad', take);
+          }
         }
         else if (key === 'roth') { const take = Math.min(remain, balRoth); balRoth -= take; remain -= take; addDirectWithdrawal('roth', take); }
         else if (key === 'hysa') { const take = Math.min(remain, balHYSA); balHYSA -= take; remain -= take; addDirectWithdrawal('hysa', take); }
         else if (key.startsWith('pie_')) {
           const idx = +key.slice(4);
           if (balBrokeragePies[idx] !== undefined) {
-            const maxNet = taxRates ? balBrokeragePies[idx] * (1 - rate) : balBrokeragePies[idx];
-            const netTake = Math.min(remain, Math.max(0, maxNet));
-            const take = (taxRates && rate < 1) ? netTake / (1 - rate) : netTake;
-            balBrokeragePies[idx] -= take; remain -= netTake; addDirectWithdrawal(key, take);
-            if (taxRates) { const taxAmt = take - netTake; const stateShare = rate > 0 ? (inputs.idahoRate / rate) : 0; stateTaxAnnual += taxAmt * stateShare; federalTaxAnnual += taxAmt * (1 - stateShare); }
+            if (taxCtx) {
+              const desiredGross = solveGrossForNet(taxCtx.stackBox.v, remain, LTCG_BRACKETS_MFJ, inputs.idahoRate);
+              const take = Math.min(desiredGross, Math.max(0, balBrokeragePies[idx]));
+              const taxAmt = taxOwedOnIncrement(taxCtx.stackBox.v, take, LTCG_BRACKETS_MFJ, inputs.idahoRate);
+              const netTake = Math.min(remain, take - taxAmt);
+              balBrokeragePies[idx] -= take; remain -= netTake; addDirectWithdrawal(key, take);
+              const stateTaxAmt = inputs.idahoRate * take;
+              stateTaxAnnual += stateTaxAmt; federalTaxAnnual += taxAmt - stateTaxAmt;
+              // LTCG-taxed pie draws don't add to the ordinary-income stack (a different income type for
+              // bracket purposes) — matches takeFrom() below.
+            } else {
+              const take = Math.min(remain, balBrokeragePies[idx]);
+              balBrokeragePies[idx] -= take; remain -= take; addDirectWithdrawal(key, take);
+            }
           }
         }
       }
@@ -6896,7 +6954,13 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const earlyPenalty = (!inputs.ruleOf55Applies && age < 59.5) ? 0.10 : 0;
       fedMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, FEDERAL_BRACKETS_MFJ);
       ltcgMarginal = marginalRateFromBrackets(taxableBeforeWithdrawal + need, LTCG_BRACKETS_MFJ);
-      const t1 = ltcgMarginal + inputs.idahoRate, t2 = fedMarginal + inputs.idahoRate + earlyPenalty;
+      // fedMarginal/ltcgMarginal above are kept purely for display (the "22% federal bracket" style
+      // labels on the Taxes page) — actual withdrawal tax below is no longer a flat rate derived from
+      // these; it's computed bracket-by-bracket per withdrawal via solveGrossForNet/taxOwedOnIncrement,
+      // using the running ordinaryIncomeStack so multiple withdrawals in the same year (LTC/Future
+      // Expenses, RMD, a Roth conversion, and the main spending gap) each see accurate brackets instead
+      // of every one of them independently assuming it's the only draw competing for the lower brackets.
+      let ordinaryIncomeStack = taxableBeforeWithdrawal;
 
       // Long-Term Care and Future Expenses (both computed unconditionally, earlier in this loop iteration,
       // before this retirement-age branch split) get first claim on this year's guaranteed-income surplus —
@@ -6927,9 +6991,9 @@ function projectRun(inputs, ctx, randomize, shocks) {
         const feFromSurplus = Math.min(futureExpenseCostThisYear, guaranteedIncomeSurplus);
         guaranteedIncomeSurplus -= feFromSurplus;
         const feRemainingAfterSurplus = futureExpenseCostThisYear - feFromSurplus;
-        const feTaxRates = { trad: t2, roth: 0, hysa: 0 };
-        balBrokeragePies.forEach((_, i) => { feTaxRates['pie_'+i] = t1; });
-        const feRemaining = withdrawInOrder(feRemainingAfterSurplus, effectiveWithdrawalOrder, feTaxRates);
+        const feTaxCtx = { earlyPenalty, stackBox: { v: ordinaryIncomeStack } };
+        const feRemaining = withdrawInOrder(feRemainingAfterSurplus, effectiveWithdrawalOrder, feTaxCtx);
+        ordinaryIncomeStack = feTaxCtx.stackBox.v;
         if (feRemaining > 0.01) shortfallEver = true;
       }
 
@@ -6945,30 +7009,43 @@ function projectRun(inputs, ctx, randomize, shocks) {
       let hysaGrown = balHYSA*(1+inputs.hysaRate);
       let remaining = need;
 
-      // Withdrawal accounts: each has a current (post-growth) balance and an effective tax rate that converts
-      // a NET dollar taken out into the GROSS dollar removed from the balance (gross = net / (1 - taxRate)).
-      // Every individual brokerage pie, Traditional TSP, Roth TSP, and HYSA are each tracked separately here.
-      const taxRateByAccount = { trad: t2, roth: 0, hysa: 0 };
+      // Withdrawal accounts: each has a current (post-growth) balance. Traditional TSP and each brokerage
+      // pie get grossed up bracket-by-bracket (solveGrossForNet, using the running ordinaryIncomeStack)
+      // so a NET dollar taken out correctly reflects only the tax bracket(s) it actually falls in,
+      // instead of one flat rate applied to the whole withdrawal. Roth and HYSA are already after-tax.
+      const acctTaxInfo = { trad: { brackets: FEDERAL_BRACKETS_MFJ, flatAdd: inputs.idahoRate + earlyPenalty } };
       const bal = { trad: tradGrown, roth: rothGrown, hysa: hysaGrown };
-      brokPiesGrown.forEach((b, i) => { bal['pie_'+i] = b; taxRateByAccount['pie_'+i] = t1; });
+      brokPiesGrown.forEach((b, i) => { bal['pie_'+i] = b; acctTaxInfo['pie_'+i] = { brackets: LTCG_BRACKETS_MFJ, flatAdd: inputs.idahoRate }; });
       const takeFrom = (key, desiredNet) => {
         if (desiredNet <= 0 || bal[key] === undefined) return;
-        const rate = taxRateByAccount[key];
-        const maxNet = bal[key] * (1 - rate);
-        const netTaken = Math.min(desiredNet, Math.max(0, maxNet));
-        const grossTaken = rate < 1 ? netTaken / (1 - rate) : 0;
+        const info = acctTaxInfo[key];
+        if (!info) {
+          // Roth / HYSA: already after-tax, no gross-up needed.
+          const netTaken = Math.min(desiredNet, Math.max(0, bal[key]));
+          bal[key] -= netTaken;
+          remaining -= netTaken;
+          grossWithdrawal += netTaken;
+          withdrawalByAccount[key] = (withdrawalByAccount[key] || 0) + netTaken;
+          return;
+        }
+        const desiredGross = solveGrossForNet(ordinaryIncomeStack, desiredNet, info.brackets, info.flatAdd);
+        const grossTaken = Math.min(desiredGross, Math.max(0, bal[key]));
+        const taxAmt = taxOwedOnIncrement(ordinaryIncomeStack, grossTaken, info.brackets, info.flatAdd);
+        const netTaken = Math.min(desiredNet, grossTaken - taxAmt);
         bal[key] -= grossTaken;
         remaining -= netTaken;
         grossWithdrawal += grossTaken;
         withdrawalByAccount[key] = (withdrawalByAccount[key] || 0) + grossTaken;
-        // Split this withdrawal's blended tax rate back into Federal vs Idaho-state shares for the Taxes
-        // page's Estimated Taxes chart — Idaho's flat rate is always the state slice; whatever's left
-        // (ordinary federal marginal + early-withdrawal penalty for Traditional TSP, or the federal LTCG
-        // rate for brokerage pie sales) is the federal slice.
-        const taxAmt = grossTaken - netTaken;
-        const stateShare = rate > 0 ? (inputs.idahoRate / rate) : 0;
-        stateTaxAnnual += taxAmt * stateShare;
-        federalTaxAnnual += taxAmt * (1 - stateShare);
+        // Traditional TSP draws stack onto ordinary income for bracket purposes; LTCG-taxed pie draws
+        // read the same stack to find their bracket but don't add to it (different income type).
+        if (key === 'trad') ordinaryIncomeStack += grossTaken;
+        // Split this withdrawal's tax back into Federal vs Idaho-state shares for the Taxes page's
+        // Estimated Taxes chart — Idaho's flat rate on the gross is always the state slice; whatever's
+        // left (bracket-blended federal + early-withdrawal penalty for Traditional TSP, or the federal
+        // LTCG amount for brokerage pie sales) is the federal slice.
+        const stateTaxAmt = inputs.idahoRate * grossTaken;
+        stateTaxAnnual += stateTaxAmt;
+        federalTaxAnnual += taxAmt - stateTaxAmt;
       };
 
       // Required Minimum Distributions (RMD): once you reach rmdAge, the IRS forces a withdrawal from
@@ -6982,14 +7059,17 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // instead of just sitting there or vanishing from the projection.
       if (inputs.rmdAge && age >= inputs.rmdAge && balTrad > 0.01) {
         const rmdRequiredGross = Math.min(bal.trad, balTrad / rmdDivisor(age));
-        const rmdRequiredNet = rmdRequiredGross * (1 - t2);
+        // RMD age is always well past 59.5, so no early-withdrawal penalty applies — bracket-blended
+        // federal tax (stacked on the running ordinaryIncomeStack) + Idaho's flat rate.
+        const rmdTaxAmt = taxOwedOnIncrement(ordinaryIncomeStack, rmdRequiredGross, FEDERAL_BRACKETS_MFJ, inputs.idahoRate);
+        const rmdRequiredNet = rmdRequiredGross - rmdTaxAmt;
         bal.trad -= rmdRequiredGross;
         grossWithdrawal += rmdRequiredGross;
         withdrawalByAccount.trad = (withdrawalByAccount.trad || 0) + rmdRequiredGross;
-        const rmdTaxAmt = rmdRequiredGross - rmdRequiredNet;
-        const rmdStateShare = t2 > 0 ? (inputs.idahoRate / t2) : 0;
-        stateTaxAnnual += rmdTaxAmt * rmdStateShare;
-        federalTaxAnnual += rmdTaxAmt * (1 - rmdStateShare);
+        ordinaryIncomeStack += rmdRequiredGross;
+        const rmdStateTaxAmt = inputs.idahoRate * rmdRequiredGross;
+        stateTaxAnnual += rmdStateTaxAmt;
+        federalTaxAnnual += rmdTaxAmt - rmdStateTaxAmt;
         const rmdAppliedToNeed = Math.min(rmdRequiredNet, remaining);
         remaining -= rmdAppliedToNeed;
         const rmdSurplusNet = rmdRequiredNet - rmdAppliedToNeed;
@@ -7014,15 +7094,15 @@ function projectRun(inputs, ctx, randomize, shocks) {
       if (inputs.rothConversionEnabled && age >= inputs.rothConversionStartAge && age <= inputs.rothConversionEndAge && bal.trad > 0.01) {
         const desiredConversion = Math.min(inputs.rothConversionAnnualAmount, bal.trad);
         if (desiredConversion > 0.01) {
-          // Ordinary-income marginal rate stacked on top of guaranteed income + this year's withdrawal
-          // need (taxableBeforeWithdrawal + need already represents that base — see t2 above) plus the
-          // conversion amount itself, same flat-marginal-rate simplification the rest of this engine
-          // uses for withdrawal tax (a single rate applied to the whole amount, not true bracket-by-
-          // bracket accumulation). No early-withdrawal penalty — conversions aren't distributions.
-          const convStackTop = taxableBeforeWithdrawal + need + desiredConversion;
-          const convFedMarginal = marginalRateFromBrackets(convStackTop, FEDERAL_BRACKETS_MFJ);
-          const convTaxRate = convFedMarginal + inputs.idahoRate;
-          const desiredTax = desiredConversion * convTaxRate;
+          // Stacked on top of ordinaryIncomeStack (this year's guaranteed income plus any LTC/Future-
+          // Expense/RMD draws already recorded above) PLUS this year's still-to-come gap-driven
+          // withdrawal (`need`) — the same conservative "assume the main withdrawal happens too"
+          // assumption the original version used, so the conversion doesn't claim brackets the main
+          // withdrawal will actually need, just computed bracket-by-bracket now (taxOwedOnIncrement)
+          // instead of applying one flat top-marginal rate to the whole conversion amount. No
+          // early-withdrawal penalty — conversions aren't distributions.
+          const convBase = ordinaryIncomeStack + need;
+          const desiredTax = taxOwedOnIncrement(convBase, desiredConversion, FEDERAL_BRACKETS_MFJ, inputs.idahoRate);
           // Cap the conversion so its tax bill never exceeds what the configured source account can
           // actually cover this year — better to convert less than to overdraw HYSA/a brokerage pie
           // negative, and better than silently paying the tax out of the TSP itself.
@@ -7045,12 +7125,13 @@ function projectRun(inputs, ctx, randomize, shocks) {
             rothConversionTax = actualTax;
             totalRothConverted += actualConversion;
             totalRothConversionTax += actualTax;
+            ordinaryIncomeStack += actualConversion;
             // Recorded into the same Federal/Idaho split as every other withdrawal-driven tax on this
             // page, so the conversion's tax bill shows up in the Estimated Taxes chart and lifetime
             // totals without any extra wiring there.
-            const convStateShare = convTaxRate > 0 ? (inputs.idahoRate / convTaxRate) : 0;
-            stateTaxAnnual += actualTax * convStateShare;
-            federalTaxAnnual += actualTax * (1 - convStateShare);
+            const convStateTaxAmt = inputs.idahoRate * actualConversion;
+            stateTaxAnnual += convStateTaxAmt;
+            federalTaxAnnual += actualTax - convStateTaxAmt;
           }
         }
       }
