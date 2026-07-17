@@ -1089,7 +1089,6 @@
           <div class="field"><label>Savings ($)</label><input type="number" id="savingsBalance" value="25" step="500"></div>
           <div class="field"><label>HYSA ($)</label><input type="number" id="hysaBalance" value="7250" step="500"></div>
         </div>
-        <p id="acctSyncNote" style="font-size:15.5px;color:var(--muted);margin:0 0 12px;line-height:1.5;display:none;">These three balances are synced live from your registers on the <b>Accounts &amp; Cards</b> page (Cindy's + Mike's Checking combined, Savings, HYSA) — edit them there instead.</p>
         <div class="two-col">
           <div class="field"><label>Checking/Savings APY (%)</label><input type="number" id="cashRate" value="0" step="0.1"></div>
           <div class="field"><label>HYSA APY (%)</label><input type="number" id="hysaRate" value="3.2" step="0.1"></div>
@@ -1103,7 +1102,7 @@
         <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
         <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
       </div>
-      <div class="page-header"><h2>Accounts &amp; Cards</h2><p>Your household transaction registers — credit card, both checking accounts, savings, and HYSA. This is the same tracker you already use; it runs right here so its balances feed the Investments page live, with no manual copying.</p></div>
+      <div class="page-header"><h2>Accounts &amp; Cards</h2><p>Your household transaction registers — credit card, both checking accounts, savings, and HYSA. This is the same tracker you already use, running right here for convenience. It's fully self-contained: nothing entered here changes the retirement plan, its projections, or the Monte Carlo score — Checking/Savings/HYSA on the Investments page are separate, manually-entered balances.</p></div>
       <div class="card" style="padding:0;overflow:hidden;">
         <div id="trackerHost" style="width:100%;height:82vh;min-height:560px;overflow:hidden;background:#fff;"></div>
       </div>
@@ -4681,53 +4680,20 @@ function loadTrackerFrame() {
 
   trackerFrameLoaded = true;
 }
-// Recomputes a checking-style register's current balance exactly the way the tracker itself does:
-// opening balance plus every deposit, minus every withdrawal — reading straight from the same
-// localStorage keys the tracker writes to, so this always reflects the true live balance whether
-// or not the Accounts & Cards page has been opened yet in this session.
-function readLedgerBalance(registerKey, openBalKey) {
-  let openBal = 0, txns = [];
-  try { openBal = parseFloat(localStorage.getItem(openBalKey)) || 0; } catch (e) {}
-  try { txns = JSON.parse(localStorage.getItem(registerKey) || '[]'); } catch (e) { txns = []; }
-  const net = txns.reduce((s, t) => s + (t.type === 'deposit' ? (+t.amount || 0) : -(+t.amount || 0)), 0);
-  return openBal + net;
-}
-// Returns null (rather than a zeroed-out {checking:0,...}) when the tracker has never been used in
-// this browser, so callers can tell "no data yet" apart from "balances are genuinely zero" and fall
-// back to leaving the Investments page's manual fields alone.
-function readTrackerBalances() {
-  const hasAnyTrackerData = ['chk-register','mike-register','savings-register','hysa-register']
-    .some(k => { try { return localStorage.getItem(k) != null; } catch (e) { return false; } });
-  if (!hasAnyTrackerData) return null;
-  return {
-    checking: readLedgerBalance('chk-register', 'chk-open-bal') + readLedgerBalance('mike-register', 'mike-open-bal'),
-    savings: readLedgerBalance('savings-register', 'savings-open-bal'),
-    hysa: readLedgerBalance('hysa-register', 'hysa-open-bal')
-  };
-}
-// Called at the top of render(), before readInputs() — overwrites the three Bank Accounts fields
-// with the live tracker balances (when tracker data exists) and locks them read-only with an
-// explanatory note, so it's clear they're synced rather than editable here. If the tracker has
-// never been touched, the fields are left exactly as they were: normal, manually-editable inputs.
-function syncTrackerBalances() {
-  const bal = readTrackerBalances();
-  const ids = ['checkingBalance', 'savingsBalance', 'hysaBalance'];
-  const note = els('acctSyncNote');
-  if (!bal) {
-    ids.forEach(id => { if (els(id)) els(id).readOnly = false; });
-    if (note) note.style.display = 'none';
-    return;
-  }
-  if (els('checkingBalance')) els('checkingBalance').value = Math.round(bal.checking);
-  if (els('savingsBalance')) els('savingsBalance').value = Math.round(bal.savings);
-  if (els('hysaBalance')) els('hysaBalance').value = Math.round(bal.hysa);
-  ids.forEach(id => { if (els(id)) els(id).readOnly = true; });
-  if (note) note.style.display = 'block';
-}
-// The 'storage' event only fires in OTHER windows/tabs than the one that made the change — so it
-// won't fire for edits made in the tracker below (same window now that it's a Shadow DOM embed,
-// not an iframe), but it still helps if this planner is ever open in two browser tabs at once.
-window.addEventListener('storage', () => { syncTrackerBalances(); render(); });
+// Accounts & Cards (the credit card/bank register tracker below) is a standalone tool for tracking
+// real day-to-day transactions — it is deliberately NOT wired into the retirement projection or Monte
+// Carlo in any way. An earlier version of this page synced the Bank Accounts fields (checkingBalance/
+// savingsBalance/hysaBalance) live from the tracker's own registers on every render(), which meant
+// adding or editing a transaction on the Accounts & Cards page silently changed those three balances,
+// which changed readInputs()'s output, which changed runMonteCarlo()'s seed (built from JSON.stringify
+// of the full inputs object) — so the Monte Carlo score could visibly shift even though nothing on any
+// retirement-planning page itself had been touched. That sync has been removed entirely: Checking/
+// Savings/HYSA on the Investments page are now always plain, manually-edited fields, exactly like every
+// other balance in the plan, and nothing entered on the Accounts & Cards page reaches the engine.
+// The 'storage' event only fires in OTHER windows/tabs than the one that made the change — kept here
+// (render() alone now, no tracker sync) purely so this planner stays visually current if it's ever open
+// in two browser tabs at once and a field is changed in one of them.
+window.addEventListener('storage', () => { render(); });
 
 // ---------- Credit Card spending breakdown (category / merchant pie charts) ----------
 // Reads straight from the 'cc-register' localStorage key the embedded tracker itself reads and
@@ -9135,9 +9101,6 @@ function renderRothConversionComparison(inputs, ctx) {
 }
 
 function render() {
-  // Must run before readInputs() below, since it's what sets checkingBalance/savingsBalance/hysaBalance
-  // from the live Accounts & Cards tracker (when it's been used) before those fields get read.
-  syncTrackerBalances();
   els('spousalBenefitFields').style.display = els('spouseWorks').checked ? 'none' : 'grid';
   els('buyHomeFields').style.display = els('buyHome').checked ? 'block' : 'none';
   els('ltcFields').style.display = els('ltcEnabled').checked ? 'block' : 'none';
