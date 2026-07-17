@@ -683,6 +683,7 @@
   <div class="nav-item" data-page="personal" onclick="showPage('personal')">Personal &amp; Family</div>
   <div class="nav-item" data-page="income" onclick="showPage('income')">Income</div>
   <div class="nav-item" data-page="expenses" onclick="showPage('expenses')">Expenses</div>
+  <div class="nav-item" data-page="incomeexpenses" onclick="showPage('incomeexpenses')">Income vs Expenses</div>
   <div class="nav-item" data-page="accounts" onclick="showPage('accounts')">Accounts &amp; Cards</div>
   <div class="nav-item" data-page="assumptions" onclick="showPage('assumptions')">Assumptions &amp; Guardrails</div>
   <div class="nav-item" data-page="coach" onclick="showPage('coach')">Coach</div>
@@ -1206,6 +1207,17 @@
         <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">One-time items hit once at the age you set; "Yearly until" repeats every year from that age through the end age, both grown by General Inflation.</p>
       </div>
 
+    </div>
+
+    <!-- ================= INCOME VS EXPENSES ================= -->
+    <div class="page" data-page="incomeexpenses">
+      <div class="shared-notes-card">
+        <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
+        <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
+      </div>
+      <div class="page-header"><h2>Income vs Expenses</h2><p>Job income and guaranteed income (Social Security, spousal benefit, both pensions, VA disability, annuity) plotted above the line, total expenses (recurring bills, housing, debt payments, insurance, medical premiums) plotted below it — one bar chart, the whole plan, so you can see at a glance which years income covers expenses on its own and which years lean on savings. Portfolio withdrawals aren't counted as income here (unlike the Income page's own chart) — the point of this view is to isolate how much of spending is actually covered by income you don't have to draw down for. For the year-by-year withdrawal detail behind any gap, see the <b>Income Gap &amp; Withdrawals</b> page.</p></div>
+      <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income vs Expenses by year</div><canvas id="chart_incomeexpenses_yearly"></canvas><div class="chart-range-nav" data-chart="incomeexpenses_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('incomeexpenses_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('incomeexpenses_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('incomeexpenses_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="incomeexpenses_yearly"></div></div>
+      <div class="note" style="margin-top:0;">Income (green, above the line) is job income plus every guaranteed income source, before it's reduced by taxes. Expenses (red, below the line) is every recurring bill, housing cost, debt payment, and insurance/medical premium in the plan. Where the red bar reaches further below zero than the green bar reaches above it, that year's gap is covered by a portfolio withdrawal — see the Income Gap &amp; Withdrawals page for exactly which account(s) it came from.</div>
     </div>
 
     <!-- ================= DEBT ================= -->
@@ -4571,7 +4583,7 @@ function setJobLossDate(value) {
 }
 const PAGE_LABELS = {
   dashboard:'Dashboard', personal:'Personal & Family', income:'Income', survivorship:'Survivorship', moneyflows:'Money Flows',
-  investments:'Investments', accounts:'Accounts & Cards', housing:'Housing', expenses:'Expenses', debt:'Debt',
+  investments:'Investments', accounts:'Accounts & Cards', housing:'Housing', expenses:'Expenses', incomeexpenses:'Income vs Expenses', debt:'Debt',
   gap:'Income Gap & Withdrawals', medical:'Medical', estate:'Estate Planning', vault:'Document Vault', insurance:'Insurance',
   taxes:'Taxes', assumptions:'Assumptions & Guardrails',
   explorers:'Explorers', coach:'Coach', settings:'Settings'
@@ -6440,7 +6452,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
     let contributions=0, withdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, pension2Amount=0, vaDisabilityAmount=0, annuityAmount=0, sbpAmount=0, dicAmount=0, essentialFloor=0;
     let fedMarginal=null, ltcgMarginal=null;
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
-    let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0;
+    let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0, recurringLivingCostThisYear=0;
     // Taxes page ("Estimated Taxes" chart) — Federal income tax + Idaho state tax (split back out of the
     // blended withdrawal rate below) plus FICA payroll tax (Social Security + Medicare, working years only).
     let federalTaxAnnual=0, stateTaxAnnual=0, ficaTaxAnnual=0;
@@ -6542,7 +6554,14 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const preRetireMedical = survivorshipActive
         ? (jobLossActive ? expTotalsThisYear.jobLossMedicalSurvivor : expTotalsThisYear.medicalSurvivor)
         : (jobLossActive ? expTotalsThisYear.jobLossMedical : expTotalsThisYear.medical);
-      const recurringLivingCostThisYear = (preRetireNonMedical * inflator + preRetireMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
+      // Hoisted to the per-year let-block above (rather than declared with const, right here, the way
+      // this line originally read) so it survives past this if-block and can be pushed onto the row
+      // below — the "Income vs Expenses" page's combined chart needs a real total-expenses figure for
+      // pre-retirement years too, not just post-retirement ones (where `spending` already serves that
+      // role). Every other pre-retirement local this depends on (preRetireNonMedical/Medical, housingCost,
+      // debtPaymentThisYear, insurancePremiumAnnual) is unchanged — this is purely a scope change, not a
+      // formula change.
+      recurringLivingCostThisYear = (preRetireNonMedical * inflator + preRetireMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
       const excessIncomeAvailable = Math.max(0, income + guaranteedIncome - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
       // Paid-off debt redirect: recurringLivingCostThisYear above already reflects a lower debtPaymentThisYear
       // once a debt (e.g. a car loan) is fully paid off, which is what makes excessIncomeAvailable bigger —
@@ -6991,7 +7010,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         contributions, tradContribOut, rothContribOut, matchContribOut,
         guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, pension2Amount, vaDisabilityAmount, annuityAmount, sbpAmount, dicAmount, spending, withdrawal, grossWithdrawal, withdrawalByAccount, ltcCost: ltcCostThisYear,
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
-        medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual, essentialFloor, primaryDeceased,
+        medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual, essentialFloor, primaryDeceased, recurringLivingCostThisYear,
         fedMarginalRate: fedMarginal, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null,
         federalTaxAnnual, stateTaxAnnual, ficaTaxAnnual,
         balTrad, balRoth, rothConversionAmount, rothConversionTax,
@@ -7854,7 +7873,7 @@ function ensureOrUpdateChart(pageId, snap) {
 // ---------- Per-section "by year" charts, for sections with inflation-adjusted dollar items ----------
 // Each series pulls straight from the deterministic projection rows, so bars reflect that item's own
 // growth assumption (General/Medical Inflation, SS COLA, or its own yearly-increase %) compounding over time.
-const YEARLY_CHART_PAGES = ['income', 'moneyflows', 'housing', 'expenses', 'medical', 'gap', 'taxes'];
+const YEARLY_CHART_PAGES = ['income', 'moneyflows', 'housing', 'expenses', 'medical', 'gap', 'taxes', 'incomeexpenses'];
 
 function yearlyBarConfig(ages, series, opts) {
   opts = opts || {};
@@ -8024,6 +8043,25 @@ function buildYearlyChartConfig(pageId, snap) {
           stack: 'withdrawal'
         }))
       ], { stacked: true });
+    }
+    case 'incomeexpenses': {
+      // Deliberately a simpler, 2-series view than the 'income'/'gap' cases above: job income + every
+      // guaranteed income source (SS/spousal/both pensions/VA disability/annuity — all already computed
+      // every year regardless of pre/post retirement, hoisted above the retirement-age branch split in
+      // projectRun), plotted as positive bars; total expenses plotted as NEGATIVE bars (housing/debt/
+      // insurance/recurring bills/medical premiums, whichever basis the header toggle currently selects
+      // for the recurring-expenses slice) so the two sit above/below a shared zero line in one chart.
+      // Portfolio withdrawals are intentionally excluded from the income side — they're sized specifically
+      // to cover whatever gap exists, so folding them in here would make income ≈ expenses almost every
+      // year by construction and hide the exact comparison this chart exists to show. r.spending only
+      // exists for retirement-age-and-later rows (0 before then, like the Gap/Medical/Taxes yearly charts
+      // above already work); r.recurringLivingCostThisYear is its pre-retirement-years counterpart (same
+      // underlying formula, just computed before the withdrawal engine exists to track against).
+      const totalExpensesForYear = r => r.age < inputs.retirementAge ? (r.recurringLivingCostThisYear || 0) : (r.spending || 0);
+      return yearlyBarConfig(ages, [
+        { label: 'Total Income (job + guaranteed, before tax)', data: rows.map(r => d((r.income || 0) + (r.guaranteedIncome || 0), r.age)), backgroundColor: '#1f7a6c' },
+        { label: 'Total Expenses', data: rows.map(r => -d(totalExpensesForYear(r), r.age)), backgroundColor: '#c0392b' }
+      ]);
     }
     default:
       return null;
