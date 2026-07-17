@@ -538,10 +538,15 @@
        remove) — the generic rule above pairs fields 2-and-3 together (category + Job Loss), which
        visually separates the three $ columns from each other even though they're meant to be compared
        side by side. Give category its own full-width line instead, and let the three $ columns share
-       one row at a third each — matches the desktop column order. */
+       one row at a third each — matches the desktop column order. !important is required here: the
+       generic ".row-item > *:not(:first-child):not(.remove-btn):not(.open-btn)" rule above has higher
+       CSS specificity (4 class/pseudo-class selectors, via its two chained :not() clauses) than this more
+       specific-looking ".row-item.expense-row > *:nth-child(n)" selector (only 3), so without !important
+       the generic 50/50 pairing silently wins regardless of source order, and every field here collapses
+       back into 2-per-line pairs instead of "category alone, then the 3 $ fields together." */
     .row-item.expense-row > *:nth-child(2),
     .row-header.cols-expense > *:nth-child(2){
-      flex:1 1 100%;
+      flex:1 1 100% !important;
     }
     .row-item.expense-row > *:nth-child(3),
     .row-item.expense-row > *:nth-child(4),
@@ -549,7 +554,7 @@
     .row-header.cols-expense > *:nth-child(3),
     .row-header.cols-expense > *:nth-child(4),
     .row-header.cols-expense > *:nth-child(5){
-      flex:1 1 calc(33.333% - 6px);
+      flex:1 1 calc(33.333% - 6px) !important;
     }
   }
 
