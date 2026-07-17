@@ -244,6 +244,15 @@
   .row-item.debt-row{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
   .row-item.tx-row{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
   .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 0.7fr 26px;}
+  /* Starts/Ends date pickers for a recurring expense — a separate full-width row directly under each
+     .row-item.expense-row rather than 2 more columns squeezed into that already-tight 6-column grid.
+     Deliberately its own simple flex row (not a .row-item variant) so it doesn't have to satisfy the
+     grid-template-columns child count/order the .row-item/.row-header pairing (and the shared mobile
+     flex-wrap override at max-width:700px) otherwise expects. */
+  .expense-date-row{display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin:-3px 0 10px 2px;}
+  .expense-date-row label{display:flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:var(--muted);}
+  .expense-date-row input[type="month"]{padding:5px 7px; border:1px solid var(--border); border-radius:6px; font-size:14px; color:var(--navy); background:#fbfcfc;}
+  .expense-date-hint{font-size:13px; color:var(--muted); font-style:italic;}
   .row-item.future-row{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px; align-items:start;}
   .row-item.windfall-row{grid-template-columns:1.3fr 0.5fr 0.7fr 0.8fr 26px; align-items:start;}
   /* future-row/windfall-row's age-cell holds two stacked inputs (age number + month picker),
@@ -1182,7 +1191,7 @@
         <div class="total-row"><span>Job Loss total (excl. housing)</span><span id="expenseJobLossTotal">$0</span></div>
         <div class="total-row"><span>Must Spend total (excl. housing)</span><span id="expenseMustSpendTotal">$0</span></div>
         <div class="total-row"><span>Like to Spend total (excl. housing)</span><span id="expenseTotal">$0</span></div>
-        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">The <b>Like to Spend / Job Loss / Must Spend</b> toggle in the header picks which of these three columns actually drives the whole projection — the dashboard, guardrails, the Gap page, Explorers, and every Monte Carlo run all switch together. Whichever ones AREN'T selected still matter: when dynamic spending guardrails (Assumptions page) cut spending in a down market, the cut never pushes recurring expenses below the Must Spend total — housing, debt, insurance, and medical premiums are already treated as 100% essential and are never cut. Job Loss is a test column — leave a row's Job Loss blank and it falls back to that row's Must Spend amount.</p>
+        <p style="font-size:15.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">The <b>Like to Spend / Job Loss / Must Spend</b> toggle in the header picks which of these three columns actually drives the whole projection — the dashboard, guardrails, the Gap page, Explorers, and every Monte Carlo run all switch together. Whichever ones AREN'T selected still matter: when dynamic spending guardrails (Assumptions page) cut spending in a down market, the cut never pushes recurring expenses below the Must Spend total — housing, debt, insurance, and medical premiums are already treated as 100% essential and are never cut. Job Loss is a test column — leave a row's Job Loss blank and it falls back to that row's Must Spend amount. Each row also has its own <b>Starts / Ends</b> date pickers below it — leave both blank for an expense that applies the whole plan (the default), or set one or both for something that begins or ends partway through retirement (childcare ending, a car payment finishing, a hobby starting once you have more free time).</p>
       </div>
 
       <div class="card">
@@ -5150,8 +5159,36 @@ function renderExpenseRows() {
       <input type="number" value="${e.amount}" step="10" oninput="updateExpense(${i},'amount',this.value)">
       <button class="remove-btn" onclick="removeExpense(${i})" title="Remove">×</button>
     </div>
+    <div class="expense-date-row">
+      <label>Starts <input type="month" value="${e.startDateValue||''}" title="Leave blank if this expense already applies from the start of the plan" onchange="updateExpenseDate(${i},'start',this.value)"></label>
+      <label>Ends <input type="month" value="${e.endDateValue||''}" title="Leave blank if this expense continues for the rest of the plan" onchange="updateExpenseDate(${i},'end',this.value)"></label>
+      <span class="expense-date-hint">${expenseDateHint(e)}</span>
+    </div>
   `).join('');
   updateExpenseTotals();
+}
+// Short plain-language readout of a row's active window, shown next to its Starts/Ends pickers so it's
+// obvious at a glance whether a date restriction is actually in effect — easy to miss otherwise since an
+// empty month input just looks like any other blank field.
+function expenseDateHint(e) {
+  if (e.startAge == null && e.endAge == null) return 'Active for the whole plan';
+  if (e.startAge != null && e.endAge != null) return `Active age ${e.startAge}–${e.endAge}`;
+  if (e.startAge != null) return `Starts at age ${e.startAge}`;
+  return `Ends at age ${e.endAge}`;
+}
+// Starts/Ends date pickers store BOTH the raw month string (startDateValue/endDateValue, purely so the
+// picker redisplays what was chosen after a reload) and the age it converts to (startAge/endAge — null on
+// either side means unbounded on that side), the same age-anchored-on-currentAge convention Future Expenses/
+// Windfalls/Job Loss already use (see monthToAge). The engine (projectRun, via ctx.expensesForYear) only
+// ever reads startAge/endAge, never the date strings, so this matches the loop's own age-based year steps
+// exactly instead of needing a separate calendar-date comparison every iteration.
+function updateExpenseDate(i, which, monthVal) {
+  const ageField = which === 'start' ? 'startAge' : 'endAge';
+  const dateField = which === 'start' ? 'startDateValue' : 'endDateValue';
+  if (!monthVal) { expenses[i][ageField] = null; expenses[i][dateField] = ''; }
+  else { expenses[i][ageField] = monthToAge(monthVal, +els('currentAge').value); expenses[i][dateField] = monthVal; }
+  renderExpenseRows();
+  render();
 }
 function updateExpenseTotals() {
   els('expenseTotal').textContent = fmtMoney(expenses.reduce((s,e) => s + (+e.amount||0), 0)) + '/mo';
@@ -5165,7 +5202,7 @@ function updateExpense(i, field, value) {
   updateExpenseTotals();
   render();
 }
-function addExpense() { expenses.push({ name:'New expense', category:'Other', amount:50, mustSpend:50, jobLoss:0 }); renderExpenseRows(); render(); }
+function addExpense() { expenses.push({ name:'New expense', category:'Other', amount:50, mustSpend:50, jobLoss:0, startAge:null, endAge:null, startDateValue:'', endDateValue:'' }); renderExpenseRows(); render(); }
 function removeExpense(i) { expenses.splice(i,1); renderExpenseRows(); render(); }
 
 // Read-only combined view on the Expenses page: shows Housing/Debt/Insurance alongside the
@@ -6474,6 +6511,13 @@ function projectRun(inputs, ctx, randomize, shocks) {
     }
     guaranteedIncome = ssAmount + spousalBenefit + pensionAmount + pension2Amount + vaDisabilityAmount + annuityAmount + sbpAmount + dicAmount;
 
+    // Start/end-dated expenses: which recurring expense rows actually count this year, filtered by age
+    // against each row's optional startAge/endAge (see expenseActiveAtAge/computeExpenseTotals above) —
+    // recomputed every year of the loop (both branches below read from it) so a row with a Starts/Ends
+    // date actually turns on or off at the right point in the projection instead of counting for every
+    // year of the plan the way it did before this feature existed.
+    const expTotalsThisYear = ctx.expensesForYear(age);
+
     if (age < inputs.retirementAge) {
       const preR = (shocks.pre && shocks.pre[y] !== undefined) ? shocks.pre[y]
         : (randomize ? randNormal(inputs.preReturn, inputs.preStdev) : inputs.preReturn);
@@ -6522,11 +6566,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // expensesMedicalForYear logic (housingCost/debtPaymentThisYear/insurancePremiumAnnual above are already
       // survivorship-aware regardless of pre/post retirement since they're computed once, hoisted above this split).
       const preRetireNonMedical = survivorshipActive
-        ? (jobLossActive ? ctx.expensesJobLossNonMedicalSurvivor : ctx.expensesNonMedicalSurvivor)
-        : (jobLossActive ? ctx.expensesJobLossNonMedical : ctx.expensesNonMedical);
+        ? (jobLossActive ? expTotalsThisYear.jobLossNonMedicalSurvivor : expTotalsThisYear.nonMedicalSurvivor)
+        : (jobLossActive ? expTotalsThisYear.jobLossNonMedical : expTotalsThisYear.nonMedical);
       const preRetireMedical = survivorshipActive
-        ? (jobLossActive ? ctx.expensesJobLossMedicalSurvivor : ctx.expensesMedicalSurvivor)
-        : (jobLossActive ? ctx.expensesJobLossMedical : ctx.expensesMedical);
+        ? (jobLossActive ? expTotalsThisYear.jobLossMedicalSurvivor : expTotalsThisYear.medicalSurvivor)
+        : (jobLossActive ? expTotalsThisYear.jobLossMedical : expTotalsThisYear.medical);
       const recurringLivingCostThisYear = (preRetireNonMedical * inflator + preRetireMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
       const excessIncomeAvailable = Math.max(0, income + guaranteedIncome - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
       // Paid-off debt redirect: recurringLivingCostThisYear above already reflects a lower debtPaymentThisYear
@@ -6680,18 +6724,18 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // Job Loss specifically only takes over from jobLossActive's age onward (see its definition above) —
       // years before that still run on Like to Spend even with the toggle on, same as pre-retirement above.
       const expensesNonMedicalForYear = survivorshipActive
-        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedicalSurvivor : jobLossActive ? ctx.expensesJobLossNonMedicalSurvivor : ctx.expensesNonMedicalSurvivor)
-        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendNonMedical : jobLossActive ? ctx.expensesJobLossNonMedical : ctx.expensesNonMedical);
+        ? (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendNonMedicalSurvivor : jobLossActive ? expTotalsThisYear.jobLossNonMedicalSurvivor : expTotalsThisYear.nonMedicalSurvivor)
+        : (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendNonMedical : jobLossActive ? expTotalsThisYear.jobLossNonMedical : expTotalsThisYear.nonMedical);
       const expensesMedicalForYear = survivorshipActive
-        ? (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedicalSurvivor : jobLossActive ? ctx.expensesJobLossMedicalSurvivor : ctx.expensesMedicalSurvivor)
-        : (spendingBasis === 'mustspend' ? ctx.expensesMustSpendMedical : jobLossActive ? ctx.expensesJobLossMedical : ctx.expensesMedical);
+        ? (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendMedicalSurvivor : jobLossActive ? expTotalsThisYear.jobLossMedicalSurvivor : expTotalsThisYear.medicalSurvivor)
+        : (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendMedical : jobLossActive ? expTotalsThisYear.jobLossMedical : expTotalsThisYear.medical);
       expensesCategoriesAnnual = (expensesNonMedicalForYear * inflator + expensesMedicalForYear * medicalInflator) * spendMult;
       const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
       // Must Spend floor for this year's recurring expenses only (housing/debt/insurance/Tricare-Medicare
       // premiums/SBP premiums don't have a discretionary counterpart modeled, so they're treated as 100%
       // essential below rather than needing their own Must Spend split).
-      const mustSpendNonMedicalForYear = survivorshipActive ? ctx.expensesMustSpendNonMedicalSurvivor : ctx.expensesMustSpendNonMedical;
-      const mustSpendMedicalForYear = survivorshipActive ? ctx.expensesMustSpendMedicalSurvivor : ctx.expensesMustSpendMedical;
+      const mustSpendNonMedicalForYear = survivorshipActive ? expTotalsThisYear.mustSpendNonMedicalSurvivor : expTotalsThisYear.mustSpendNonMedical;
+      const mustSpendMedicalForYear = survivorshipActive ? expTotalsThisYear.mustSpendMedicalSurvivor : expTotalsThisYear.mustSpendMedical;
       const mustSpendCategoriesAnnual = (mustSpendNonMedicalForYear * inflator + mustSpendMedicalForYear * medicalInflator) * spendMult;
       // SBP premiums (survivorship what-if only) are paid while both are alive in that scenario and stop once
       // survivorship kicks in (the retiree's own pay, which funded the premium, has stopped).
@@ -6993,6 +7037,52 @@ function projectRun(inputs, ctx, randomize, shocks) {
   return { rows, investableAtRetirement, cashAtRetirement, depletionAge, success: !shortfallEver, initialWithdrawalRate, totalRothConverted, totalRothConversionTax };
 }
 
+// Whether a single recurring expense row counts as "active" in a given projection year (age) — both
+// startAge and endAge are optional (null/undefined = unbounded on that side), so a row with neither set
+// (every row that existed before this feature, and every new row by default) behaves exactly as before:
+// active for the whole plan. Set via the Starts/Ends date pickers on the Expenses page (updateExpenseDate),
+// which convert the picked calendar month into an age anchored on today's currentAge — the same convention
+// Future Expenses/Windfalls/Job Loss already use (see monthToAge).
+function expenseActiveAtAge(e, age) {
+  return (e.startAge == null || age >= e.startAge) && (e.endAge == null || age <= e.endAge);
+}
+// Same math as buildContext's expensesXxx totals below, factored out so it can be rerun against any subset
+// of the expenses array — the full list (what buildContext itself still uses for its own static fields,
+// kept for backward compatibility with their one remaining non-projectRun consumer) or, per projection year,
+// only the rows expenseActiveAtAge() says are active that year (see expensesForYear, in buildContext's
+// return value below, which projectRun() actually calls every year instead of reading the static fields).
+function computeExpenseTotals(list) {
+  const total = list.reduce((s,e) => s + (+e.amount || 0), 0) * 12;
+  const medical = list.filter(e => e.category === 'Healthcare').reduce((s,e) => s + (+e.amount || 0), 0) * 12;
+  const nonMedical = total - medical;
+  const mustSpendVal = e => (e.mustSpend != null ? +e.mustSpend : (+e.amount || 0));
+  const mustSpendTotal = list.reduce((s,e) => s + mustSpendVal(e), 0) * 12;
+  const mustSpendMedical = list.filter(e => e.category === 'Healthcare').reduce((s,e) => s + mustSpendVal(e), 0) * 12;
+  const mustSpendNonMedical = mustSpendTotal - mustSpendMedical;
+  const jobLossVal = e => (e.jobLoss != null ? +e.jobLoss : mustSpendVal(e));
+  const jobLossTotal = list.reduce((s,e) => s + jobLossVal(e), 0) * 12;
+  const jobLossMedical = list.filter(e => e.category === 'Healthcare').reduce((s,e) => s + jobLossVal(e), 0) * 12;
+  const jobLossNonMedical = jobLossTotal - jobLossMedical;
+  const survivorVal = item => (item.survivorAmount != null && item.survivorAmount !== '') ? (+item.survivorAmount || 0) : (+item.amount || 0);
+  const survivorList = list.filter(e => e.survivorContinues !== false);
+  const totalSurvivor = survivorList.reduce((s,e) => s + survivorVal(e), 0) * 12;
+  const medicalSurvivor = survivorList.filter(e => e.category === 'Healthcare').reduce((s,e) => s + survivorVal(e), 0) * 12;
+  const nonMedicalSurvivor = totalSurvivor - medicalSurvivor;
+  const mustSpendTotalSurvivor = survivorList.reduce((s,e) => s + mustSpendVal(e), 0) * 12;
+  const mustSpendMedicalSurvivor = survivorList.filter(e => e.category === 'Healthcare').reduce((s,e) => s + mustSpendVal(e), 0) * 12;
+  const mustSpendNonMedicalSurvivor = mustSpendTotalSurvivor - mustSpendMedicalSurvivor;
+  const jobLossTotalSurvivor = survivorList.reduce((s,e) => s + jobLossVal(e), 0) * 12;
+  const jobLossMedicalSurvivor = survivorList.filter(e => e.category === 'Healthcare').reduce((s,e) => s + jobLossVal(e), 0) * 12;
+  const jobLossNonMedicalSurvivor = jobLossTotalSurvivor - jobLossMedicalSurvivor;
+  return {
+    nonMedical, medical,
+    mustSpendNonMedical, mustSpendMedical,
+    jobLossNonMedical, jobLossMedical,
+    nonMedicalSurvivor, medicalSurvivor,
+    mustSpendNonMedicalSurvivor, mustSpendMedicalSurvivor,
+    jobLossNonMedicalSurvivor, jobLossMedicalSurvivor
+  };
+}
 function buildContext(inputs) {
   const ageGap = inputs.currentAge - inputs.spouseCurrentAge;
   // Plan through whichever spouse lives longer, expressed in the primary user's age terms.
@@ -7060,7 +7150,12 @@ function buildContext(inputs) {
     expensesJobLossTotal, expensesJobLossMedical, expensesJobLossNonMedical,
     debtSchedulesSurvivor, expensesTotalSurvivor, expensesMedicalSurvivor, expensesNonMedicalSurvivor,
     expensesMustSpendTotalSurvivor, expensesMustSpendMedicalSurvivor, expensesMustSpendNonMedicalSurvivor,
-    expensesJobLossTotalSurvivor, expensesJobLossMedicalSurvivor, expensesJobLossNonMedicalSurvivor
+    expensesJobLossTotalSurvivor, expensesJobLossMedicalSurvivor, expensesJobLossNonMedicalSurvivor,
+    // Per-year expense totals, filtered by each row's optional Starts/Ends date range (expenseActiveAtAge)
+    // — projectRun() calls this once every year of the loop instead of reading the static fields above,
+    // so a childcare cost that ends in 5 years or a hobby that starts in retirement actually turns off/on
+    // at the right point instead of counting for the whole plan like the static fields above always do.
+    expensesForYear: (age) => computeExpenseTotals(expenses.filter(e => expenseActiveAtAge(e, age)))
   };
 }
 
