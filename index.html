@@ -1247,9 +1247,9 @@
         <div class="dn-hdr"><span>&#x1F4DD; Notes</span><small>auto-saved, same on every page</small></div>
         <textarea class="shared-notes-textarea" oninput="updateSharedNotes(this.value)" placeholder="Jot down anything — questions for your financial advisor, things to double-check, reminders…" rows="3"></textarea>
       </div>
-      <div class="page-header"><h2>Income vs Expenses</h2><p>Job income and guaranteed income (Social Security, spousal benefit, both pensions, VA disability, annuity) plotted above the line, total expenses (recurring bills, housing, debt payments, insurance, medical premiums) plotted below it — one bar chart, the whole plan, so you can see at a glance which years income covers expenses on its own and which years lean on savings. Portfolio withdrawals aren't counted as income here (unlike the Income page's own chart) — the point of this view is to isolate how much of spending is actually covered by income you don't have to draw down for. For the year-by-year withdrawal detail behind any gap, see the <b>Income Gap &amp; Withdrawals</b> page.</p></div>
+      <div class="page-header"><h2>Income vs Expenses</h2><p>Job income and guaranteed income (Social Security, spousal benefit, both pensions, VA disability, annuity) side by side with total expenses (recurring bills, housing, debt payments, insurance, medical premiums) for the same year — one bar chart, the whole plan, so you can see at a glance which years income covers expenses on its own and which years lean on savings. Portfolio withdrawals aren't counted as income here (unlike the Income page's own chart) — the point of this view is to isolate how much of spending is actually covered by income you don't have to draw down for. For the year-by-year withdrawal detail behind any gap, see the <b>Income Gap &amp; Withdrawals</b> page.</p></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income vs Expenses by year</div><canvas id="chart_incomeexpenses_yearly"></canvas><div class="chart-range-nav" data-chart="incomeexpenses_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('incomeexpenses_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('incomeexpenses_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('incomeexpenses_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="incomeexpenses_yearly"></div></div>
-      <div class="note" style="margin-top:0;">Income (green, above the line) is job income plus every guaranteed income source, before it's reduced by taxes. Expenses (red, below the line) is every recurring bill, housing cost, debt payment, and insurance/medical premium in the plan. Where the red bar reaches further below zero than the green bar reaches above it, that year's gap is covered by a portfolio withdrawal — see the Income Gap &amp; Withdrawals page for exactly which account(s) it came from.</div>
+      <div class="note" style="margin-top:0;">Income (green) is job income plus every guaranteed income source, before it's reduced by taxes. Expenses (red) is every recurring bill, housing cost, debt payment, and insurance/medical premium in the plan. Where the red bar is taller than the green bar for a given year, that year's gap is covered by a portfolio withdrawal — see the Income Gap &amp; Withdrawals page for exactly which account(s) it came from.</div>
     </div>
 
     <!-- ================= DEBT ================= -->
@@ -8162,25 +8162,27 @@ function buildYearlyChartConfig(pageId, snap) {
       // Deliberately a simpler, 2-series view than the 'income'/'gap' cases above: job income + every
       // guaranteed income source (SS/spousal/both pensions/VA disability/annuity — all already computed
       // every year regardless of pre/post retirement, hoisted above the retirement-age branch split in
-      // projectRun), plotted as positive bars; total expenses plotted as NEGATIVE bars (housing/debt/
-      // insurance/recurring bills/medical premiums, whichever basis the header toggle currently selects
-      // for the recurring-expenses slice) so the two sit above/below a shared zero line in one chart.
-      // Portfolio withdrawals are intentionally excluded from the income side — they're sized specifically
-      // to cover whatever gap exists, so folding them in here would make income ≈ expenses almost every
-      // year by construction and hide the exact comparison this chart exists to show. r.spending only
-      // exists for retirement-age-and-later rows (0 before then, like the Gap/Medical/Taxes yearly charts
-      // above already work); r.recurringLivingCostThisYear is its pre-retirement-years counterpart (same
-      // underlying formula, just computed before the withdrawal engine exists to track against).
+      // projectRun) side by side with total expenses (housing/debt/insurance/recurring bills/medical
+      // premiums, whichever basis the header toggle currently selects for the recurring-expenses slice),
+      // both plotted as ordinary positive bars from a shared $0 baseline (an earlier diverging version —
+      // income up, expenses down as negative bars — kept visually reading as one merged column at the
+      // zero line no matter how the two bars were positioned; two same-direction bars side by side reads
+      // unambiguously and you can still see the comparison directly: taller red than green = that year
+      // leans on savings). Portfolio withdrawals are intentionally excluded from the income side — they're
+      // sized specifically to cover whatever gap exists, so folding them in here would make income ≈
+      // expenses almost every year by construction and hide the exact comparison this chart exists to
+      // show. r.spending only exists for retirement-age-and-later rows (0 before then, like the Gap/
+      // Medical/Taxes yearly charts above already work); r.recurringLivingCostThisYear is its
+      // pre-retirement-years counterpart (same underlying formula, computed before the withdrawal engine
+      // exists to track against).
       const totalExpensesForYear = r => r.age < inputs.retirementAge ? (r.recurringLivingCostThisYear || 0) : (r.spending || 0);
       const incomeVals = rows.map(r => d((r.income || 0) + (r.guaranteedIncome || 0), r.age));
       const expenseVals = rows.map(r => d(totalExpensesForYear(r), r.age));
-      // Distinct `stack` ids + { stacked: true } (the technique the 'gap' case above uses successfully
-      // for its Surplus/(Gap) bar vs per-account withdrawal columns) turned out not to reliably separate
-      // these two specific series — green/orange still rendered as one merged column per age in practice,
-      // even though Chart.js's own grouped-stack algorithm should keep same-index bars apart. Rather than
-      // keep fighting that ambiguity, each age is given its OWN pair of genuinely separate category slots
-      // (income in the first slot, expense in the second, the other left null) — an ordinary bar chart
-      // with one bar per category has no grouping/stacking logic to get wrong, so this guarantees visible
+      // Each age gets its OWN pair of genuinely separate category slots (income in the first slot,
+      // expense in the second, the other left null) rather than relying on Chart.js's grouped/stacked-bar
+      // positioning (`stack` ids + {stacked:true}, the technique the 'gap' case above uses) — that
+      // approach didn't reliably separate these two series in practice. An ordinary bar chart with one
+      // bar per category has no grouping/stacking ambiguity to get wrong, so this guarantees visible
       // side-by-side bars by construction. The two nulled-out interleaved datasets keep the legend down to
       // the intended 2 entries; a custom tooltip below re-merges both values back into one "Age N" tooltip
       // (the default per-item tooltip would otherwise only show whichever single bar was hovered).
@@ -8188,7 +8190,7 @@ function buildYearlyChartConfig(pageId, snap) {
       const pairedLabels = pairedAges.map(a => 'Age ' + a);
       const cfg = yearlyBarConfig(pairedAges, [
         { label: 'Total Income (job + guaranteed, before tax)', data: incomeVals.flatMap(v => [v, null]), backgroundColor: '#1f7a6c' },
-        { label: 'Total Expenses', data: expenseVals.flatMap(v => [null, -v]), backgroundColor: '#c0392b' }
+        { label: 'Total Expenses', data: expenseVals.flatMap(v => [null, v]), backgroundColor: '#c0392b' }
       ], { labels: pairedLabels });
       cfg.options.plugins.tooltip.callbacks = {
         title: items => items.length ? 'Age ' + ages[Math.floor(items[0].dataIndex / 2)] : '',
