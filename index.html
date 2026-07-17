@@ -5589,6 +5589,40 @@ function monthToAge(monthVal, basisAge) {
   const monthsAway = (ty - today.getFullYear()) * 12 + (tm - 1 - today.getMonth());
   return Math.max(1, Math.round(basisAge + monthsAway / 12));
 }
+// One-time self-heal, run once at boot (see bottom of script, after birthDate/spouseBirthDate are
+// synced) for plans saved before monthToAge/dateToAge/syncAgeDate/syncRetirementDate were corrected
+// to anchor on the actual birth date. A date picker's *stored* age (expenses[].startAge/endAge,
+// futureExpenses[].age, windfalls[].age, or a milestone's own Age field) was computed once at the
+// moment it was picked and then persisted as a plain number — simply fixing the conversion functions
+// doesn't retroactively correct a number that's already sitting in someone's saved plan. This
+// re-derives every stored age from its paired date field using the corrected math, so an existing
+// plan self-corrects on load instead of requiring every date to be manually re-picked. Harmless
+// no-op for anyone whose stored ages already happen to be exact.
+function recomputeAgesFromDates() {
+  const currentAge = +els('currentAge').value;
+  expenses.forEach(e => {
+    if (e.startDateValue) e.startAge = monthToAge(e.startDateValue, currentAge);
+    if (e.endDateValue) e.endAge = monthToAge(e.endDateValue, currentAge);
+  });
+  futureExpenses.forEach(fe => { if (fe.dateValue) fe.age = monthToAge(fe.dateValue, currentAge); });
+  windfalls.forEach(w => { if (w.dateValue) w.age = monthToAge(w.dateValue, currentAge); });
+  [
+    ['pensionAgeDate', 'pensionAge', 'pensionAgeDateHint', 'currentAge'],
+    ['pension2AgeDate', 'pension2Age', 'pension2AgeDateHint', 'currentAge'],
+    ['vaDisabilityAgeDate', 'vaDisabilityAge', 'vaDisabilityAgeDateHint', 'currentAge'],
+    ['ssAgeDate', 'ssAge', 'ssAgeDateHint', 'currentAge'],
+    ['spousalStartAgeDate', 'spousalStartAge', 'spousalStartAgeDateHint', 'spouseAge'],
+    ['annuityStartAgeDate', 'annuityStartAge', 'annuityStartAgeDateHint', 'currentAge'],
+    ['purchaseAgeDate', 'purchaseAge', 'purchaseAgeDateHint', 'currentAge'],
+    ['ltcStartAgeDate', 'ltcStartAge', 'ltcStartAgeDateHint', 'spouseAge'],
+  ].forEach(([dateId, ageId, hintId, basisId]) => {
+    if (els(dateId) && els(dateId).value) syncAgeDate(dateId, ageId, hintId, basisId);
+  });
+  if (els('retirementDate') && els('retirementDate').value) syncRetirementDate(true);
+  renderExpenseRows();
+  renderFutureExpenseRows();
+  renderWindfallRows();
+}
 // Inverse of monthToAge: given a whole-years-away target age (e.g. a debt payoff age from the
 // year-resolution amortization schedule), return a human "Mon YYYY" estimate of the calendar date —
 // anchored on the person's actual birth month, not whatever calendar month it happens to be today.
@@ -9778,6 +9812,11 @@ if (shellEl) {
 // from any saved backup, and before the first render()).
 syncAgeFromBirthDate('birthDate', 'currentAge', 'birthMonth', 'birthDateHint');
 syncAgeFromBirthDate('spouseBirthDate', 'spouseAge', 'spouseBirthMonth', 'spouseBirthDateHint');
+
+// Must run after currentAge/spouseAge are fresh (above) so the birth-date-anchored math has the
+// right basis ages to fall back on, and before the render() below so the corrected ages are what
+// the very first Monte Carlo run actually uses.
+recomputeAgesFromDates();
 
 render();
 
