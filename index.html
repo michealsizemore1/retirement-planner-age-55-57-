@@ -246,7 +246,7 @@
 
   .row-list{margin-top:8px;}
   .row-item{display:grid; grid-template-columns:1.3fr 0.9fr 26px; gap:8px; align-items:center; margin-bottom:8px;}
-  .row-item.debt-row{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
+  .row-item.debt-row{grid-template-columns:1fr 0.65fr 0.5fr 0.55fr 0.55fr 0.55fr 26px;}
   .row-item.tx-row{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
   .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 0.7fr 26px;}
   /* Starts/Ends date pickers for a recurring expense — a separate full-width row directly under each
@@ -311,7 +311,7 @@
   .row-header.cols-2{grid-template-columns:1.3fr 0.9fr 26px;}
   .row-header.cols-pie{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
   .row-item.pie-row{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
-  .row-header.cols-debt{grid-template-columns:1fr 0.7fr 0.6fr 0.6fr 26px;}
+  .row-header.cols-debt{grid-template-columns:1fr 0.65fr 0.5fr 0.55fr 0.55fr 0.55fr 26px;}
   .row-header.cols-tx{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
   .row-header.cols-contrib{grid-template-columns:1.6fr 0.9fr;}
   .row-header.cols-future{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px;}
@@ -1263,11 +1263,11 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Debt</h3>
-        <div class="row-header cols-debt"><span>Category</span><span>Balance ($)</span><span>APR (%)</span><span>Payment ($/mo)</span><span></span></div>
+        <div class="row-header cols-debt"><span>Category</span><span>Balance ($)</span><span>APR (%)</span><span>Start age</span><span>Term (yrs)</span><span>Payment ($/mo)</span><span></span></div>
         <div class="row-list" id="debtRows"></div>
         <button class="add-btn" onclick="addDebt()">+ Add debt</button>
         <div class="total-row"><span>Total balance</span><span id="debtTotal">$0</span></div>
-        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Car Payment's $712/mo is your real number — its balance and APR are placeholders, update them to match your actual loan.</p>
+        <p style="font-size:16.5px;color:var(--muted);margin:8px 0 0;line-height:1.5;">Car Payment's $712/mo is your real number — its balance and APR are placeholders, update them to match your actual loan. Leave Start age blank for a debt you already have. For a planned future loan (like financing a vehicle purchase down the road), set Start age to when you'll take it out — the balance and payments won't begin until then. Term (yrs) is optional and auto-computes the monthly payment for you; clear it to enter a payment manually.</p>
       </div>
 
       <div class="card">
@@ -6014,52 +6014,90 @@ function renderDebtRows() {
       <select onchange="updateDebt(${i},'category',this.value)">
         ${DEBT_CATEGORIES.map(c => `<option value="${c}" ${c===d.category?'selected':''}>${c}</option>`).join('')}
       </select>
-      <input type="number" value="${d.balance}" step="500" oninput="updateDebt(${i},'balance',this.value)">
-      <input type="number" value="${d.apr}" step="0.5" oninput="updateDebt(${i},'apr',this.value)">
-      <input type="number" value="${d.payment}" step="25" oninput="updateDebt(${i},'payment',this.value)">
+      <input type="number" value="${d.balance}" step="500" oninput="updateDebt(${i},'balance',this.value)" title="Balance">
+      <input type="number" value="${d.apr}" step="0.5" oninput="updateDebt(${i},'apr',this.value)" title="APR (%)">
+      <input type="number" value="${d.startAge != null ? d.startAge : ''}" placeholder="Now" step="1" min="0" oninput="updateDebt(${i},'startAge',this.value)" title="Start age — leave blank for a debt you already have; set this for a future loan (e.g. a planned vehicle purchase)">
+      <input type="number" value="${d.termYears != null ? d.termYears : ''}" placeholder="—" step="1" min="1" oninput="updateDebt(${i},'termYears',this.value)" title="Loan term in years — optional; auto-computes the monthly payment for you">
+      <input type="number" id="debtPayment${i}" value="${d.payment}" step="25" oninput="updateDebt(${i},'payment',this.value)" title="Monthly payment"${d.termYears ? ' disabled' : ''}>
       <button class="remove-btn" onclick="removeDebt(${i})" title="Remove">×</button>
     </div>
   `).join('');
   els('debtTotal').textContent = fmtMoney(debts.reduce((s,d) => s + (+d.balance||0), 0));
 }
 function updateDebt(i, field, value) {
-  debts[i][field] = (field==='balance'||field==='apr'||field==='payment') ? +value : value;
+  const d = debts[i];
+  if (field==='balance'||field==='apr'||field==='payment') {
+    d[field] = +value;
+  } else if (field==='startAge'||field==='termYears') {
+    d[field] = value === '' ? null : +value;
+  } else {
+    d[field] = value;
+  }
+  // A term (in years) is an opt-in convenience: when set, it auto-computes the monthly payment from
+  // balance/APR/term (same amortization-payment formula the home-purchase mortgage feature already
+  // uses) instead of making you hand-calculate it. Clearing the term hands manual control back.
+  if (d.termYears) {
+    d.payment = Math.round(mortgagePayment(Math.max(0, +d.balance||0), +d.apr||0, +d.termYears) * 100) / 100;
+    const payEl = els('debtPayment'+i);
+    if (payEl) { payEl.value = d.payment; payEl.disabled = true; }
+  } else if (field === 'termYears') {
+    const payEl = els('debtPayment'+i);
+    if (payEl) payEl.disabled = false;
+  }
   els('debtTotal').textContent = fmtMoney(debts.reduce((s,d) => s + (+d.balance||0), 0));
   render();
 }
-function addDebt() { debts.push({ name:'New debt', category:'Other', balance:5000, apr:10, payment:150 }); renderDebtRows(); render(); }
+function addDebt() { debts.push({ name:'New debt', category:'Other', balance:5000, apr:10, payment:150, startAge:null, termYears:null }); renderDebtRows(); render(); }
 function removeDebt(i) { debts.splice(i,1); renderDebtRows(); render(); }
 
 // ---------- Debt amortization schedule (return-independent, computed once per render) ----------
-function buildDebtSchedule(debt, maxYears) {
+// startMonthOffset lets a debt originate in the future instead of already existing today — e.g. a
+// planned Vehicle Purchase financed at age 62 rather than a loan you're already carrying. Before that
+// many months elapse, the debt simply doesn't exist yet (balance $0, no payment); amortization begins
+// exactly at that month using the debt's real balance/APR/payment. Defaults to 0 (starts now), which
+// reproduces the exact original behavior for every pre-existing debt.
+function buildDebtSchedule(debt, maxYears, startMonthOffset) {
+  startMonthOffset = Math.max(0, Math.round(startMonthOffset || 0));
   const r = debt.apr/100/12;
   const neverPaysOff = r > 0 && debt.payment <= debt.balance*r;
   const balanceAtYearEnd = new Array(maxYears+1).fill(0);
   const paymentDuringYear = new Array(maxYears+1).fill(0);
-  let bal = debt.balance;
-  if (neverPaysOff || debt.balance <= 0) {
-    for (let y=0; y<=maxYears; y++) { paymentDuringYear[y] = neverPaysOff ? debt.payment*12 : 0; balanceAtYearEnd[y] = bal; }
-    // Already-paid-off debts count as paid off this month (0); a debt that never pays off has no payoff month at all.
-    return { balanceAtYearEnd, paymentDuringYear, neverPaysOff, payoffMonthIndex: debt.balance <= 0 ? 0 : null };
+  if (debt.balance <= 0) {
+    // Already-paid-off (or no) debt: zero balance throughout, counts as paid off this month (0).
+    return { balanceAtYearEnd, paymentDuringYear, neverPaysOff: false, payoffMonthIndex: 0 };
   }
-  let y = 0, paidThisYear = 0, month = 0;
+  if (neverPaysOff) {
+    for (let y=0; y<=maxYears; y++) {
+      const monthsElapsedByYearEnd = (y+1)*12;
+      const activeMonths = Math.max(0, Math.min(12, monthsElapsedByYearEnd - startMonthOffset));
+      paymentDuringYear[y] = debt.payment * activeMonths;
+      balanceAtYearEnd[y] = monthsElapsedByYearEnd > startMonthOffset ? debt.balance : 0;
+    }
+    // A debt that never pays off has no payoff month at all, regardless of when it originates.
+    return { balanceAtYearEnd, paymentDuringYear, neverPaysOff, payoffMonthIndex: null };
+  }
+  let bal = 0, y = 0, paidThisYear = 0, month = 0, originated = false;
   // Exact number of months from today until the balance actually hits zero, tracked at the same
   // monthly resolution the amortization math itself already runs at — independent of anyone's age or
-  // birthday, since a payoff date is purely a function of balance/APR/payment, not a milestone tied to
-  // a person's calendar. Only balanceAtYearEnd/paymentDuringYear (the arrays the rest of the engine
-  // needs) get rolled up to yearly resolution; this stays at the true monthly precision.
+  // birthday, since a payoff date is purely a function of balance/APR/payment (and, now, origination
+  // timing), not a milestone tied to a person's calendar. Only balanceAtYearEnd/paymentDuringYear (the
+  // arrays the rest of the engine needs) get rolled up to yearly resolution; this stays at the true
+  // monthly precision.
   let payoffMonthIndex = null;
-  while (bal > 0.01 && month < maxYears*12) {
-    const interest = bal*r;
-    let principal = debt.payment - interest;
-    if (principal > bal) principal = bal;
-    bal -= principal;
-    paidThisYear += interest + principal;
+  while (month < maxYears*12) {
+    if (!originated && month >= startMonthOffset) { bal = debt.balance; originated = true; }
+    if (originated && bal > 0.01) {
+      const interest = bal*r;
+      let principal = debt.payment - interest;
+      if (principal > bal) principal = bal;
+      bal -= principal;
+      paidThisYear += interest + principal;
+    }
     month++;
-    if (bal <= 0.01 && payoffMonthIndex === null) payoffMonthIndex = month;
+    if (originated && bal <= 0.01 && payoffMonthIndex === null) payoffMonthIndex = month;
     if (month % 12 === 0) { balanceAtYearEnd[y] = bal; paymentDuringYear[y] = paidThisYear; y++; paidThisYear = 0; }
   }
-  if (bal <= 0.01 && month % 12 !== 0 && y <= maxYears) { balanceAtYearEnd[y] = 0; paymentDuringYear[y] = paidThisYear; y++; }
+  if (month % 12 !== 0 && y <= maxYears) { balanceAtYearEnd[y] = bal; paymentDuringYear[y] = paidThisYear; y++; }
   for (; y <= maxYears; y++) { balanceAtYearEnd[y] = 0; paymentDuringYear[y] = 0; }
   return { balanceAtYearEnd, paymentDuringYear, neverPaysOff, payoffMonthIndex };
 }
@@ -7285,7 +7323,8 @@ function buildContext(inputs) {
   const jobLossYear = inputs.jobLossDateRaw ? +String(inputs.jobLossDateRaw).slice(0, 4) : null;
   const turns55Year = inputs.birthDateRaw ? +String(inputs.birthDateRaw).slice(0, 4) + 55 : null;
   const jobLossQualifiesForRuleOf55 = !jobLossYear || !turns55Year || jobLossYear >= turns55Year;
-  const debtSchedules = debts.map(d => buildDebtSchedule(d, maxYears));
+  const debtStartMonthOffset = d => (d.startAge != null && d.startAge !== '') ? Math.max(0, Math.round((d.startAge - inputs.currentAge) * 12)) : 0;
+  const debtSchedules = debts.map(d => buildDebtSchedule(d, maxYears, debtStartMonthOffset(d)));
   const mortgageSchedule = inputs.buyHome ? buildMortgageSchedule(inputs, maxYears) : null;
   // Expense amounts are entered monthly; annualize here so the rest of the engine works in annual $.
   const expensesTotal = expenses.reduce((s,e) => s + (+e.amount || 0), 0) * 12;
@@ -7313,7 +7352,7 @@ function buildContext(inputs) {
   const survivorVal = item => (item.survivorAmount != null && item.survivorAmount !== '') ? (+item.survivorAmount || 0) : (+item.amount || 0);
   const debtSchedulesSurvivor = debts.filter(d => d.survivorContinues !== false).map(d => {
     const survivorPayment = (d.survivorAmount != null && d.survivorAmount !== '') ? (+d.survivorAmount || 0) : d.payment;
-    return buildDebtSchedule({ ...d, payment: survivorPayment }, maxYears);
+    return buildDebtSchedule({ ...d, payment: survivorPayment }, maxYears, debtStartMonthOffset(d));
   });
   const expensesTotalSurvivor = expenses.filter(e => e.survivorContinues !== false).reduce((s,e) => s + survivorVal(e), 0) * 12;
   const expensesMedicalSurvivor = expenses.filter(e => e.category === 'Healthcare' && e.survivorContinues !== false).reduce((s,e) => s + survivorVal(e), 0) * 12;
@@ -9296,7 +9335,11 @@ function resetAllData() {
 
 // ---------- Debt Payoff Plan (avalanche order, using existing amortization schedules) ----------
 function payoffStatsFromSchedule(sched, currentAge, originalBalance) {
-  const payoffYearIdx = sched.balanceAtYearEnd.findIndex(b => b === 0);
+  // Derived from payoffMonthIndex rather than scanning balanceAtYearEnd for the first zero: a
+  // future-dated debt (startAge in the future) also reads as $0 balance in every year before it
+  // originates, which would otherwise look identical to "already paid off."
+  const payoffYearIdx = (sched.payoffMonthIndex == null) ? -1
+    : (sched.payoffMonthIndex === 0 ? 0 : Math.floor((sched.payoffMonthIndex - 1) / 12));
   const payoffAge = payoffYearIdx >= 0 ? currentAge + payoffYearIdx : null;
   const totalPaid = sched.paymentDuringYear.slice(0, payoffYearIdx >= 0 ? payoffYearIdx + 1 : sched.paymentDuringYear.length)
     .reduce((s, p) => s + p, 0);
@@ -9340,7 +9383,8 @@ function renderDebtPayoffPlan(inputs, ctx) {
   if (extraPayment > 0 && items.length) {
     const top = items[0];
     const boostedDebt = { ...top.debt, payment: top.payment + extraPayment };
-    const boostedSched = buildDebtSchedule(boostedDebt, ctx.maxYears);
+    const boostedStartMonthOffset = (top.debt.startAge != null && top.debt.startAge !== '') ? Math.max(0, Math.round((top.debt.startAge - inputs.currentAge) * 12)) : 0;
+    const boostedSched = buildDebtSchedule(boostedDebt, ctx.maxYears, boostedStartMonthOffset);
     topWithExtra = payoffStatsFromSchedule(boostedSched, inputs.currentAge, top.balance);
   }
 
