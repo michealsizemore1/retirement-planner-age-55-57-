@@ -1249,7 +1249,7 @@
       </div>
       <div class="page-header"><h2>Income vs Expenses</h2><p>Job income and guaranteed income (Social Security, spousal benefit, both pensions, VA disability, annuity) side by side with total expenses (recurring bills, housing, debt payments, insurance, medical premiums) for the same year — one bar chart, the whole plan, so you can see at a glance which years income covers expenses on its own and which years lean on savings. Portfolio withdrawals aren't counted as income here (unlike the Income page's own chart) — the point of this view is to isolate how much of spending is actually covered by income you don't have to draw down for. For the year-by-year withdrawal detail behind any gap, see the <b>Income Gap &amp; Withdrawals</b> page.</p></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income vs Expenses by year</div><canvas id="chart_incomeexpenses_yearly"></canvas><div class="chart-range-nav" data-chart="incomeexpenses_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('incomeexpenses_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('incomeexpenses_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('incomeexpenses_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="incomeexpenses_yearly"></div></div>
-      <div class="note" style="margin-top:0;">Income (green) is job income plus every guaranteed income source, before it's reduced by taxes. Expenses (red) is every recurring bill, housing cost, debt payment, and insurance/medical premium in the plan, plus any Future/One-Time Expenses (Vehicle Purchase, Vacations, etc.) active that year. Hover a bar in a year with a Future/One-Time Expense to see it itemized by name and amount, so you can confirm it's actually being counted. Where the red bar is taller than the green bar for a given year, that year's gap is covered by a portfolio withdrawal — see the Income Gap &amp; Withdrawals page for exactly which account(s) it came from.</div>
+      <div class="note" style="margin-top:0;">Income (green) is job income plus every guaranteed income source, before it's reduced by taxes. Expenses (red) is every recurring bill, housing cost, debt payment, and insurance/medical premium in the plan, plus any Future/One-Time Expenses (Vehicle Purchase, Vacations, etc.) active that year. Hover a bar in a year with an active Future/One-Time Expense or Debt payment (including a future-dated loan started via Start age on the Debt page) to see it itemized by name and amount, so you can confirm it's actually being counted. Where the red bar is taller than the green bar for a given year, that year's gap is covered by a portfolio withdrawal — see the Income Gap &amp; Withdrawals page for exactly which account(s) it came from.</div>
     </div>
 
     <!-- ================= DEBT ================= -->
@@ -6172,6 +6172,10 @@ function readInputs() {
     // in the year you turn 55, or later), not a birthday-precise one.
     jobLossDateRaw: jobLossDate,
     birthDateRaw: els('birthDate') ? els('birthDate').value : '',
+    // Raw retirement date string (not just retirementAge) so the final working year's job income can be
+    // pro-rated against the actual calendar date you stop working, rather than assuming a clean 12-month
+    // cutoff at the start of the age-year you retire in — see workingFractionOfFinalYear below.
+    retirementDateRaw: els('retirementDate') ? els('retirementDate').value : '',
     lifeExpectancy: +els('lifeExpectancy').value,
     birthMonth: +els('birthMonth').value || 1,
     currentIncome: +els('currentIncome').value,
@@ -6325,6 +6329,26 @@ function prorateFirstYear(age, eligibilityAge, fullAmount, birthMonth, currentAg
   if (age < eligibilityAge) return 0;
   if (age === eligibilityAge && eligibilityAge > currentAge) return fullAmount * ((13 - (birthMonth || 1)) / 12);
   return fullAmount;
+}
+// Job income is either fully counted (every age below retirementAge) or fully zeroed (every age at or
+// above it) — accurate for every full year on either side, but the ONE year you actually retire is
+// usually only partially worked. E.g. turning 55 in November and retiring at the very end of December is
+// about 7 weeks of that age-year still on the job, not the full 12 months the "< retirementAge" branch
+// assumes for every other working year, and not the 0 months the post-retirement branch assumes for
+// every later year either. Computes what fraction of that one transition year (from the birthday that
+// starts the age-retirementAge year, through the actual retirement date) was still spent working, so the
+// displayed income for that single row can be pro-rated instead of silently dropping to $0 a few weeks
+// early. Purely a display-layer refinement — r.income only feeds charts/reports/the AI summary, never
+// the actual withdrawal/contribution math (nothing in projectRun's post-retirement branch reads it) — so
+// this can't disturb any real dollar-flow calculation, Monte Carlo result, or account balance.
+function workingFractionOfFinalYear(inputs) {
+  const [by, bm, bd] = (inputs.birthDateRaw || '').split('-').map(Number);
+  const [ry, rm, rd] = (inputs.retirementDateRaw || '').split('-').map(Number);
+  if (!by || !bm || !ry || !rm) return 1; // no usable dates on file — fall back to the old "fully worked" assumption
+  const ageYearStart = new Date(by + inputs.retirementAge, bm - 1, bd || 1);
+  const retireDate = new Date(ry, rm - 1, rd || 1);
+  const daysWorked = (retireDate - ageYearStart) / (24*60*60*1000);
+  return Math.max(0, Math.min(1, daysWorked / 365.25));
 }
 // ---------- Brokerage pie helpers: the pool is tracked as one balance per pie, not one lumped sum ----------
 function sumPies(arr) { return arr.reduce((s, b) => s + b, 0); }
@@ -7239,7 +7263,8 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const acctEnd = { trad: balTrad, roth: balRoth, hysa: balHYSA };
       balBrokeragePies.forEach((b, i) => { acctEnd['pie_'+i] = b; });
       rows.push({
-        age, spouseAge: age - ctx.ageGap, income: age < inputs.retirementAge ? income : null,
+        age, spouseAge: age - ctx.ageGap,
+        income: age < inputs.retirementAge ? income : (age === inputs.retirementAge ? income * workingFractionOfFinalYear(inputs) : null),
         contributions, tradContribOut, rothContribOut, matchContribOut,
         guaranteedIncome, guaranteedIncomeAfterTax, spousalBenefit, ssAmount, pensionAmount, pension2Amount, vaDisabilityAmount, annuityAmount, sbpAmount, dicAmount, spending, withdrawal, grossWithdrawal, withdrawalByAccount, ltcCost: ltcCostThisYear,
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
@@ -8319,7 +8344,7 @@ function buildYearlyChartConfig(pageId, snap) {
           if (survivorCutoff && f.survivorContinues === false) return false;
           return true;
         });
-        if (!hits.length) return undefined;
+        if (!hits.length) return [];
         return hits.map(f => {
           const baseAmt = (survivorCutoff && f.survivorAmount != null && f.survivorAmount !== '') ? (+f.survivorAmount || 0) : (+f.amount || 0);
           const amtNominal = baseAmt * Math.pow(1 + inputs.inflation, y);
@@ -8329,6 +8354,32 @@ function buildYearlyChartConfig(pageId, snap) {
           // it's supposed to be explaining whenever the Real/Nominal dollar-view toggle is set to Real.
           return '  • ' + (f.name || 'Future expense') + ': ' + fmtMoney(d(amtNominal, r.age)) + ' (included in Total Expenses)';
         });
+      });
+      // Same itemized-audit treatment for Debt payments (Car Payment, and any future-dated loan added
+      // via Start age/Term on the Debt page — e.g. a vehicle financed at a later age instead of paid as
+      // a lump-sum Future Expense). Debt payments were already folded into Total Expenses via
+      // recurringLivingCostThisYear/spending (both include debtPaymentThisYear), so the dollar total was
+      // always correct — this only adds the same per-item visibility Future Expenses just got, so a
+      // financed car payment shows up by name exactly like Vacations & Trips does. Recomputed here with
+      // buildDebtSchedule directly (same function/formula buildContext uses to build ctx.debtSchedules)
+      // rather than threading ctx through, since buildYearlyChartConfig only receives rows/inputs.
+      const maxYearsForDebt = ages.length ? ages[ages.length - 1] - inputs.currentAge : 0;
+      const debtSchedulesForChart = debts.map(dbt => {
+        const offset = (dbt.startAge != null && dbt.startAge !== '') ? Math.max(0, Math.round((dbt.startAge - inputs.currentAge) * 12)) : 0;
+        return buildDebtSchedule(dbt, maxYearsForDebt, offset);
+      });
+      const debtFooterLines = rows.map((r, idx) => {
+        const lines = [];
+        debts.forEach((dbt, di) => {
+          const sched = debtSchedulesForChart[di];
+          const pmt = sched.paymentDuringYear[idx] || 0;
+          if (pmt > 0.5) lines.push('  • ' + (dbt.name || dbt.category || 'Debt') + ': ' + fmtMoney(d(pmt, r.age)) + ' (included in Total Expenses)');
+        });
+        return lines;
+      });
+      const expenseFooterLines = rows.map((r, idx) => {
+        const lines = [...(futureExpenseFooterLines[idx] || []), ...(debtFooterLines[idx] || [])];
+        return lines.length ? lines : undefined;
       });
       // One ordinary category per age, two real-valued (non-null) datasets — Chart.js's plain default
       // grouped-bar behavior. An earlier version tried to force separation by giving each age its own
@@ -8345,7 +8396,7 @@ function buildYearlyChartConfig(pageId, snap) {
       const cfg = yearlyBarConfig(ages, [
         { label: 'Total Income (job + guaranteed, before tax)', data: incomeVals, backgroundColor: '#1f7a6c' },
         { label: 'Total Expenses', data: expenseVals, backgroundColor: '#c0392b' }
-      ], { bracketLabels: futureExpenseFooterLines });
+      ], { bracketLabels: expenseFooterLines });
       return cfg;
     }
     default:
