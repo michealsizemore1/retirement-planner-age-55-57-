@@ -1249,7 +1249,7 @@
       </div>
       <div class="page-header"><h2>Income vs Expenses</h2><p>Job income and guaranteed income (Social Security, spousal benefit, both pensions, VA disability, annuity) side by side with total expenses (recurring bills, housing, debt payments, insurance, medical premiums) for the same year — one bar chart, the whole plan, so you can see at a glance which years income covers expenses on its own and which years lean on savings. Portfolio withdrawals aren't counted as income here (unlike the Income page's own chart) — the point of this view is to isolate how much of spending is actually covered by income you don't have to draw down for. For the year-by-year withdrawal detail behind any gap, see the <b>Income Gap &amp; Withdrawals</b> page.</p></div>
       <div class="mini-chart-card"><div class="mini-label" style="margin-bottom:8px;">Income vs Expenses by year</div><canvas id="chart_incomeexpenses_yearly"></canvas><div class="chart-range-nav" data-chart="incomeexpenses_yearly"><button class="range-nav-btn range-prev" onclick="chartRangeNav('incomeexpenses_yearly','prev')">« <span class="range-nav-label">Age</span></button><button class="range-nav-btn lifetime active" onclick="chartRangeNav('incomeexpenses_yearly','lifetime')">Lifetime</button><button class="range-nav-btn range-next" onclick="chartRangeNav('incomeexpenses_yearly','next')"><span class="range-nav-label">Age</span> »</button></div><div class="range-readout" data-chart="incomeexpenses_yearly"></div></div>
-      <div class="note" style="margin-top:0;">Income (green) is job income plus every guaranteed income source, before it's reduced by taxes. Expenses (red) is every recurring bill, housing cost, debt payment, and insurance/medical premium in the plan. Where the red bar is taller than the green bar for a given year, that year's gap is covered by a portfolio withdrawal — see the Income Gap &amp; Withdrawals page for exactly which account(s) it came from.</div>
+      <div class="note" style="margin-top:0;">Income (green) is job income plus every guaranteed income source, before it's reduced by taxes. Expenses (red) is every recurring bill, housing cost, debt payment, and insurance/medical premium in the plan, plus any Future/One-Time Expenses (Vehicle Purchase, Vacations, etc.) active that year. Hover a bar in a year with a Future/One-Time Expense to see it itemized by name and amount, so you can confirm it's actually being counted. Where the red bar is taller than the green bar for a given year, that year's gap is covered by a portfolio withdrawal — see the Income Gap &amp; Withdrawals page for exactly which account(s) it came from.</div>
     </div>
 
     <!-- ================= DEBT ================= -->
@@ -8295,9 +8295,41 @@ function buildYearlyChartConfig(pageId, snap) {
       // Medical/Taxes yearly charts above already work); r.recurringLivingCostThisYear is its
       // pre-retirement-years counterpart (same underlying formula, computed before the withdrawal engine
       // exists to track against).
-      const totalExpensesForYear = r => r.age < inputs.retirementAge ? (r.recurringLivingCostThisYear || 0) : (r.spending || 0);
+      // r.spending / r.recurringLivingCostThisYear cover recurring bills, housing, debt, and insurance —
+      // but NOT Future/One-Time Expenses (Vehicle Purchase, Vacations, etc.), which the engine computes
+      // and withdraws entirely separately (r.futureExpenseCost, set every row regardless of pre/post
+      // retirement). Left out here, "Total Expenses" would silently under-count any year a future
+      // expense lands. Folded in explicitly so the red bar reflects everything actually being spent.
+      const totalExpensesForYear = r => (r.age < inputs.retirementAge ? (r.recurringLivingCostThisYear || 0) : (r.spending || 0)) + (r.futureExpenseCost || 0);
       const incomeVals = rows.map(r => d((r.income || 0) + (r.guaranteedIncome || 0), r.age));
       const expenseVals = rows.map(r => d(totalExpensesForYear(r), r.age));
+      // Itemized audit trail: for any year where a named Future/One-Time Expense (Vehicle Purchase,
+      // Vacations, etc.) is active, list its name and inflated dollar amount as extra tooltip lines —
+      // lets you hover any age and directly confirm a specific expense is actually being counted, rather
+      // than just trusting the total. Mirrors the exact same hit-test + inflation formula projectRun uses
+      // (age >= f.age && age <= (f.endAge||f.age) for recurring, age === f.age for one-time; amount grown
+      // by (1+inflation)^y where y = years elapsed since today), so this always matches what was actually
+      // withdrawn, not just what CURRENTLY shows in the Future Expenses list years from now.
+      const futureExpenseFooterLines = rows.map(r => {
+        const y = r.age - inputs.currentAge;
+        const survivorCutoff = inputs.survivorshipEnabled && inputs.survivorshipDeathAge && r.age >= inputs.survivorshipDeathAge;
+        const hits = futureExpenses.filter(f => {
+          const hit = f.recurring ? (r.age >= f.age && r.age <= (f.endAge || f.age)) : (r.age === f.age);
+          if (!hit) return false;
+          if (survivorCutoff && f.survivorContinues === false) return false;
+          return true;
+        });
+        if (!hits.length) return undefined;
+        return hits.map(f => {
+          const baseAmt = (survivorCutoff && f.survivorAmount != null && f.survivorAmount !== '') ? (+f.survivorAmount || 0) : (+f.amount || 0);
+          const amtNominal = baseAmt * Math.pow(1 + inputs.inflation, y);
+          // Run through the same d()/dv() today's-dollars deflation the bar values themselves use, so
+          // this line always matches whatever $ convention (nominal vs. today's dollars) the chart is
+          // currently displaying — otherwise the itemized amount could silently disagree with the bar
+          // it's supposed to be explaining whenever the Real/Nominal dollar-view toggle is set to Real.
+          return '  • ' + (f.name || 'Future expense') + ': ' + fmtMoney(d(amtNominal, r.age)) + ' (included in Total Expenses)';
+        });
+      });
       // One ordinary category per age, two real-valued (non-null) datasets — Chart.js's plain default
       // grouped-bar behavior. An earlier version tried to force separation by giving each age its own
       // PAIR of category slots (income in one, null; expense in the other, null) instead of trusting
@@ -8313,7 +8345,7 @@ function buildYearlyChartConfig(pageId, snap) {
       const cfg = yearlyBarConfig(ages, [
         { label: 'Total Income (job + guaranteed, before tax)', data: incomeVals, backgroundColor: '#1f7a6c' },
         { label: 'Total Expenses', data: expenseVals, backgroundColor: '#c0392b' }
-      ]);
+      ], { bracketLabels: futureExpenseFooterLines });
       return cfg;
     }
     default:
