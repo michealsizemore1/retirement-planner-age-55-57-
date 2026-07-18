@@ -1680,6 +1680,29 @@
       </div>
 
       <div class="card">
+        <h3 onclick="toggleCard(this)">Historical Backtest<span class="sub-label">How your real plan would have done starting in every past market year</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Instead of randomly-drawn returns, this replays your exact plan using the ACTUAL S&amp;P 500 return for every year of your plan's length, starting from every historical year with enough runway (1928 onward). One bar per possible starting year — green means your plan survived that real stretch of market history, red means it didn't. Uses your assumed inflation rate throughout (not that specific year's real inflation), and applies the same historical return to both pre- and post-retirement years.</p>
+        <div id="historicalBacktestHeadline" style="font-size:18px;margin-bottom:12px;"></div>
+        <div class="mini-chart-card chart-horizontal"><canvas id="chart_historical_backtest"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Social Security Claiming Age<span class="sub-label">Compare claiming at 62, 65, 67, and 70 side by side</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Runs your full plan at several Social Security claiming ages (deriving each one's monthly benefit from your entered age/amount using standard SSA early/delayed-retirement factors) so you can see the actual effect on your confidence score, not just the raw benefit amount. Same 1000-simulation Monte Carlo as everything else on this page, so it's directly comparable — but that means 5 batches at once, so it runs on demand rather than automatically.</p>
+        <button class="add-btn" id="ssComparisonRunBtn" onclick="runSSComparisonAndRender()">Run Analysis</button>
+        <div id="ssComparisonResultWrap" style="display:none;">
+          <div class="mini-chart-card chart-horizontal" style="margin-top:16px;"><canvas id="chart_sscomparison"></canvas></div>
+          <div class="table-scroll">
+            <table id="ssComparisonTable">
+              <thead><tr><th>Claiming Age</th><th>Monthly Benefit</th><th>Ending Net Worth</th><th>Confidence Score</th></tr></thead>
+              <tbody id="ssComparisonRows"></tbody>
+            </table>
+          </div>
+          <p style="font-size:15px;color:var(--muted);margin:8px 0 0;">Bold row is your current plan's claiming age.</p>
+        </div>
+      </div>
+
+      <div class="card">
         <h3 onclick="toggleCard(this)">What-If Scenarios<span class="sub-label">Single-lever changes to your plan</span></h3>
         <div class="mini-chart-card chart-horizontal"><canvas id="chart_whatif"></canvas></div>
         <div class="table-scroll">
@@ -1712,7 +1735,7 @@
         </div>
       </div>
 
-      <div class="note">Each scenario re-runs your full plan with one change applied (or, for market risk, a specific sequence of returns/inflation pinned in). "Confidence Score" is a 1000-simulation Monte Carlo success rate for that scenario alone — the same simulation count as your baseline score on the Dashboard, so every number on this page is directly comparable. The Sensitivity Analysis card above uses 300 simulations per side instead, since it runs 11 batches at once.</div>
+      <div class="note">Each scenario re-runs your full plan with one change applied (or, for market risk, a specific sequence of returns/inflation pinned in). "Confidence Score" is a 1000-simulation Monte Carlo success rate for that scenario alone — the same simulation count as your baseline score on the Dashboard, so every number on this page is directly comparable. The Sensitivity Analysis and Social Security Claiming Age cards use fewer/more simulations respectively (see each card), which is why they run on demand instead of automatically. The Historical Backtest isn't Monte Carlo at all — each bar is a single deterministic run using one real historical sequence of market returns, not a simulated one.</div>
     </div>
 
     <!-- ================= COACH ================= -->
@@ -7419,6 +7442,130 @@ function runMonteCarlo(inputs, ctx, N, shocks) {
   return successes / N * 100;
 }
 
+// ---------- Historical Sequence-of-Returns Backtest ----------
+// Real S&P 500 total-return-by-year (price return + reinvested dividends), 1928-2025, sourced from
+// Slickcharts (which compiles from the index provider) — used to replay your ACTUAL plan against every
+// real historical stretch of market history long enough to cover it, instead of only the randomly-drawn
+// Monte Carlo years. This is the same idea cFIREsim/FIRECalc are built on: "how would my plan have
+// actually done starting retirement in 1966, or 2000, or 1929?" rather than a statistical approximation.
+// Deliberately returns-only, not a full historical-everything simulation — inflation stays at your
+// assumed rate rather than that specific historical year's real inflation, since the engine compounds
+// inflation as a single scalar rate throughout (Math.pow(1+inputs.inflation, y)) in dozens of places, and
+// swapping that for a properly-varying year-by-year rate would be a much larger, riskier change for a
+// secondary/supplementary check like this one. Applied to BOTH pre- and post-retirement years uniformly
+// (one blended equity series for the whole plan) — a reasonable fit given your own portfolio is nearly
+// all stocks/cash in both phases, not a mix that would need separate historical series per phase.
+const HISTORICAL_SP500_RETURNS = {
+  1928:0.4361,1929:-0.0842,1930:-0.2490,1931:-0.4334,1932:-0.0819,1933:0.5399,1934:-0.0144,1935:0.4767,
+  1936:0.3392,1937:-0.3503,1938:0.3112,1939:-0.0041,1940:-0.0978,1941:-0.1159,1942:0.2034,1943:0.2590,
+  1944:0.1975,1945:0.3644,1946:-0.0807,1947:0.0571,1948:0.0550,1949:0.1879,1950:0.3171,1951:0.2402,
+  1952:0.1837,1953:-0.0099,1954:0.5262,1955:0.3156,1956:0.0656,1957:-0.1078,1958:0.4336,1959:0.1196,
+  1960:0.0047,1961:0.2689,1962:-0.0873,1963:0.2280,1964:0.1648,1965:0.1245,1966:-0.1006,1967:0.2398,
+  1968:0.1106,1969:-0.0850,1970:0.0401,1971:0.1431,1972:0.1898,1973:-0.1466,1974:-0.2647,1975:0.3720,
+  1976:0.2384,1977:-0.0718,1978:0.0656,1979:0.1844,1980:0.3242,1981:-0.0491,1982:0.2155,1983:0.2256,
+  1984:0.0627,1985:0.3173,1986:0.1867,1987:0.0525,1988:0.1661,1989:0.3169,1990:-0.0310,1991:0.3047,
+  1992:0.0762,1993:0.1008,1994:0.0132,1995:0.3758,1996:0.2296,1997:0.3336,1998:0.2858,1999:0.2104,
+  2000:-0.0910,2001:-0.1189,2002:-0.2210,2003:0.2868,2004:0.1088,2005:0.0491,2006:0.1579,2007:0.0549,
+  2008:-0.3700,2009:0.2646,2010:0.1506,2011:0.0211,2012:0.1600,2013:0.3239,2014:0.1369,2015:0.0138,
+  2016:0.1196,2017:0.2183,2018:-0.0438,2019:0.3149,2020:0.1840,2021:0.2871,2022:-0.1811,2023:0.2629,
+  2024:0.2502,2025:0.1788
+};
+const HISTORICAL_YEARS = Object.keys(HISTORICAL_SP500_RETURNS).map(Number).sort((a,b) => a-b);
+const HISTORICAL_FIRST_YEAR = HISTORICAL_YEARS[0], HISTORICAL_LAST_YEAR = HISTORICAL_YEARS[HISTORICAL_YEARS.length-1];
+// Builds the same {pre:{...}, post:{...}} shocks shape buildDownturnShocks/Market Explorer already use,
+// pinning the ACTUAL historical return for each simulated year starting from `startYear`, rather than a
+// hand-picked downturn. Returns null if there isn't enough historical data left after `startYear` to
+// cover the full plan horizon — that starting year simply can't be tested, same as cFIREsim excluding
+// any cycle that would run past the end of its dataset.
+function buildHistoricalShocks(inputs, ctx, startYear) {
+  const totalYears = ctx.maxYears; // currentAge .. effectiveLifeExpectancy, inclusive span
+  if (startYear + totalYears > HISTORICAL_LAST_YEAR) return null;
+  const shocks = { pre: {}, post: {} };
+  for (let y = 0; y <= totalYears; y++) {
+    const age = inputs.currentAge + y;
+    const ret = HISTORICAL_SP500_RETURNS[startYear + y];
+    if (age < inputs.retirementAge) shocks.pre[y] = ret;
+    else shocks.post[age - inputs.retirementAge] = ret;
+  }
+  return shocks;
+}
+// Runs your real plan once (deterministic, no random draws — the historical sequence IS the draw) for
+// every historical starting year with enough runway, and reports how many of those real historical
+// stretches your plan would have survived. Cheap relative to the Monte Carlo scenarios elsewhere on this
+// page (a plain projectRun per starting year, not 1000 of them), so this runs automatically like the
+// What If/Market Risk cards rather than needing a manual trigger.
+function runHistoricalBacktest(inputs, ctx) {
+  const results = [];
+  for (let startYear = HISTORICAL_FIRST_YEAR; startYear <= HISTORICAL_LAST_YEAR; startYear++) {
+    const shocks = buildHistoricalShocks(inputs, ctx, startYear);
+    if (!shocks) continue;
+    const det = projectRun(inputs, ctx, false, shocks);
+    const lastRow = det.rows.length ? det.rows[det.rows.length - 1] : null;
+    results.push({
+      startYear, success: det.success,
+      endingBalance: lastRow ? lastRow.investable : 0,
+      depletionAge: det.depletionAge
+    });
+  }
+  const successCount = results.filter(r => r.success).length;
+  return { results, successRate: results.length ? (successCount / results.length * 100) : null };
+}
+function renderHistoricalBacktest(inputs, ctx) {
+  const backtest = runHistoricalBacktest(inputs, ctx);
+  const headlineEl = els('historicalBacktestHeadline');
+  if (headlineEl) {
+    headlineEl.innerHTML = (backtest.successRate === null || !backtest.results.length)
+      ? 'Your plan’s horizon is longer than the historical data available to test it against.'
+      : `<b>${Math.round(backtest.successRate)}%</b> of real historical stretches (starting anywhere from ${backtest.results[0].startYear} to ${backtest.results[backtest.results.length-1].startYear}) would have fully funded this plan, based on actual S&amp;P 500 returns for however many years your plan runs from each starting point.`;
+  }
+  const canvas = els('chart_historical_backtest');
+  if (!canvas || !backtest.results.length) return;
+  const labels = backtest.results.map(r => String(r.startYear));
+  const data = backtest.results.map(r => dv(r.endingBalance, inputs.lifeExpectancy, inputs));
+  const colors = backtest.results.map(r => r.success ? '#1f7a6c' : '#c0392b');
+  const config = {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Ending investable balance', data, backgroundColor: colors, borderRadius: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          callbacks: {
+            title: items => items.length ? 'Retiring starting ' + labels[items[0].dataIndex] : '',
+            label: item => {
+              const r = backtest.results[item.dataIndex];
+              // depletionAge is only set when the portfolio itself hits zero during retirement
+              // withdrawals — a shortfall can also come from a pre-retirement Future Expense draw that
+              // couldn't be covered (see the "shortfallEver" comment in projectRun), which has no single
+              // depletion age of its own, so this falls back to a generic label rather than showing
+              // "age null".
+              return r.success ? 'Survived — ending balance ' + fmtMoney(item.parsed.y)
+                : r.depletionAge ? 'Ran out of money at age ' + r.depletionAge
+                : 'Hit a shortfall along the way';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 15, font: { size: isMobile()?10:12 } } },
+        y: { ticks: { callback: v => fmtMoneyK(v) } }
+      }
+    }
+  };
+  // 53+ bars (one per testable historical starting year) is far more than the ~10-15 categories every
+  // other mini-chart-card on this page shows — same horizontal-scroll treatment the many-year yearly
+  // charts elsewhere in the app already use (ensureOrUpdateYearlyChart), sized so each bar stays legible
+  // instead of getting squeezed into illegibility to fit the card's default width.
+  ensureChartHorizontalScroll(canvas, backtest.results.length * 13);
+  if (charts.explorers_historical) {
+    charts.explorers_historical.data = config.data; charts.explorers_historical.options = config.options; charts.explorers_historical.update();
+  } else {
+    charts.explorers_historical = new Chart(canvas.getContext('2d'), config);
+  }
+}
+
 // ---------- Explorers: What-If and Market Risk scenario libraries ----------
 const WHAT_IF_SCENARIOS = [
   { name: 'Retire 2 years earlier', apply: inp => ({ ...inp, retirementAge: inp.retirementAge - 2 }) },
@@ -7594,6 +7741,74 @@ function renderSensitivityAnalysis() {
     charts.explorers_sensitivity = new Chart(canvas.getContext('2d'), config);
     charts.explorers_sensitivity.tornadoBaselineValue = sensitivityResults.baselineScore;
     charts.explorers_sensitivity.update();
+  }
+}
+
+// ---------- Social Security Claiming-Age Optimizer ----------
+// Standard SSA early/delayed-retirement adjustment factors relative to a Full Retirement Age of 67
+// (applies to anyone born 1960 or later — covers this plan), derived directly from SSA's published
+// formula: 5/9 of 1% reduction per month for the first 36 months before FRA, 5/12 of 1% per additional
+// month earlier than that, and 2/3 of 1% delayed-credit increase per month after FRA up to age 70.
+const SS_CLAIMING_FACTORS = { 62:0.700, 63:0.750, 64:0.800, 65:0.8667, 66:0.9333, 67:1.000, 68:1.080, 69:1.160, 70:1.240 };
+// Whatever age/monthly-amount is actually entered on the Income page is treated as the known data point
+// and backed out to an equivalent Full Retirement Age amount (PIA) via the factor table above, so every
+// candidate claiming age below is derived from that SAME underlying benefit rather than re-guessing it.
+function ssMonthlyAtAge(baseInputs, targetAge) {
+  const enteredFactor = SS_CLAIMING_FACTORS[baseInputs.ssAge] || 1;
+  const pia = baseInputs.ssMonthly / enteredFactor;
+  const targetFactor = SS_CLAIMING_FACTORS[targetAge] || 1;
+  return pia * targetFactor;
+}
+function runSSClaimingComparison(inputs, ctx) {
+  const candidateAges = Array.from(new Set([62, 65, 67, 70, inputs.ssAge]))
+    .filter(age => age >= 62 && age <= 70)
+    .sort((a,b) => a-b);
+  return candidateAges.map(age => {
+    const scenario = {
+      name: (age === inputs.ssAge ? 'Age ' + age + ' (current plan)' : 'Claim at age ' + age),
+      apply: inp => ({ ...inp, ssAge: age, ssMonthly: ssMonthlyAtAge(inputs, age) })
+    };
+    const result = runExplorerScenario(scenario, inputs, ctx);
+    return { ...result, ssAge: age, ssMonthly: ssMonthlyAtAge(inputs, age) };
+  });
+}
+let ssComparisonResults = null;
+function runSSComparisonAndRender() {
+  const btn = els('ssComparisonRunBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
+  // Same setTimeout-before-blocking-work pattern as the Sensitivity Analysis button above, so the
+  // disabled/"Running…" state actually paints before the ~5,000-simulation loop below runs synchronously.
+  setTimeout(() => {
+    const inputs = readInputs();
+    const ctx = buildContext(inputs);
+    ssComparisonResults = runSSClaimingComparison(inputs, ctx);
+    renderSSComparison(inputs);
+    if (btn) { btn.disabled = false; btn.textContent = 'Re-run Analysis'; }
+  }, 20);
+}
+function renderSSComparison(inputs) {
+  const wrap = els('ssComparisonResultWrap');
+  if (!wrap) return;
+  if (!ssComparisonResults) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  inputs = inputs || readInputs();
+  const rowsHtml = ssComparisonResults.map(r => `
+    <tr${r.ssAge === inputs.ssAge ? ' style="font-weight:700;"' : ''}>
+      <td>${r.name}</td>
+      <td>${fmtMoney(r.ssMonthly)}/mo</td>
+      <td>${fmtMoney(dv(r.endingNetWorth, r.endAge, inputs))}</td>
+      <td>${Math.round(r.score)}%</td>
+    </tr>`).join('');
+  if (els('ssComparisonRows')) els('ssComparisonRows').innerHTML = rowsHtml;
+  const config = barConfig(ssComparisonResults.map(r => r.name), ssComparisonResults.map(r => r.score), { percent:true, horizontal:true, showValues:true });
+  const canvas = els('chart_sscomparison');
+  if (canvas) {
+    sizeHorizontalChartCard(canvas, config.data.labels);
+    if (charts.explorers_sscomparison) {
+      charts.explorers_sscomparison.data = config.data; charts.explorers_sscomparison.options = config.options; charts.explorers_sscomparison.update();
+    } else {
+      charts.explorers_sscomparison = new Chart(canvas.getContext('2d'), config);
+    }
   }
 }
 
@@ -8484,6 +8699,7 @@ function renderExplorers() {
   renderWhatIfCards();
   renderWhatIfSavingsChart(inputs, ctx);
   renderMarketExplorer(inputs, ctx);
+  renderHistoricalBacktest(inputs, ctx);
   const whatIf = WHAT_IF_SCENARIOS.map(s => runExplorerScenario(s, inputs, ctx));
   // Survivorship (SBP/DIC) is a dynamically-named what-if, shown only once an assumed death age is set on the
   // Survivorship page. It's never enabled in the baseline plan or the Monte Carlo confidence score — Survivorship
@@ -8529,10 +8745,11 @@ function renderExplorers() {
     if (marketRiskCanvas) charts.explorers_marketrisk = new Chart(marketRiskCanvas.getContext('2d'), marketRiskConfig);
   }
 
-  // Cheap redraw only — never recomputes. If sensitivityResults is still null (never run yet, or
-  // Reset Everything cleared it), renderSensitivityAnalysis() just keeps the card's placeholder
-  // state hidden and returns.
+  // Cheap redraw only — never recomputes. If sensitivityResults/ssComparisonResults are still null
+  // (never run yet, or Reset Everything cleared them), these just keep their card's placeholder state
+  // hidden and return.
   renderSensitivityAnalysis();
+  renderSSComparison(inputs);
 }
 
 // ---------- Savings page: per-account balances, contributions/returns, and drawdowns by year ----------
