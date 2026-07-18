@@ -246,7 +246,7 @@
 
   .row-list{margin-top:8px;}
   .row-item{display:grid; grid-template-columns:1.3fr 0.9fr 26px; gap:8px; align-items:center; margin-bottom:8px;}
-  .row-item.debt-row{grid-template-columns:1fr 0.65fr 0.5fr 0.55fr 0.55fr 0.55fr 26px;}
+  .row-item.debt-row{grid-template-columns:1.1fr 0.85fr 0.6fr 0.45fr 0.5fr 0.5fr 0.55fr 26px;}
   .row-item.tx-row{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
   .row-item.expense-row{grid-template-columns:1.1fr 1fr 0.7fr 0.7fr 0.7fr 26px;}
   /* Starts/Ends date pickers for a recurring expense — a separate full-width row directly under each
@@ -311,7 +311,7 @@
   .row-header.cols-2{grid-template-columns:1.3fr 0.9fr 26px;}
   .row-header.cols-pie{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
   .row-item.pie-row{grid-template-columns:1.05fr 0.65fr 0.85fr 0.55fr 26px;}
-  .row-header.cols-debt{grid-template-columns:1fr 0.65fr 0.5fr 0.55fr 0.55fr 0.55fr 26px;}
+  .row-header.cols-debt{grid-template-columns:1.1fr 0.85fr 0.6fr 0.45fr 0.5fr 0.5fr 0.55fr 26px;}
   .row-header.cols-tx{grid-template-columns:0.85fr 1.1fr 0.65fr 0.9fr 0.65fr 26px;}
   .row-header.cols-contrib{grid-template-columns:1.6fr 0.9fr;}
   .row-header.cols-future{grid-template-columns:1.4fr 0.6fr 0.7fr 0.8fr 26px;}
@@ -1308,7 +1308,7 @@
 
       <div class="card">
         <h3 onclick="toggleCard(this)">Debt</h3>
-        <div class="row-header cols-debt"><span>Category</span><span>Balance ($)</span><span>APR (%)</span><span>Start age</span><span>Term (yrs)</span><span>Payment ($/mo)</span><span></span></div>
+        <div class="row-header cols-debt"><span>Name</span><span>Category</span><span>Balance ($)</span><span>APR (%)</span><span>Start age</span><span>Term (yrs)</span><span>Payment ($/mo)</span><span></span></div>
         <div class="row-list" id="debtRows"></div>
         <button class="add-btn" onclick="addDebt()">+ Add debt</button>
         <div class="total-row"><span>Total balance</span><span id="debtTotal">$0</span></div>
@@ -6121,6 +6121,7 @@ function renderDebtRows() {
   const container = els('debtRows');
   container.innerHTML = debts.map((d,i) => `
     <div class="row-item debt-row">
+      <input type="text" value="${d.name||''}" placeholder="Name" oninput="updateDebt(${i},'name',this.value)" title="Name — shown wherever this debt's payments are itemized (Income vs Expenses chart, Debt Payoff Plan)">
       <select onchange="updateDebt(${i},'category',this.value)">
         ${DEBT_CATEGORIES.map(c => `<option value="${c}" ${c===d.category?'selected':''}>${c}</option>`).join('')}
       </select>
