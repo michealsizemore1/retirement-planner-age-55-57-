@@ -8154,7 +8154,7 @@ function yearlyBarConfig(ages, series, opts) {
         }
       },
       scales: {
-        x: { stacked: !!opts.stacked, ticks: { autoSkip: true, maxTicksLimit: 10, font: { size: isMobile()?11:13 } } },
+        x: { stacked: !!opts.stacked, ticks: { autoSkip: true, maxTicksLimit: opts.maxTicksLimit || 10, font: { size: isMobile()?11:13 } } },
         y: { stacked: !!opts.stacked, ticks: { callback: v => fmtMoneyK(v), font: { size: isMobile()?11:13 } } }
       }
     }
@@ -8298,33 +8298,22 @@ function buildYearlyChartConfig(pageId, snap) {
       const totalExpensesForYear = r => r.age < inputs.retirementAge ? (r.recurringLivingCostThisYear || 0) : (r.spending || 0);
       const incomeVals = rows.map(r => d((r.income || 0) + (r.guaranteedIncome || 0), r.age));
       const expenseVals = rows.map(r => d(totalExpensesForYear(r), r.age));
-      // Each age gets its OWN pair of genuinely separate category slots (income in the first slot,
-      // expense in the second, the other left null) rather than relying on Chart.js's grouped/stacked-bar
-      // positioning (`stack` ids + {stacked:true}, the technique the 'gap' case above uses) — that
-      // approach didn't reliably separate these two series in practice. An ordinary bar chart with one
-      // bar per category has no grouping/stacking ambiguity to get wrong, so this guarantees visible
-      // side-by-side bars by construction. The two nulled-out interleaved datasets keep the legend down to
-      // the intended 2 entries; a custom tooltip below re-merges both values back into one "Age N" tooltip
-      // (the default per-item tooltip would otherwise only show whichever single bar was hovered).
-      const pairedAges = ages.flatMap(a => [a, a]);
-      const pairedLabels = pairedAges.map(a => 'Age ' + a);
-      const cfg = yearlyBarConfig(pairedAges, [
-        { label: 'Total Income (job + guaranteed, before tax)', data: incomeVals.flatMap(v => [v, null]), backgroundColor: '#1f7a6c' },
-        { label: 'Total Expenses', data: expenseVals.flatMap(v => [null, v]), backgroundColor: '#c0392b' }
-      ], { labels: pairedLabels });
-      cfg.options.plugins.tooltip.callbacks = {
-        title: items => items.length ? 'Age ' + ages[Math.floor(items[0].dataIndex / 2)] : '',
-        label: () => null,
-        filter: () => false,
-        beforeBody: items => {
-          if (!items.length) return [];
-          const ageIdx = Math.floor(items[0].dataIndex / 2);
-          return [
-            'Total Income (job + guaranteed, before tax): ' + fmtMoney(incomeVals[ageIdx]),
-            'Total Expenses: ' + fmtMoney(expenseVals[ageIdx])
-          ];
-        }
-      };
+      // One ordinary category per age, two real-valued (non-null) datasets — Chart.js's plain default
+      // grouped-bar behavior. An earlier version tried to force separation by giving each age its own
+      // PAIR of category slots (income in one, null; expense in the other, null) instead of trusting
+      // Chart.js's built-in multi-dataset grouping. That backfired: Chart.js still reserves a left/right
+      // sub-slot per dataset within EVERY category regardless of whether that dataset's value is null
+      // there, so the real income bar always sat pinned to the left edge of its own (income-only)
+      // category and the real expense bar always sat pinned to the right edge of ITS (expense-only)
+      // category — pushing a same-age income/expense pair apart (empty half + category gap + empty
+      // half) while making an expense bar and the NEXT age's income bar look closer together (nothing
+      // but the plain category gap between them). That's the reversed-pairing bug reported. With no
+      // nulls at all, every category has real values for both datasets, so Chart.js's default grouping
+      // places them snugly side by side with no asymmetric empty half-slots to cause this.
+      const cfg = yearlyBarConfig(ages, [
+        { label: 'Total Income (job + guaranteed, before tax)', data: incomeVals, backgroundColor: '#1f7a6c' },
+        { label: 'Total Expenses', data: expenseVals, backgroundColor: '#c0392b' }
+      ]);
       return cfg;
     }
     default:
