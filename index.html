@@ -354,6 +354,12 @@
   .whatif-card.selected{border-color:var(--teal); background:var(--teal-light);}
   .whatif-radio{width:20px; height:20px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; margin-top:1px; background:#fff;}
   .whatif-card.selected .whatif-radio{border-color:var(--teal); background:radial-gradient(var(--teal) 42%, transparent 46%);}
+  /* Scenario Comparison (Explorers page) reuses the whatif-card grid but as a real multi-select (any
+     number of scenarios at once) rather than the single-select radio behavior above — a rounded-square
+     checkbox reads correctly as "pick any number of these" instead of "pick one". Higher specificity
+     (.multi.selected, 2 classes) than the plain .selected rule above (1 class) so this cleanly wins. */
+  .whatif-card.multi .whatif-radio{border-radius:5px;}
+  .whatif-card.multi.selected .whatif-radio{border-color:var(--teal); background:var(--teal);}
 
   /* Market Explorer (Explorers page) — mimics Boldin's own Market Downturn tab: a dismissible note,
      the same whatif-card radio grid (reused as-is), a "set your own conditions" panel, and a plain-text
@@ -1699,6 +1705,26 @@
             </table>
           </div>
           <p style="font-size:15px;color:var(--muted);margin:8px 0 0;">Bold row is your current plan's claiming age.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Scenario Comparison<span class="sub-label">Pick any combination and compare them side by side</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Select any number of scenarios below — each one compares against your current plan independently (they don't combine with each other) — and see Confidence Score, savings trajectory, and ending balances for all of them side by side in one table instead of one at a time.</p>
+        <div class="whatif-card-grid" id="compareCardGrid"></div>
+        <button class="add-btn" id="compareRunBtn" onclick="runScenarioCompareAndRender()">Compare Selected</button>
+        <div id="compareResultWrap" style="display:none;">
+          <div class="mini-label" style="margin:16px 0 8px;">Confidence Score by Scenario</div>
+          <div class="mini-chart-card chart-horizontal"><canvas id="chart_compare_score"></canvas></div>
+          <div class="mini-label" style="margin:16px 0 8px;">Savings Over Time by Scenario</div>
+          <div class="mini-chart-card chart-horizontal"><canvas id="chart_compare_savings"></canvas></div>
+          <div class="table-scroll" style="margin-top:16px;">
+            <table id="compareTable">
+              <thead><tr><th>Scenario</th><th>Investable at Retirement</th><th>Ending Investable Balance</th><th>Ending Net Worth</th><th>Runs Out At</th><th>Confidence Score</th></tr></thead>
+              <tbody id="compareRows"></tbody>
+            </table>
+          </div>
+          <p style="font-size:15px;color:var(--muted);margin:8px 0 0;">Bold row (always first) is your current plan — every scenario below it is compared against that same baseline.</p>
         </div>
       </div>
 
@@ -7812,6 +7838,165 @@ function renderSSComparison(inputs) {
   }
 }
 
+// ---------- Scenario Comparison (multi-select, side-by-side) ----------
+// One consistent shape — build(inputs, ctx) => {inputs, ctx, shocks} — covering the same ground as
+// WHAT_IF_SCENARIOS/WHATIF_CARDS/MARKET_RISK_SCENARIOS below, so any combination of them can be
+// multi-selected and compared together in one table/chart instead of only one at a time against baseline
+// (What If Scenarios) or a single exclusive radio pick (What-If Cards). Deliberately a separate list
+// rather than reusing those three directly — they have three different shapes (apply/special, build,
+// shocks-only) that would need unwrapping into this one anyway, and keeping them independent means a
+// change to one page's cards can't silently break this one.
+const COMPARE_SCENARIO_LIBRARY = [
+  { name: 'Retire 2 years earlier', build: (inputs, ctx) => ({ inputs: { ...inputs, retirementAge: inputs.retirementAge - 2 }, ctx }) },
+  { name: 'Retire 2 years later', build: (inputs, ctx) => ({ inputs: { ...inputs, retirementAge: inputs.retirementAge + 2 }, ctx }) },
+  { name: 'Spend 10% less in retirement', build: (inputs, ctx) => ({ inputs: { ...inputs, spendingMultiplier: 0.9 }, ctx }) },
+  { name: 'Spend 10% more in retirement', build: (inputs, ctx) => ({ inputs: { ...inputs, spendingMultiplier: 1.1 }, ctx }) },
+  { name: 'Claim Social Security at 62', build: (inputs, ctx) => ({ inputs: { ...inputs, ssAge: 62, ssMonthly: ssMonthlyAtAge(inputs, 62) }, ctx }) },
+  { name: 'Delay Social Security to 70', build: (inputs, ctx) => ({ inputs: { ...inputs, ssAge: 70, ssMonthly: ssMonthlyAtAge(inputs, 70) }, ctx }) },
+  { name: 'Contribute 5% more to TSP', build: (inputs, ctx) => ({ inputs: { ...inputs, tradPct: inputs.tradPct + 0.05 }, ctx }) },
+  { name: 'Pay off all debt today',
+    build: (inputs, ctx) => {
+      const totalDebt = debts.reduce((s,d) => s + (+d.balance || 0), 0);
+      const reducedTotal = Math.max(0, inputs.brokerageBalance - totalDebt);
+      const scale = inputs.brokerageBalance > 0 ? reducedTotal / inputs.brokerageBalance : 0;
+      return { inputs: { ...inputs, brokerageBalance: reducedTotal, brokeragePieBalances: inputs.brokeragePieBalances.map(b => b * scale) }, ctx: { ...ctx, debtSchedules: [] } };
+    } },
+  { name: 'Lose my job today',
+    build: (inputs, ctx) => ({ inputs: { ...inputs, currentIncome: 0, incomeGrowth: 0, brokeragePieContributionsMonthly: inputs.brokeragePieContributionsMonthly.map(() => 0) }, ctx }) },
+  { name: 'Live 5 years longer than expected',
+    build: (inputs) => { const newInputs = { ...inputs, lifeExpectancy: inputs.lifeExpectancy + 5 }; return { inputs: newInputs, ctx: buildContext(newInputs) }; } },
+  { name: 'Achieve 1% higher average return', build: (inputs, ctx) => ({ inputs: { ...inputs, preReturn: inputs.preReturn + 0.01, postReturn: inputs.postReturn + 0.01 }, ctx }) },
+  { name: 'Achieve 1% lower average return', build: (inputs, ctx) => ({ inputs: { ...inputs, preReturn: inputs.preReturn - 0.01, postReturn: inputs.postReturn - 0.01 }, ctx }) },
+  { name: 'Take out a $50k loan',
+    build: (inputs, ctx) => {
+      const payment = mortgagePayment(50000, 9, 5);
+      const loanSchedule = buildDebtSchedule({ apr: 9, balance: 50000, payment }, ctx.maxYears);
+      return { inputs: { ...inputs, hysaBalance: inputs.hysaBalance + 50000 }, ctx: { ...ctx, debtSchedules: [...ctx.debtSchedules, loanSchedule] } };
+    } },
+  { name: 'Have an unexpected $50k expense in 5 years',
+    build: (inputs, ctx) => ({ inputs, ctx: { ...ctx, futureExpensesOverride: [...futureExpenses, { name: 'Unexpected expense', age: inputs.currentAge + 5, amount: 50000, recurring: false }] } }) },
+  { name: '2008-style crash right after retiring', build: (inputs, ctx) => ({ inputs, ctx, shocks: { post: { 1: -0.37 } } }) },
+  { name: 'Prolonged bear market (-3%/yr)', build: (inputs, ctx) => ({ inputs: { ...inputs, preReturn: inputs.preReturn - 0.03, postReturn: inputs.postReturn - 0.03 }, ctx }) },
+  { name: 'High inflation (+3%)', build: (inputs, ctx) => ({ inputs: { ...inputs, inflation: inputs.inflation + 0.03, medicalInflation: inputs.medicalInflation + 0.03, ssCola: inputs.ssCola + 0.01 }, ctx }) }
+];
+let selectedCompareScenarios = [];
+function toggleCompareScenario(idx) {
+  const pos = selectedCompareScenarios.indexOf(idx);
+  if (pos >= 0) selectedCompareScenarios.splice(pos, 1); else selectedCompareScenarios.push(idx);
+  renderCompareCardGrid();
+}
+function renderCompareCardGrid() {
+  const grid = els('compareCardGrid');
+  if (!grid) return;
+  grid.innerHTML = COMPARE_SCENARIO_LIBRARY.map((s, i) => `
+    <div class="whatif-card multi ${selectedCompareScenarios.includes(i) ? 'selected' : ''}" onclick="toggleCompareScenario(${i})">
+      <span>${s.name}</span>
+      <span class="whatif-radio"></span>
+    </div>
+  `).join('');
+}
+// Runs one named entry (baseline or a built scenario) through a plain deterministic projection plus a
+// full 1000-sim Monte Carlo, same convention as runExplorerScenario above — kept as its own function
+// rather than reusing that one because this also needs the full `rows` array back (for the savings-
+// over-time overlay chart), which runExplorerScenario's return value doesn't include.
+function runComparisonEntry(name, inputs, ctx, shocks) {
+  shocks = shocks || {};
+  const det = projectRun(inputs, ctx, false, shocks);
+  const score = runMonteCarlo(inputs, ctx, 1000, shocks);
+  const lastRow = det.rows.length ? det.rows[det.rows.length - 1] : null;
+  return {
+    name, investableAtRetirement: det.investableAtRetirement, retirementAge: inputs.retirementAge,
+    depletionAge: det.depletionAge, endingBalance: lastRow ? lastRow.investable : det.investableAtRetirement,
+    endingNetWorth: lastRow ? lastRow.netWorth : 0, endAge: lastRow ? lastRow.age : inputs.retirementAge,
+    score, rows: det.rows
+  };
+}
+function runScenarioCompare(baseInputs, baseCtx, selectedIndices) {
+  const entries = [runComparisonEntry('Current Plan', baseInputs, baseCtx)];
+  selectedIndices.forEach(i => {
+    const s = COMPARE_SCENARIO_LIBRARY[i];
+    if (!s) return;
+    const built = s.build(baseInputs, baseCtx);
+    entries.push(runComparisonEntry(s.name, built.inputs, built.ctx, built.shocks));
+  });
+  return entries;
+}
+let compareResults = null;
+function runScenarioCompareAndRender() {
+  const btn = els('compareRunBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
+  // Same setTimeout-before-blocking-work pattern as Sensitivity/SS Comparison above, so the disabled/
+  // "Running…" state actually paints before the (numSelected+1) x 1000-simulation loop runs synchronously.
+  setTimeout(() => {
+    const inputs = readInputs();
+    const ctx = buildContext(inputs);
+    compareResults = runScenarioCompare(inputs, ctx, selectedCompareScenarios);
+    renderScenarioCompare(inputs);
+    if (btn) { btn.disabled = false; btn.textContent = 'Re-run Comparison'; }
+  }, 20);
+}
+function renderScenarioCompare(inputs) {
+  const wrap = els('compareResultWrap');
+  if (!wrap) return;
+  if (!compareResults) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  inputs = inputs || readInputs();
+  const rowsHtml = compareResults.map(r => `
+    <tr${r.name === 'Current Plan' ? ' style="font-weight:700;"' : ''}>
+      <td>${r.name}</td>
+      <td>${fmtMoney(dv(r.investableAtRetirement, r.retirementAge, inputs))}</td>
+      <td>${fmtMoney(dv(r.endingBalance, r.endAge, inputs))}</td>
+      <td>${fmtMoney(dv(r.endingNetWorth, r.endAge, inputs))}</td>
+      <td>${r.depletionAge ? 'Age ' + r.depletionAge : 'Never'}</td>
+      <td>${Math.round(r.score)}%</td>
+    </tr>`).join('');
+  if (els('compareRows')) els('compareRows').innerHTML = rowsHtml;
+
+  const scoreConfig = barConfig(compareResults.map(r => r.name), compareResults.map(r => r.score), { percent:true, horizontal:true, showValues:true });
+  const scoreCanvas = els('chart_compare_score');
+  if (scoreCanvas) {
+    sizeHorizontalChartCard(scoreCanvas, scoreConfig.data.labels);
+    ensureChartHorizontalScroll(scoreCanvas, 460);
+    if (charts.explorers_compare_score) { charts.explorers_compare_score.data = scoreConfig.data; charts.explorers_compare_score.options = scoreConfig.options; charts.explorers_compare_score.update(); }
+    else charts.explorers_compare_score = new Chart(scoreCanvas.getContext('2d'), scoreConfig);
+  }
+
+  // Savings-over-time overlay: one line per entry (baseline + each selected scenario) on a shared age
+  // axis — the same "investable + cash" figure the What-If Cards savings chart above uses, just able to
+  // show however many scenarios are selected at once instead of only one against baseline.
+  const savingsCanvas = els('chart_compare_savings');
+  if (savingsCanvas) {
+    const longestRows = compareResults.reduce((longest, r) => r.rows.length > longest.length ? r.rows : longest, []);
+    const ages = longestRows.map(r => r.age);
+    const savingsByYear = rows => ages.map((age, i) => rows[i] ? dv(rows[i].investable + rows[i].cash, rows[i].age, inputs) : null);
+    const series = compareResults.map((r, i) => ({
+      label: r.name, data: savingsByYear(r.rows),
+      borderColor: r.name === 'Current Plan' ? '#132a3e' : CHART_COLORS[(i-1) % CHART_COLORS.length],
+      backgroundColor: r.name === 'Current Plan' ? '#132a3e' : CHART_COLORS[(i-1) % CHART_COLORS.length],
+      borderWidth: r.name === 'Current Plan' ? 3 : 2, fill: false, pointRadius: 0, tension: 0
+    }));
+    const config = {
+      type: 'line',
+      data: { labels: ages.map(a => 'Age ' + a), datasets: series },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'index', axis: 'x', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: isMobile()?11:13 } } },
+          tooltip: { enabled: true, callbacks: { label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.y) } }
+        },
+        scales: {
+          x: { ticks: { autoSkip: true, maxTicksLimit: 12, font: { size: isMobile()?11:13 } } },
+          y: { ticks: { callback: v => fmtMoneyK(v) } }
+        }
+      }
+    };
+    ensureChartHorizontalScroll(savingsCanvas, ages.length * 13);
+    if (charts.explorers_compare_savings) { charts.explorers_compare_savings.data = config.data; charts.explorers_compare_savings.options = config.options; charts.explorers_compare_savings.update(); }
+    else charts.explorers_compare_savings = new Chart(savingsCanvas.getContext('2d'), config);
+  }
+}
+
 // ---------- "What If I..." card selector (Explorers page, mimics Boldin's own What-If screen) ----------
 // Each entry gets a build(inputs, ctx) hook returning a fresh {inputs, ctx} pair for that one scenario,
 // rather than mutating anything shared — same non-destructive spirit as WHAT_IF_SCENARIOS above, just
@@ -8745,11 +8930,13 @@ function renderExplorers() {
     if (marketRiskCanvas) charts.explorers_marketrisk = new Chart(marketRiskCanvas.getContext('2d'), marketRiskConfig);
   }
 
-  // Cheap redraw only — never recomputes. If sensitivityResults/ssComparisonResults are still null
-  // (never run yet, or Reset Everything cleared them), these just keep their card's placeholder state
-  // hidden and return.
+  renderCompareCardGrid();
+  // Cheap redraw only — never recomputes. If sensitivityResults/ssComparisonResults/compareResults are
+  // still null (never run yet, or Reset Everything cleared them), these just keep their card's
+  // placeholder state hidden and return.
   renderSensitivityAnalysis();
   renderSSComparison(inputs);
+  renderScenarioCompare(inputs);
 }
 
 // ---------- Savings page: per-account balances, contributions/returns, and drawdowns by year ----------
