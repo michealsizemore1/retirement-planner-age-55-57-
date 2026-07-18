@@ -1090,6 +1090,23 @@
         </div>
         <p id="withdrawalPctTotal" style="font-size:15.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;display:none;"></p>
       </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Withdrawal Order Optimizer<span class="sub-label">Solve for the best sequence, given your real accounts</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Tests your current order against four common alternatives (taxable-first, Traditional-first, cash-first, Roth-first) using your real account balances, and Monte Carlo-scores each one so you can see which sequence actually works best instead of guessing. Runs 5 batches of 1000 simulations, so it's on demand rather than automatic.</p>
+        <button class="add-btn" id="withdrawalOptimizerRunBtn" onclick="runWithdrawalOrderOptimizerAndRender()">Find Best Order</button>
+        <div id="withdrawalOptimizerResultWrap" style="display:none;">
+          <div id="withdrawalOptimizerHeadline" style="font-size:18px;margin:16px 0 12px;"></div>
+          <div class="mini-chart-card chart-horizontal"><canvas id="chart_withdrawal_optimizer"></canvas></div>
+          <div class="table-scroll" style="margin-top:16px;">
+            <table id="withdrawalOptimizerTable">
+              <thead><tr><th>Strategy</th><th>Order</th><th>Ending Net Worth</th><th>Confidence Score</th></tr></thead>
+              <tbody id="withdrawalOptimizerRows"></tbody>
+            </table>
+          </div>
+          <p style="font-size:15px;color:var(--muted);margin:8px 0 0;">Bold row is the winner. If you switch to a different order, set it directly in the Withdrawal Strategy card above (switch to Customized and reorder with the ▲▼ arrows).</p>
+        </div>
+      </div>
     </div>
 
     <!-- ================= INVESTMENTS ================= -->
@@ -1131,6 +1148,28 @@
         <div class="two-col">
           <div class="field"><label>Checking/Savings APY (%)</label><input type="number" id="cashRate" value="0" step="0.1"></div>
           <div class="field"><label>HYSA APY (%)</label><input type="number" id="hysaRate" value="3.2" step="0.1"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Plan vs. Actual Checkpoint Tracker<span class="sub-label">Are you tracking ahead of, or behind, the plan you made?</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Pin today's projection as a baseline, then come back periodically (after you update the balances above) and save a checkpoint. Each checkpoint is compared against what that original baseline projected for the same age, so you can see real drift over time instead of the projection quietly re-basing itself to your latest numbers every time you open the tool.</p>
+        <div id="checkpointNoBaseline">
+          <button class="add-btn" onclick="setCheckpointBaseline()">Set Current Plan as Baseline</button>
+        </div>
+        <div id="checkpointHasBaseline" style="display:none;">
+          <p id="checkpointBaselineInfo" style="font-size:15.5px;color:var(--muted);margin:0 0 12px;"></p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+            <button class="add-btn" onclick="saveCheckpointSnapshot()">Save Checkpoint</button>
+            <button class="add-btn" style="background:transparent;color:var(--muted);border:1px solid var(--border);" onclick="resetCheckpointBaseline()">Reset Baseline</button>
+          </div>
+          <div class="mini-chart-card chart-horizontal"><canvas id="chart_checkpoint_tracker"></canvas></div>
+          <div class="table-scroll" style="margin-top:16px;">
+            <table id="checkpointTable">
+              <thead><tr><th>Date</th><th>Age</th><th>Actual Investable</th><th>Baseline Projected</th><th>Drift</th><th></th></tr></thead>
+              <tbody id="checkpointRows"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1414,6 +1453,20 @@
         <div class="checkbox-row"><input type="checkbox" id="estateBeneficiaries"><label for="estateBeneficiaries">Beneficiaries reviewed in the last 2 years</label></div>
         <div class="field" style="margin-top:10px;"><label>Notes</label><input type="text" id="estateNotes" placeholder="e.g. attorney contact, document location"></div>
       </div>
+
+      <div class="card" id="heirBreakdownWrap">
+        <h3 onclick="toggleCard(this)">Inherited-Account Tax Breakdown<span class="sub-label">What heirs would likely net, account by account</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Projects the plan out to its last modeled year and shows what heirs would likely receive after tax if everything were inherited and liquidated at that point. Roth TSP is tax-free; Traditional TSP is taxed as ordinary income to heirs over 10 years (SECURE Act — no more "stretch IRA"); brokerage and home equity get a step-up in cost basis at death (no capital gains tax on an immediate sale); cash is already after-tax. Illustrative only — actual treatment depends on beneficiary designations, trusts, state law, and probate.</p>
+        <div class="field" style="max-width:320px;"><label>Assumed heir tax rate on inherited Traditional TSP (%)</label><input type="number" id="heirTaxRate" value="24" step="1" min="0" max="50" onchange="render()"></div>
+        <div id="heirBreakdownHeadline" style="font-size:17px;margin:16px 0 12px;line-height:1.5;"></div>
+        <div class="mini-chart-card chart-horizontal"><canvas id="chart_heir_breakdown"></canvas></div>
+        <div class="table-scroll" style="margin-top:16px;">
+          <table id="heirBreakdownTable">
+            <thead><tr><th>Account</th><th>Gross balance</th><th>Tax owed</th><th>Net to heirs</th><th>Why</th></tr></thead>
+            <tbody id="heirBreakdownRows"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- ================= DOCUMENT VAULT ================= -->
@@ -1501,6 +1554,14 @@
           <div class="range-readout" data-chart="taxes_yearly"></div>
         </div>
         <div id="estimatedTaxesLifetimeTable" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="card">
+        <h3 onclick="toggleCard(this)">Tax Bracket &amp; IRMAA Cliffs<span class="sub-label">Where your marginal rate or Medicare surcharge jumps to the next tier</span></h3>
+        <p style="margin:0 0 16px;font-size:16.5px;color:var(--muted);">Federal marginal bracket (teal line, left axis) and IRMAA Medicare surcharge (red bars, right axis) for every year of the plan — useful for spotting a year where a Roth conversion, RMD, or large withdrawal would push you into a meaningfully more expensive bracket or Medicare tier before you actually do it.</p>
+        <div style="position:relative;height:320px;"><canvas id="chart_tax_cliff"></canvas></div>
+        <div class="mini-label" style="margin:16px 0 8px;">Bracket &amp; Tier Changes</div>
+        <div id="taxCliffCrossings"></div>
       </div>
 
       <div class="card">
@@ -6734,6 +6795,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // can also feed into them — not redeclared here, just continuing to accumulate onto the same objects.
     let contributions=0, withdrawal=0, guaranteedIncome=0, guaranteedIncomeAfterTax=0, spending=0, spousalBenefit=0, ssAmount=0, pensionAmount=0, pension2Amount=0, vaDisabilityAmount=0, annuityAmount=0, sbpAmount=0, dicAmount=0, essentialFloor=0;
     let fedMarginal=null, ltcgMarginal=null;
+    // Hoisted so the row-push below (shared by both branches) can expose the already-computed IRMAA
+    // surcharge for display/charting purposes — irmaaSurchargeMonthly itself stays a local const right
+    // where it's used (Medicare premium calc, post-retirement only) so this doesn't touch that existing
+    // math at all, just mirrors the value out for the row.
+    let irmaaSurchargeMonthlyForRow = 0;
     let tradContribOut=0, rothContribOut=0, matchContribOut=0;
     let medicalCostAnnual=0, expensesCategoriesAnnual=0, excessIncomeSaved=0, recurringLivingCostThisYear=0;
     // Taxes page ("Estimated Taxes" chart) — Federal income tax + Idaho state tax (split back out of the
@@ -6979,6 +7045,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // household MAGI.
       const irmaaThresholdInflator = Math.pow(1+inputs.inflation, y);
       const irmaaSurchargeMonthly = irmaaMonthlySurcharge(prevYearMagi, irmaaThresholdInflator);
+      irmaaSurchargeMonthlyForRow = irmaaSurchargeMonthly;
       const medicarePremiumBase = !medicalContinuesForSurvivor ? 0 : (
         (onTricare ? inputs.tricareMonthly + inputs.tricareHearingMonthly + inputs.tricareVisionMonthly + inputs.tricareDentalMonthly : 0) +
         (survivorshipActive ? 0 : (userOnMedicare ? inputs.partBUserMonthly + irmaaSurchargeMonthly : 0)) +
@@ -7319,6 +7386,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         investable, cash, debtBalance: debtBalanceThisYear, homeEquity: homeEquityThisYear, netWorth, housingCost, futureExpenseCost: futureExpenseCostThisYear,
         medicalCostAnnual, expensesCategoriesAnnual, excessIncomeSaved, insurancePremiumAnnual, essentialFloor, primaryDeceased, recurringLivingCostThisYear,
         fedMarginalRate: fedMarginal, ltcgMarginalRate: age >= inputs.retirementAge ? ltcgMarginal : null,
+        irmaaSurchargeMonthly: irmaaSurchargeMonthlyForRow,
         federalTaxAnnual, stateTaxAnnual, ficaTaxAnnual,
         balTrad, balRoth, rothConversionAmount, rothConversionTax,
         balBrokeragePies: balBrokeragePies.slice(), acctBegin, acctEnd, contribByAccount, savingsWithdrawByAccount
@@ -7994,6 +8062,307 @@ function renderScenarioCompare(inputs) {
     ensureChartHorizontalScroll(savingsCanvas, ages.length * 13);
     if (charts.explorers_compare_savings) { charts.explorers_compare_savings.data = config.data; charts.explorers_compare_savings.options = config.options; charts.explorers_compare_savings.update(); }
     else charts.explorers_compare_savings = new Chart(savingsCanvas.getContext('2d'), config);
+  }
+}
+
+// ---------- Withdrawal Order Optimizer (Money Flows page) ----------
+// Tests a handful of realistic account withdrawal sequences against your REAL accounts (not a generic
+// example) and Monte Carlo-scores each, so you can see which actual ordering serves your plan best
+// instead of guessing. Curated strategies rather than an exhaustive permutation search — 5+ accounts
+// would be 120+ orderings, most of them not meaningfully different from each other — covering the
+// handful of genuinely different approaches advisors actually discuss (taxable-first, tax-deferred-
+// first, cash-first, tax-free-first). Reuses runComparisonEntry from Scenario Comparison above, since
+// this is really the same "build a variant, score it, compare" pattern applied to one specific lever.
+const WITHDRAWAL_ORDER_STRATEGIES = [
+  { name: 'Your current order', buildOrder: (keys, current) => current },
+  { name: 'Taxable-first (brokerage → Traditional → cash → Roth last)',
+    buildOrder: keys => [...keys.filter(k => k.startsWith('pie_')), 'trad', 'hysa', 'roth'].filter(k => keys.includes(k)) },
+  { name: 'Traditional-first (spend down tax-deferred before RMDs force it)',
+    buildOrder: keys => ['trad', ...keys.filter(k => k.startsWith('pie_')), 'hysa', 'roth'].filter(k => keys.includes(k)) },
+  { name: 'Cash-first (preserve tax-advantaged growth longest)',
+    buildOrder: keys => ['hysa', ...keys.filter(k => k.startsWith('pie_')), 'trad', 'roth'].filter(k => keys.includes(k)) },
+  { name: 'Roth-first (spend tax-free growth first)',
+    buildOrder: keys => ['roth', ...keys.filter(k => k.startsWith('pie_')), 'trad', 'hysa'].filter(k => keys.includes(k)) }
+];
+function runWithdrawalOrderOptimizer(inputs, ctx) {
+  // Respect any accounts the user has excluded from withdrawals (e.g. a protected
+  // HYSA emergency fund) — only compare orderings across the accounts actually in play.
+  const keys = getWithdrawalAccountKeys().filter(k => inputs.withdrawalOrder.includes(k));
+  return WITHDRAWAL_ORDER_STRATEGIES.map(strat => {
+    const order = strat.buildOrder(keys, inputs.withdrawalOrder);
+    const entry = runComparisonEntry(strat.name, { ...inputs, withdrawalOrder: order }, ctx);
+    return { ...entry, order };
+  });
+}
+let withdrawalOrderOptimizerResults = null;
+function runWithdrawalOrderOptimizerAndRender() {
+  const btn = els('withdrawalOptimizerRunBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
+  setTimeout(() => {
+    const inputs = readInputs();
+    const ctx = buildContext(inputs);
+    withdrawalOrderOptimizerResults = runWithdrawalOrderOptimizer(inputs, ctx);
+    renderWithdrawalOrderOptimizer(inputs);
+    if (btn) { btn.disabled = false; btn.textContent = 'Re-run'; }
+  }, 20);
+}
+function withdrawalAccountLabel(k) {
+  if (k === 'trad') return 'Traditional TSP';
+  if (k === 'roth') return 'Roth TSP';
+  if (k === 'hysa') return 'HYSA/Cash';
+  const pie = brokeragePies[+String(k).split('_')[1]];
+  return pie ? (pie.name || 'Brokerage pie') : k;
+}
+function renderWithdrawalOrderOptimizer(inputs) {
+  const wrap = els('withdrawalOptimizerResultWrap');
+  if (!wrap) return;
+  if (!withdrawalOrderOptimizerResults) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  inputs = inputs || readInputs();
+  const best = withdrawalOrderOptimizerResults.reduce((b, r) => r.score > b.score ? r : b, withdrawalOrderOptimizerResults[0]);
+  const headlineEl = els('withdrawalOptimizerHeadline');
+  if (headlineEl) {
+    headlineEl.innerHTML = best.name === 'Your current order'
+      ? `Your current order already scores best of these (<b>${Math.round(best.score)}%</b>).`
+      : `Best of these: <b>${best.name}</b> — <b>${Math.round(best.score)}%</b> confidence score.`;
+  }
+  const rowsHtml = withdrawalOrderOptimizerResults.map(r => `
+    <tr${r === best ? ' style="font-weight:700;"' : ''}>
+      <td>${r.name}</td>
+      <td>${r.order.map(withdrawalAccountLabel).join(' → ')}</td>
+      <td>${fmtMoney(dv(r.endingNetWorth, r.endAge, inputs))}</td>
+      <td>${Math.round(r.score)}%</td>
+    </tr>`).join('');
+  if (els('withdrawalOptimizerRows')) els('withdrawalOptimizerRows').innerHTML = rowsHtml;
+  const config = barConfig(withdrawalOrderOptimizerResults.map(r => r.name), withdrawalOrderOptimizerResults.map(r => r.score), { percent:true, horizontal:true, showValues:true });
+  const canvas = els('chart_withdrawal_optimizer');
+  if (canvas) {
+    sizeHorizontalChartCard(canvas, config.data.labels);
+    if (charts.withdrawal_optimizer) { charts.withdrawal_optimizer.data = config.data; charts.withdrawal_optimizer.options = config.options; charts.withdrawal_optimizer.update(); }
+    else charts.withdrawal_optimizer = new Chart(canvas.getContext('2d'), config);
+  }
+}
+
+// ---------- Plan vs. Actual Checkpoint Tracker (Investments page) ----------
+// Lets you pin the plan's own deterministic projection at a point in time as a "baseline," then
+// periodically save a "checkpoint" of your real account balances as they stand today. Each checkpoint
+// is compared against what that ORIGINAL baseline projected for that same age, so you can see whether
+// you're tracking ahead of, on, or behind the plan you made — instead of the projection silently
+// re-basing itself to whatever your balances happen to be right now every time you open the tool.
+// Baseline and history persist in their own localStorage keys (like Shared Notes / Ask AI history)
+// rather than inside the main autosaved state blob, so they survive independently of routine edits
+// and don't get quietly overwritten by the ordinary save/restore cycle.
+const CHECKPOINT_BASELINE_KEY = 'retirementPlannerCheckpointBaseline_v1';
+const CHECKPOINT_HISTORY_KEY = 'retirementPlannerCheckpointHistory_v1';
+let checkpointBaseline = null;
+let checkpointHistory = [];
+
+function loadCheckpointData() {
+  try {
+    const rawBaseline = localStorage.getItem(CHECKPOINT_BASELINE_KEY);
+    if (rawBaseline) checkpointBaseline = JSON.parse(rawBaseline);
+  } catch (e) { /* storage unavailable or corrupt, ignore */ }
+  try {
+    const rawHistory = localStorage.getItem(CHECKPOINT_HISTORY_KEY);
+    if (rawHistory) checkpointHistory = JSON.parse(rawHistory) || [];
+  } catch (e) { /* storage unavailable or corrupt, ignore */ }
+}
+function persistCheckpointBaseline() {
+  try { localStorage.setItem(CHECKPOINT_BASELINE_KEY, JSON.stringify(checkpointBaseline)); } catch (e) { /* storage unavailable, ignore */ }
+}
+function persistCheckpointHistory() {
+  try { localStorage.setItem(CHECKPOINT_HISTORY_KEY, JSON.stringify(checkpointHistory)); } catch (e) { /* storage unavailable, ignore */ }
+}
+
+function setCheckpointBaseline() {
+  const inputs = readInputs();
+  const ctx = buildContext(inputs);
+  const result = projectRun(inputs, ctx, false);
+  checkpointBaseline = {
+    createdDate: todayStr(),
+    createdAge: inputs.currentAge,
+    rows: result.rows.map(r => ({ age: r.age, investable: r.investable, netWorth: r.netWorth }))
+  };
+  persistCheckpointBaseline();
+  renderCheckpointTracker(inputs, result.rows);
+}
+
+function resetCheckpointBaseline() {
+  if (!confirm('Reset the baseline? Your saved checkpoint history will stay, but drift will be recalculated against a new baseline once you set one.')) return;
+  checkpointBaseline = null;
+  persistCheckpointBaseline();
+  const inputs = readInputs();
+  renderCheckpointTracker(inputs, null);
+}
+
+function baselineProjectedAtAge(age) {
+  if (!checkpointBaseline) return null;
+  return checkpointBaseline.rows.find(r => r.age === age) || null;
+}
+
+function saveCheckpointSnapshot() {
+  if (!checkpointBaseline) return;
+  const inputs = readInputs();
+  const ctx = buildContext(inputs);
+  const result = projectRun(inputs, ctx, false);
+  const cur = result.rows.find(r => r.age === inputs.currentAge) || result.rows[0];
+  if (!cur) return;
+  checkpointHistory.push({ date: todayStr(), age: inputs.currentAge, investable: cur.investable, netWorth: cur.netWorth });
+  persistCheckpointHistory();
+  renderCheckpointTracker(inputs, result.rows);
+}
+
+function deleteCheckpointEntry(idx) {
+  checkpointHistory.splice(idx, 1);
+  persistCheckpointHistory();
+  const inputs = readInputs();
+  renderCheckpointTracker(inputs, null);
+}
+
+function renderCheckpointTracker(inputs, rows) {
+  const noBaselineEl = els('checkpointNoBaseline');
+  const hasBaselineEl = els('checkpointHasBaseline');
+  if (!noBaselineEl || !hasBaselineEl) return;
+  if (!checkpointBaseline) {
+    noBaselineEl.style.display = 'block';
+    hasBaselineEl.style.display = 'none';
+    return;
+  }
+  noBaselineEl.style.display = 'none';
+  hasBaselineEl.style.display = 'block';
+  if (els('checkpointBaselineInfo')) els('checkpointBaselineInfo').textContent = `Baseline set ${checkpointBaseline.createdDate}, at age ${checkpointBaseline.createdAge}.`;
+
+  const rowsHtml = checkpointHistory.map((cp, idx) => ({ cp, idx })).slice().reverse().map(({ cp, idx }) => {
+    const base = baselineProjectedAtAge(cp.age);
+    const baseInvestable = base ? base.investable : null;
+    const drift = baseInvestable != null ? cp.investable - baseInvestable : null;
+    const driftPct = baseInvestable ? (drift / baseInvestable * 100) : null;
+    const driftColor = drift == null ? 'var(--muted)' : (drift >= 0 ? 'var(--teal)' : '#c0392b');
+    const driftText = drift == null ? 'No baseline data for this age' : `${drift >= 0 ? '+' : ''}${fmtMoney(drift)}${driftPct != null ? ' (' + driftPct.toFixed(1) + '%)' : ''}`;
+    return `<tr>
+      <td>${cp.date}</td>
+      <td>Age ${cp.age}</td>
+      <td>${fmtMoney(cp.investable)}</td>
+      <td>${baseInvestable != null ? fmtMoney(baseInvestable) : '—'}</td>
+      <td style="color:${driftColor};font-weight:600;">${driftText}</td>
+      <td><button class="remove-btn" onclick="deleteCheckpointEntry(${idx})" title="Delete this checkpoint">×</button></td>
+    </tr>`;
+  }).join('');
+  if (els('checkpointRows')) els('checkpointRows').innerHTML = rowsHtml || '<tr><td colspan="6" style="color:var(--muted);">No checkpoints saved yet — click "Save Checkpoint" any time you update your real account balances.</td></tr>';
+
+  const ages = checkpointBaseline.rows.map(r => r.age);
+  const baseVals = checkpointBaseline.rows.map(r => dv(r.investable, r.age, inputs));
+  const actualByAge = {};
+  checkpointHistory.forEach(cp => { actualByAge[cp.age] = cp.investable; });
+  const actualVals = ages.map(a => actualByAge[a] != null ? dv(actualByAge[a], a, inputs) : null);
+  const canvas = els('chart_checkpoint_tracker');
+  if (canvas) {
+    const config = {
+      type: 'line',
+      data: {
+        labels: ages.map(a => 'Age ' + a),
+        datasets: [
+          { label: 'Original Plan (Baseline)', data: baseVals, borderColor: '#1f7a6c', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.15 },
+          { label: 'Actual (Checkpoints)', data: actualVals, borderColor: '#c0392b', backgroundColor: '#c0392b', borderWidth: 0, pointRadius: 6, pointHoverRadius: 7, showLine: false, spanGaps: false }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { ticks: { callback: v => fmtMoney(v) } } },
+        plugins: { legend: { display: true, position: 'bottom' } }
+      }
+    };
+    if (charts.checkpoint_tracker) { charts.checkpoint_tracker.data = config.data; charts.checkpoint_tracker.options = config.options; charts.checkpoint_tracker.update(); }
+    else charts.checkpoint_tracker = new Chart(canvas.getContext('2d'), config);
+  }
+}
+
+// ---------- Inherited-Account Tax Breakdown (Estate Planning page) ----------
+// Takes the plan's final modeled row (age = lifeExpectancy, or the survivor's if longer) and shows,
+// account type by account type, roughly what heirs would net after tax if everything were inherited
+// and liquidated at that point. Roth TSP passes tax-free; Traditional TSP is taxed as ordinary income
+// to heirs, spread over 10 years under the SECURE Act's post-2019 rules (no more "stretch IRA") —
+// approximated here with a single assumed flat rate, since the real rate depends entirely on the
+// heirs' own income the decade they inherit. Taxable brokerage and home equity get a step-up in cost
+// basis at death, so no capital gains tax is owed on an immediate sale. Cash accounts are already
+// after-tax. Remaining debt is subtracted before heirs receive anything. Purely illustrative — actual
+// treatment depends on beneficiary designations, state law, trusts, and probate, none of which this
+// (or the rest of the planner) models.
+function renderInheritedAccountBreakdown(inputs, rows) {
+  const wrap = els('heirBreakdownWrap');
+  if (!wrap || !rows.length) return;
+  const last = rows[rows.length - 1];
+  const heirRate = Math.max(0, Math.min(100, +els('heirTaxRate').value || 0)) / 100;
+
+  const trad = Math.max(0, last.balTrad || 0);
+  const roth = Math.max(0, last.balRoth || 0);
+  const brokerage = Math.max(0, sumPies(last.balBrokeragePies || []));
+  const cash = Math.max(0, last.cash || 0);
+  const homeEquity = Math.max(0, last.homeEquity || 0);
+  const debt = Math.max(0, last.debtBalance || 0);
+
+  const tradTaxOwed = trad * heirRate;
+  const tradAfterTax = trad - tradTaxOwed;
+  const grossEstate = trad + roth + brokerage + cash + homeEquity;
+  const afterTaxEstate = tradAfterTax + roth + brokerage + cash + homeEquity - debt;
+  const d = v => dv(v, last.age, inputs);
+
+  if (els('heirBreakdownHeadline')) {
+    els('heirBreakdownHeadline').innerHTML = `At age ${last.age} (the last modeled year), your plan projects a gross estate of <b>${fmtMoney(d(grossEstate))}</b>. After an assumed ${(heirRate*100).toFixed(0)}% tax on inherited Traditional TSP withdrawals and paying off any remaining debt, heirs would net roughly <b>${fmtMoney(d(afterTaxEstate))}</b>.`;
+  }
+
+  const rowsData = [
+    { label: 'Traditional TSP', gross: trad, tax: tradTaxOwed, net: tradAfterTax, note: `Taxed as ordinary income to heirs over 10 years — ${(heirRate*100).toFixed(0)}% assumed rate` },
+    { label: 'Roth TSP', gross: roth, tax: 0, net: roth, note: 'Tax-free to heirs' },
+    { label: 'Brokerage (taxable)', gross: brokerage, tax: 0, net: brokerage, note: 'Step-up in cost basis at death — no capital gains tax on an immediate sale' },
+    { label: 'Home equity', gross: homeEquity, tax: 0, net: homeEquity, note: homeEquity > 0 ? 'Step-up in cost basis at death' : 'Not modeling a home purchase' },
+    { label: 'Cash (checking/savings/HYSA)', gross: cash, tax: 0, net: cash, note: 'Already after-tax' },
+    { label: 'Less: remaining debt', gross: -debt, tax: 0, net: -debt, note: debt > 0 ? 'Paid off before heirs receive the remainder' : 'No debt remaining' }
+  ];
+  if (els('heirBreakdownRows')) {
+    els('heirBreakdownRows').innerHTML = rowsData.map(r => `
+      <tr>
+        <td>${r.label}</td>
+        <td>${fmtMoney(d(r.gross))}</td>
+        <td>${r.tax > 0 ? '-' + fmtMoney(d(r.tax)) : '—'}</td>
+        <td style="font-weight:600;">${fmtMoney(d(r.net))}</td>
+        <td style="color:var(--muted);font-size:14px;">${r.note}</td>
+      </tr>`).join('') + `
+      <tr style="font-weight:700;border-top:2px solid var(--border);">
+        <td>Total to heirs (after tax)</td><td></td><td></td><td>${fmtMoney(d(afterTaxEstate))}</td><td></td>
+      </tr>`;
+  }
+
+  const canvas = els('chart_heir_breakdown');
+  if (canvas) {
+    const labels = ['Traditional TSP', 'Roth TSP', 'Brokerage', 'Home equity', 'Cash'];
+    const grossVals = [trad, roth, brokerage, homeEquity, cash].map(d);
+    const netVals = [tradAfterTax, roth, brokerage, homeEquity, cash].map(d);
+    const config = {
+      type: 'bar',
+      data: {
+        labels: labels.map(l => wrapChartLabel(l)),
+        datasets: [
+          { label: 'Gross balance', data: grossVals, backgroundColor: '#8aa0b8', borderRadius: 3 },
+          { label: 'Net to heirs (after tax)', data: netVals, backgroundColor: '#1f7a6c', borderRadius: 3 }
+        ]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'nearest', axis: 'y', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: isMobile()?11:13 } } },
+          tooltip: { enabled: true, callbacks: { label: item => item.dataset.label + ': ' + fmtMoney(item.parsed.x) } }
+        },
+        scales: {
+          x: { ticks: { callback: v => fmtMoney(v) } },
+          y: { ticks: { autoSkip: false, font: { size: isMobile()?11:13 } } }
+        }
+      }
+    };
+    sizeHorizontalChartCard(canvas, labels);
+    if (charts.heir_breakdown) { charts.heir_breakdown.data = config.data; charts.heir_breakdown.options = config.options; charts.heir_breakdown.update(); }
+    else charts.heir_breakdown = new Chart(canvas.getContext('2d'), config);
   }
 }
 
@@ -10007,6 +10376,73 @@ function renderGapTable(rows, inputs, retirementAge) {
   }).join('');
 }
 
+// ---------- Tax Bracket & IRMAA Cliffs (Taxes page) ----------
+// The Estimated Taxes chart above already surfaces the federal/LTCG bracket in its tooltip footer
+// (hover-only, one year at a time) — this instead plots the whole plan's federal marginal bracket as a
+// stepped line, plus the IRMAA Medicare surcharge as bars, on one shared age axis, so a bracket jump or
+// an IRMAA tier crossing is visible at a glance instead of needing to hover through 40+ years to find it.
+// Reuses `rows`/`inputs` already computed by the caller (render()) — no extra projectRun/Monte Carlo
+// call, since fedMarginalRate and irmaaSurchargeMonthly are already on every row.
+function renderTaxCliffChart(inputs, rows) {
+  const canvas = els('chart_tax_cliff');
+  if (!canvas || !rows || !rows.length) return;
+  const ages = rows.map(r => r.age);
+  const bracketPct = rows.map(r => r.fedMarginalRate != null ? r.fedMarginalRate * 100 : null);
+  const irmaaMonthly = rows.map(r => r.irmaaSurchargeMonthly || 0);
+  const config = {
+    type: 'bar',
+    data: {
+      labels: ages.map(a => 'Age ' + a),
+      datasets: [
+        { type: 'line', label: 'Federal marginal tax bracket', data: bracketPct, borderColor: '#1f7a6c', backgroundColor: '#1f7a6c', stepped: true, pointRadius: 0, borderWidth: 2, yAxisID: 'y', fill: false, tension: 0 },
+        { type: 'bar', label: 'IRMAA surcharge ($/mo, per Medicare enrollee)', data: irmaaMonthly, backgroundColor: '#c0392b', yAxisID: 'y1', borderRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'index', axis: 'x', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: isMobile()?11:13 } } },
+        tooltip: {
+          callbacks: {
+            label: item => item.dataset.yAxisID === 'y'
+              ? 'Marginal bracket: ' + (item.parsed.y != null ? Math.round(item.parsed.y) + '%' : '—')
+              : 'IRMAA surcharge: ' + fmtMoney(item.parsed.y) + '/mo'
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 12, font: { size: isMobile()?11:13 } } },
+        y: { type: 'linear', position: 'left', min: 0, max: 40, ticks: { callback: v => v + '%' } },
+        y1: { type: 'linear', position: 'right', min: 0, ticks: { callback: v => fmtMoney(v) }, grid: { drawOnChartArea: false } }
+      }
+    }
+  };
+  ensureChartHorizontalScroll(canvas, ages.length * 13);
+  if (charts.tax_cliff) { charts.tax_cliff.data = config.data; charts.tax_cliff.options = config.options; charts.tax_cliff.update(); }
+  else charts.tax_cliff = new Chart(canvas.getContext('2d'), config);
+
+  // Quick-scan list of every year the bracket or IRMAA tier actually changes, instead of having to hunt
+  // through the chart/tooltip year by year to find them.
+  const listEl = els('taxCliffCrossings');
+  if (listEl) {
+    const crossings = [];
+    for (let i = 1; i < rows.length; i++) {
+      const prevB = bracketPct[i-1], curB = bracketPct[i];
+      if (prevB != null && curB != null && curB !== prevB) {
+        crossings.push(`Age ${ages[i]}: federal bracket ${curB > prevB ? 'rises' : 'falls'} from ${Math.round(prevB)}% to ${Math.round(curB)}%`);
+      }
+      const prevI = irmaaMonthly[i-1], curI = irmaaMonthly[i];
+      if (curI !== prevI) {
+        crossings.push(`Age ${ages[i]}: IRMAA surcharge ${curI > prevI ? 'rises' : 'falls'} from ${fmtMoney(prevI)}/mo to ${fmtMoney(curI)}/mo`);
+      }
+    }
+    listEl.innerHTML = crossings.length
+      ? '<ul style="margin:0;padding-left:20px;font-size:15.5px;color:var(--navy);line-height:1.7;">' + crossings.map(c => '<li>' + c + '</li>').join('') + '</ul>'
+      : '<p style="font-size:15.5px;color:var(--muted);margin:0;">No bracket or IRMAA tier changes detected across the plan.</p>';
+  }
+}
+
 // ---------- Roth Conversion planner: before/after comparison (Taxes page) ----------
 // Two extra deterministic (non-randomized) projectRun() calls, not Monte Carlo — cheap enough to run
 // on every render() alongside the age-comparison table just below it, which already does five. Only
@@ -10091,11 +10527,14 @@ function render() {
   renderGapTable(rows, inputs, retirementAge);
   renderGuardrailsVisual(inputs, rows, retirementAge, result);
   renderWithdrawalOrderRows();
+  renderWithdrawalOrderOptimizer(inputs);
   renderCombinedExpensesCard(rows, inputs);
 
   const totalCurrentAssets = inputs.tradTSPBalance + inputs.rothTSPBalance + inputs.brokerageBalance
     + inputs.checkingBalance + inputs.savingsBalance + inputs.hysaBalance;
   if (els('totalAssetsTile')) els('totalAssetsTile').textContent = fmtMoney(totalCurrentAssets);
+  renderCheckpointTracker(inputs, rows);
+  renderInheritedAccountBreakdown(inputs, rows);
   const netWorthToday = totalCurrentAssets - debts.reduce((s,d) => s + (+d.balance||0), 0);
   const rowAtRetirement = rows.find(r => r.age === retirementAge);
   const netWorthAtRetirement = rowAtRetirement ? rowAtRetirement.netWorth : (rows.length ? rows[rows.length-1].netWorth : netWorthToday);
@@ -10241,6 +10680,7 @@ function render() {
     `;
   }
 
+  renderTaxCliffChart(inputs, rows);
   renderRothConversionComparison(inputs, ctx);
 
   const ageOptions = [55, 56, 57, 58, 59];
@@ -10383,6 +10823,7 @@ const hadSavedState = loadState();
 // what shows up in every page's textarea at boot.
 sharedNotesText = loadSharedNotes();
 renderSharedNotesTextareas();
+loadCheckpointData();
 // Async (IndexedDB) — fires and forgets rather than being awaited, so a slow or failing Vault load can
 // never hold up the rest of boot; it renders the Vault page's own DOM once it resolves, same as any
 // other in-page async fetch, and reports its own errors to the console instead of throwing here.
