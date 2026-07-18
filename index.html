@@ -8179,7 +8179,7 @@ function setCheckpointBaseline() {
   const ctx = buildContext(inputs);
   const result = projectRun(inputs, ctx, false);
   checkpointBaseline = {
-    createdDate: todayStr(),
+    createdDate: new Date().toISOString().slice(0,10),
     createdAge: inputs.currentAge,
     rows: result.rows.map(r => ({ age: r.age, investable: r.investable, netWorth: r.netWorth }))
   };
@@ -8207,7 +8207,7 @@ function saveCheckpointSnapshot() {
   const result = projectRun(inputs, ctx, false);
   const cur = result.rows.find(r => r.age === inputs.currentAge) || result.rows[0];
   if (!cur) return;
-  checkpointHistory.push({ date: todayStr(), age: inputs.currentAge, investable: cur.investable, netWorth: cur.netWorth });
+  checkpointHistory.push({ date: new Date().toISOString().slice(0,10), age: inputs.currentAge, investable: cur.investable, netWorth: cur.netWorth });
   persistCheckpointHistory();
   renderCheckpointTracker(inputs, result.rows);
 }
