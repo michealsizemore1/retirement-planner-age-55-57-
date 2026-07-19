@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Michael & Cynthia's Planner</title>
+<title>Michael & Cynthia's Retirement</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <!-- Document Vault: client-side text extraction only, nothing is uploaded anywhere. pdf.js reads PDF text
      content; mammoth.js reads .docx text content. Both loaded with `defer` so a slow/blocked CDN never
@@ -689,7 +689,7 @@
   <div class="header-bar">
     <button class="hamburger-btn" onclick="toggleMenu()" aria-label="Open menu">☰</button>
     <div class="header-titles">
-      <h1>Michael &amp; Cynthia's Planner</h1>
+      <h1>Michael &amp; Cynthia's Retirement</h1>
       <p>Tap the menu to jump to a section. <span class="current-page-label" id="currentPageLabel">Dashboard</span></p>
     </div>
     <div class="header-toggle-group">
@@ -1380,8 +1380,8 @@
         <h3 onclick="toggleCard(this)">Post-Medicare — Part B<span class="sub-label">Each of you separately, starting at your own Medicare eligibility age. Neither of you needs Part D.</span></h3>
         <div class="field"><label>Medicare eligibility age (both of you)</label><input type="number" id="medicareAge" value="65" min="60" max="75"></div>
         <div class="two-col">
-          <div class="field"><label>Your Part B premium ($/mo, today's $)</label><input type="number" id="partBUserMonthly" value="185" step="5"></div>
-          <div class="field"><label>Spouse's Part B premium ($/mo, today's $)</label><input type="number" id="partBSpouseMonthly" value="185" step="5"></div>
+          <div class="field"><label>Your Part B premium ($/mo, today's $)</label><input type="number" id="partBUserMonthly" value="202.90" step="5"></div>
+          <div class="field"><label>Spouse's Part B premium ($/mo, today's $)</label><input type="number" id="partBSpouseMonthly" value="202.90" step="5"></div>
         </div>
         <hr class="divider">
         <div class="mini-label" style="margin-bottom:2px;">RMDs &amp; IRMAA</div>
@@ -4454,6 +4454,29 @@ const LTCG_BRACKETS_MFJ = [
   { upTo: 613700, rate: 0.15 },
   { upTo: Infinity, rate: 0.20 }
 ];
+// ---------- Social Security taxation: IRS provisional-income method ----------
+// Replaces a flat "85% of benefits is taxable" assumption with the IRS's actual tiered formula (the
+// simplified/"quick calculation" version of the Social Security Benefits Worksheet, which matches the
+// full worksheet's result in the vast majority of real situations). Provisional income = other taxable
+// income + tax-exempt interest + half of Social Security benefits; the taxable share of SS then steps up
+// through three tiers (0% / up to 50% / up to 85%) instead of jumping straight to 85% for everyone.
+// The $32,000/$44,000 MFJ thresholds are intentionally left un-inflated — unlike most tax figures in this
+// engine, these have been fixed in the tax code since 1993 and are not indexed for inflation (the
+// so-called Social Security "stealth tax": as incomes rise with inflation, more of each benefit becomes
+// taxable over time, exactly as real law works). "Other income" here is every other already-known
+// taxable guaranteed income source (pension/annuity/SBP) — like the rest of this pre-withdrawal tax
+// estimate, it doesn't attempt to fold in this year's Trad TSP/brokerage withdrawal amount, since that
+// isn't known until after the withdrawal waterfall runs later on; this mirrors the same scope limitation
+// the surrounding federal tax estimate already has, rather than introducing a new one.
+function taxableSocialSecurity(ssBenefits, otherTaxableIncome) {
+  const ss = Math.max(0, ssBenefits);
+  if (ss <= 0) return 0;
+  const other = Math.max(0, otherTaxableIncome);
+  const provisionalIncome = other + 0.5 * ss;
+  if (provisionalIncome <= 32000) return 0;
+  if (provisionalIncome <= 44000) return Math.min(0.5 * ss, 0.5 * (provisionalIncome - 32000));
+  return Math.min(0.85 * ss, 0.85 * (provisionalIncome - 44000) + Math.min(6000, 0.5 * ss));
+}
 function marginalRateFromBrackets(taxableIncome, brackets) {
   const income = Math.max(0, taxableIncome);
   for (const b of brackets) { if (income <= b.upTo) return b.rate; }
@@ -5270,13 +5293,45 @@ function dismissBackupReminder() {
   if (banner) banner.style.display = 'none';
 }
 
+// Every localStorage key prefix the standalone Accounts & Cards tracker (see TRACKER_HTML) uses for its
+// own data — credit card register/categories, the four bank account registers and their opening
+// balances, per-account notes, trip tracking, and receipt attachments (dynamically keyed per-receipt).
+// The tracker manages all of this itself via its own private sGet/sSet helpers (a separate closure this
+// script can't call into), but localStorage itself is just a page-level Web API, not scoped to any
+// particular <script> block or closure — so it's read/written directly here instead.
+const ACCOUNTS_CARDS_STORAGE_PREFIXES = ['cc-', 'chk-', 'mike-', 'savings-', 'hysa-', 'active-trip', 'rcpt-'];
+function readAccountsCardsBackup() {
+  const backup = {};
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (ACCOUNTS_CARDS_STORAGE_PREFIXES.some(p => k === p || k.startsWith(p))) backup[k] = localStorage.getItem(k);
+    });
+  } catch (e) { /* storage unavailable, ignore */ }
+  return backup;
+}
+function restoreAccountsCardsBackup(backup) {
+  if (!backup || typeof backup !== 'object') return;
+  try {
+    Object.keys(backup).forEach(k => { if (backup[k] != null) localStorage.setItem(k, backup[k]); });
+  } catch (e) { /* storage unavailable, ignore */ }
+}
+
 function saveState() {
   const fields = {};
   document.querySelectorAll('.page input, .page select').forEach(el => {
     if (!el.id) return;
     fields[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   });
-  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, withdrawalExcludedKeys, withdrawalProportionMode, withdrawalProportions, excessIncomeDestinationPieName, rothConversionSourceName, sharedNotesText };
+  // checkpointBaseline/checkpointHistory (Plan vs. Actual Checkpoint Tracker) and the Accounts & Cards
+  // register data normally live in their own dedicated localStorage keys, separate from this STORAGE_KEY
+  // blob — included here too, purely so a downloaded backup (downloadBackup()) is a genuinely complete
+  // snapshot instead of silently missing two entire features' worth of data if it's ever used to restore
+  // on a different browser/device. Not restored by the normal applyState()/loadState() boot path below
+  // (same reasoning as sharedNotesText: those two already have their own always-current dedicated keys,
+  // so re-applying a blob that's only as fresh as the last unrelated field edit could clobber a more
+  // recent checkpoint or tracker entry) — only an explicit Restore from Backup applies them, in
+  // restoreFromFile() below.
+  const state = { fields, expenses, brokeragePies, debts, futureExpenses, windfalls, insurancePolicies, withdrawalOrderState, withdrawalModeCustom, withdrawalExcludedKeys, withdrawalProportionMode, withdrawalProportions, excessIncomeDestinationPieName, rothConversionSourceName, sharedNotesText, checkpointBaseline, checkpointHistory, accountsCardsBackup: readAccountsCardsBackup() };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable, ignore */ }
   return state;
 }
@@ -6269,7 +6324,10 @@ let mcRandom = Math.random; // reseeded at the start of every runMonteCarlo() ba
 function randNormal(mean, stdev) {
   let u = 1 - mcRandom(), v = mcRandom();
   let z = Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
-  return mean + z*stdev;
+  // A raw Gaussian draw is technically unbounded, so an extreme tail sample (rare, but not impossible
+  // across thousands of simulated years) could otherwise imply losing more than 100% of an account's
+  // value in one year — not possible for a real, non-leveraged investment. Floor at -100%.
+  return Math.max(-1, mean + z*stdev);
 }
 
 // ---------- Read all inputs ----------
@@ -6512,17 +6570,18 @@ function rmdDivisor(age) {
 }
 
 // ---------- IRMAA (Income-Related Monthly Adjustment Amount) ----------
-// Approximate 2025-published CMS Part B surcharge tiers for Married Filing Jointly — both the MAGI
-// thresholds and the surcharge dollar amounts are estimates, not authoritative tax figures, and should be
-// checked against current IRS/CMS guidance as RMD/IRMAA-relevant ages actually approach. Returns the
-// today's-$ monthly surcharge for a given (already inflation-adjusted-for-comparison) MAGI; the caller
-// applies medicalInflator on top, same as the Part B premium fields it's added to.
+// CMS-published 2026 Part B surcharge tiers for Married Filing Jointly (confirmed via the November 2025
+// CMS announcement) — the MAGI thresholds and surcharge dollar amounts here are current as of this
+// update, but should still be checked against current IRS/CMS guidance as RMD/IRMAA-relevant ages
+// actually approach, since these are republished annually. Returns the today's-$ monthly surcharge for a
+// given (already inflation-adjusted-for-comparison) MAGI; the caller applies medicalInflator on top, same
+// as the Part B premium fields it's added to.
 const IRMAA_BRACKETS_MFJ_BASE = [
-  { magi: 206000, surcharge: 74 },
-  { magi: 258000, surcharge: 185 },
-  { magi: 322000, surcharge: 296 },
-  { magi: 386000, surcharge: 407 },
-  { magi: 750000, surcharge: 444 }
+  { magi: 218000, surcharge: 81.20 },
+  { magi: 274000, surcharge: 202.90 },
+  { magi: 342000, surcharge: 324.60 },
+  { magi: 410000, surcharge: 446.30 },
+  { magi: 750000, surcharge: 487.00 }
 ];
 function irmaaMonthlySurcharge(magiNominal, thresholdInflator) {
   let surcharge = 0;
@@ -6875,10 +6934,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // Federal + Idaho income tax on working-years income, for the Taxes page's Estimated Taxes chart —
       // wages minus the pre-tax Traditional TSP contribution (Roth isn't pre-tax, so it stays in the taxable
       // base), plus any guaranteed income already flowing before retirementAge (a military pension or VA
-      // disability routinely starts mid-career), same 85%-taxable/tax-free treatment as the post-retirement
+      // disability routinely starts mid-career), same provisional-income SS treatment as the post-retirement
       // calc below. Purely informational for the chart — doesn't feed back into contributions or spending,
       // matching how FICA above is handled, so it can't disturb the rest of the projection.
-      const taxableWorkingYears = Math.max(0, (income - tradContrib) + 0.85*(ssAmount+spousalBenefit) + pensionAmount + pension2Amount + annuityAmount - inputs.stdDeduction);
+      const otherTaxableWorkingYears = (income - tradContrib) + pensionAmount + pension2Amount + annuityAmount;
+      const taxableWorkingYears = Math.max(0, otherTaxableWorkingYears + taxableSocialSecurity(ssAmount+spousalBenefit, otherTaxableWorkingYears) - inputs.stdDeduction);
       federalTaxAnnual += taxOwedFromBrackets(taxableWorkingYears, FEDERAL_BRACKETS_MFJ);
       stateTaxAnnual += taxableWorkingYears * inputs.idahoRate;
       fedMarginal = marginalRateFromBrackets(taxableWorkingYears, FEDERAL_BRACKETS_MFJ);
@@ -6912,7 +6972,12 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // debtPaymentThisYear, insurancePremiumAnnual) is unchanged — this is purely a scope change, not a
       // formula change.
       recurringLivingCostThisYear = (preRetireNonMedical * inflator + preRetireMedical * medicalInflator) + housingCost + debtPaymentThisYear + insurancePremiumAnnual;
-      const excessIncomeAvailable = Math.max(0, income + guaranteedIncome - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear);
+      // Working-year federal/state/FICA tax (federalTaxAnnual/stateTaxAnnual/ficaTaxAnnual, all already
+      // computed above for this year) now comes out before what's left counts as "excess" — previously
+      // this used gross pay, silently assuming the whole paycheck was available to contribute/spend/save
+      // with no tax bite taken out of it first, which overstated how much slack there actually was to
+      // sweep into Brokerage below.
+      const excessIncomeAvailable = Math.max(0, income + guaranteedIncome - tradContrib - rothContrib - brokerageContribThisYear - recurringLivingCostThisYear - federalTaxAnnual - stateTaxAnnual - ficaTaxAnnual);
       // Paid-off debt redirect: recurringLivingCostThisYear above already reflects a lower debtPaymentThisYear
       // once a debt (e.g. a car loan) is fully paid off, which is what makes excessIncomeAvailable bigger —
       // but by default that freed amount just blends into the general slack and only gets swept at whatever
@@ -7000,7 +7065,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // contribution, plus the taxable share of any guaranteed income already flowing), carried forward as
       // next year's IRMAA basis — see the post-retirement branch below for why a 1-year lookback is used
       // instead of computing IRMAA off the same year's own income.
-      prevYearMagi = Math.max(0, (income - tradContrib) + 0.85*(ssAmount+spousalBenefit) + pensionAmount + pension2Amount + annuityAmount);
+      prevYearMagi = Math.max(0, otherTaxableWorkingYears + taxableSocialSecurity(ssAmount+spousalBenefit, otherTaxableWorkingYears));
     } else {
       if (investableAtRetirement === null) {
         investableAtRetirement = startInvestable;
@@ -7097,8 +7162,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // each stream starts on its own eligibility age regardless of retirementAge.
 
       // Real federal marginal brackets (2026 MFJ) + Idaho's flat state rate.
-      // SS/spousal benefit treated as 85% taxable; VA disability and DIC excluded (tax-free); pensions/annuity/SBP fully taxable.
-      const taxableGuaranteed = 0.85*(ssAmount+spousalBenefit) + pensionAmount + pension2Amount + annuityAmount + sbpAmount;
+      // SS/spousal benefit taxed via the real IRS provisional-income method (taxableSocialSecurity above),
+      // not a flat 85% assumption; VA disability and DIC excluded (tax-free); pensions/annuity/SBP fully taxable.
+      const otherTaxableGuaranteed = pensionAmount + pension2Amount + annuityAmount + sbpAmount;
+      const taxableGuaranteed = otherTaxableGuaranteed + taxableSocialSecurity(ssAmount+spousalBenefit, otherTaxableGuaranteed);
       const taxableBeforeWithdrawal = Math.max(0, taxableGuaranteed - inputs.stdDeduction);
       // Guaranteed income doesn't arrive tax-free — actual federal + Idaho tax owed on it (progressive, using the
       // standard deduction) is deducted before comparing it against spending, instead of treating it at face value.
@@ -7358,9 +7425,15 @@ function projectRun(inputs, ctx, randomize, shocks) {
       balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate);
 
       // IRMAA lookback proxy (see the comment above medicarePremiumBase): carry this year's approximate MAGI
-      // — taxable guaranteed income plus this year's actual gross Traditional TSP withdrawal, which now
-      // includes any RMD forced out above — forward as the basis for next year's IRMAA tier.
-      prevYearMagi = Math.max(0, taxableGuaranteed + (withdrawalByAccount.trad || 0));
+      // — taxable guaranteed income, this year's actual gross Traditional TSP withdrawal (which now
+      // includes any RMD forced out above), any Roth conversion amount (ordinary income in the year it
+      // happens, same as a Trad withdrawal — MAGI doesn't distinguish why money left Traditional TSP),
+      // and brokerage-pie withdrawals (already taxed as a full LTCG-rate gain elsewhere in this engine,
+      // since cost basis isn't tracked — treated the same way here for consistency, rather than counting
+      // it as taxable for the withdrawal's own tax bill but invisible to MAGI/IRMAA) — forward as the
+      // basis for next year's IRMAA tier.
+      const brokerageWithdrawalTotal = balBrokeragePies.reduce((s, _, i) => s + (withdrawalByAccount['pie_'+i] || 0), 0);
+      prevYearMagi = Math.max(0, taxableGuaranteed + (withdrawalByAccount.trad || 0) + rothConversionAmount + brokerageWithdrawalTotal);
 
       const endInvestable = balTrad + balRoth + sumPies(balBrokeragePies);
       if (endInvestable <= 0 && depletionAge === null && startInvestable > 0) depletionAge = age;
@@ -10126,16 +10199,24 @@ function restoreFromFile(file) {
     try {
       const state = JSON.parse(e.target.result);
       applyState(state);
-      // Notes are the one field applyState() deliberately doesn't touch (see the comment there) — an
-      // explicit restore is the one legitimate case where the backup's notes SHOULD overwrite whatever
-      // is currently in this browser, so it's synced here instead, routed through updateSharedNotes()
-      // so it also writes through to the dedicated SHARED_NOTES_KEY, not just the in-memory copy.
+      // Notes, the Checkpoint Tracker, and Accounts & Cards data are the fields applyState() deliberately
+      // doesn't touch on a normal boot (see the comment there) — an explicit restore is the one
+      // legitimate case where the backup's copy SHOULD overwrite whatever is currently in this browser,
+      // so they're synced here instead.
       if (typeof state.sharedNotesText === 'string') updateSharedNotes(state.sharedNotesText);
+      if (state.checkpointBaseline !== undefined) { checkpointBaseline = state.checkpointBaseline; persistCheckpointBaseline(); }
+      if (Array.isArray(state.checkpointHistory)) { checkpointHistory = state.checkpointHistory; persistCheckpointHistory(); }
+      // Writes straight to the Accounts & Cards register's own localStorage keys — if that page's tracker
+      // hasn't loaded yet this session, it'll pick up the restored data the first time it's visited, same
+      // as any fresh page load. If it was already open before this restore, a page refresh is needed for
+      // it to pick up the change (its shadow-DOM tracker can only be attached once per page load).
+      let restoredTrackerData = false;
+      if (state.accountsCardsBackup) { restoreAccountsCardsBackup(state.accountsCardsBackup); restoredTrackerData = true; }
       renderExpenseRows(); renderBrokeragePieRows(); renderPieContributionRows(); renderDebtRows();
       renderFutureExpenseRows(); renderWindfallRows(); renderInsuranceRows();
       saveState();
       render();
-      alert('Backup restored.');
+      alert('Backup restored.' + (restoredTrackerData && trackerFrameLoaded ? ' Refresh the page to see restored Accounts & Cards data.' : ''));
     } catch (err) {
       alert('Could not read that file — is it a backup exported from this tool?');
     }
