@@ -657,6 +657,7 @@
     input[type="file"], input[type="range"],
     .chat-box, #vaultAiGate, #vaultSearchInput, #vaultUploadStatus,
     .open-btn,
+    .print-sensitive,
     .shared-notes-card small
     { display:none !important; }
 
@@ -764,6 +765,10 @@
         <div class="score-text">
           <h3 id="scoreTitle">Household Plan Confidence — Both Spouses Assumed Alive</h3>
           <p id="scoreDesc">Based on 1,000 simulated market scenarios through age <span id="scoreLifeExp"></span>. Survivorship is tested separately and does not change this primary score.</p>
+        </div>
+        <div style="margin-left:auto;min-width:190px;padding:10px 14px;border-left:1px solid var(--border);text-align:center;">
+          <div id="standardComparableScore" style="font-size:28px;font-weight:750;color:var(--primary);">—</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.35;">Standard-return comparison<br><span style="font-size:11.5px;">Normal distribution, Boldin-style reference</span></div>
         </div>
       </div>
 
@@ -1406,10 +1411,10 @@
       </div>
 
       <div class="card">
-        <h3 onclick="toggleCard(this)">Long-Term Care (spouse)<span class="sub-label">Modeled as a temporary cost spike, funded strictly from Roth TSP</span></h3>
+        <h3 onclick="toggleCard(this)">Long-Term Care (spouse)<span class="sub-label">Roth TSP first, then other accessible household accounts</span></h3>
         <div class="checkbox-row">
           <input type="checkbox" id="ltcEnabled" checked>
-          <label for="ltcEnabled">Model long-term care costs for spouse, funded strictly from Roth TSP (no fallback to other accounts if Roth runs short)</label>
+          <label for="ltcEnabled">Model long-term care costs for spouse, using Roth TSP first and other accessible household accounts if Roth runs short</label>
         </div>
         <div class="sub-fields" id="ltcFields">
           <div class="two-col">
@@ -1434,7 +1439,7 @@
           </div>
           <div class="field"><label>Annual cost (today's $, grows with Medical Inflation)</label><input type="number" id="ltcAnnualCost" value="31200" step="1000"></div>
           <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Picking a care type fills in a Boise-area cost estimate below, which you can still edit by hand — it doesn't lock the number. Estimates: in-home care ~$30/hr (Boise-area caregiver rates run roughly $21-$36/hr depending on agency vs. independent hire); assisted living ~$54,000/yr (Boise-area facilities run lower than Idaho's ~$60,000/yr statewide median); memory care ~$72,000/yr; nursing home (semi-private) ~$120,000/yr (Idaho runs above the national median here); family/informal care ~$12,000/yr for incidentals, supplies, and respite care rather than a wage. Source: Genworth/CareScout Cost of Care Survey and local caregiver rate data, today's dollars.</p>
-          <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, then Traditional TSP. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
+          <p style="font-size:16.5px;color:var(--muted);margin:6px 0 0;line-height:1.5;">Paid from Roth TSP first, tax-free and outside the normal withdrawal order; if Roth TSP runs short, the remainder pulls from Brokerage, eligible Traditional TSP, HYSA, Savings, and Checking. The plan records a shortfall only after those accessible household resources are exhausted. Your own long-term care is assumed to be covered by insurance and isn't modeled as a portfolio cost — say the word if that's not the case.</p>
         </div>
       </div>
     </div>
@@ -1930,9 +1935,9 @@
         <button class="add-btn" onclick="printFullPlan()">Print Full Plan</button>
       </div>
 
-      <div class="card">
+      <div class="card print-sensitive">
         <h3 onclick="toggleCard(this)">Coach AI Chat<span class="sub-label">Optional — only used if you add a key</span></h3>
-        <div class="field"><label>Anthropic API key</label><input type="text" id="anthropicApiKey" placeholder="sk-ant-..." autocomplete="off"></div>
+        <div class="field"><label>Anthropic API key</label><input type="password" id="anthropicApiKey" placeholder="sk-ant-..." autocomplete="off"></div>
         <p style="font-size:16.5px;color:var(--muted);margin:0;line-height:1.55;">This file has no backend — adding a key here lets the Ask AI panel (and the Coach page) call the Anthropic API directly from your browser, using your own account and usage. The key is stored only in this browser's local storage; it is never sent anywhere except directly to Anthropic when you ask a question. Each question sends a full snapshot of your plan — balances, income, expenses, debt, assumptions, withdrawal strategy, and the year-by-year projection — to Anthropic's servers, so it can give real, specific analysis rather than generic advice. The conversation itself is also saved locally in this browser (not sent anywhere beyond Anthropic) so it's still there next time you open the panel; use "New chat" in the panel to clear it. Leave the key blank to keep the AI fully offline.</p>
       </div>
     </div>
@@ -6824,6 +6829,8 @@ function projectRun(inputs, ctx, randomize, shocks) {
         }
         else if (key === 'roth') { const take = Math.min(remain, balRoth); balRoth -= take; remain -= take; addDirectWithdrawal('roth', take); }
         else if (key === 'hysa') { const take = Math.min(remain, balHYSA); balHYSA -= take; remain -= take; addDirectWithdrawal('hysa', take); }
+        else if (key === 'savings') { const take = Math.min(remain, balSavings); balSavings -= take; remain -= take; addDirectWithdrawal('savings', take); }
+        else if (key === 'checking') { const take = Math.min(remain, balChecking); balChecking -= take; remain -= take; addDirectWithdrawal('checking', take); }
         else if (key.startsWith('pie_')) {
           const idx = +key.slice(4);
           if (balBrokeragePies[idx] !== undefined) {
@@ -6865,12 +6872,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
       }
     }
 
-    // Long-term care for spouse: paid strictly from Roth TSP, tax-free — no fallback to Trad TSP, Brokerage,
-    // or HYSA even if Roth runs short. If Roth doesn't have enough to cover a given year's LTC cost, the
-    // uncovered portion is left as a real shortfall in the plan (shortfallEver) rather than quietly getting
-    // absorbed by another account — a deliberate exception to the "Trad TSP first everywhere" rule used for
-    // everyday spending and Future Expenses, kept separate because LTC is specifically meant to be funded by
-    // the dedicated Roth balance and nothing else.
+    // Long-term care for spouse: Roth TSP is the preferred first source. If Roth cannot cover the bill,
+    // essential care falls back to every other accessible household resource: brokerage pies, eligible
+    // Traditional TSP, HYSA, savings, and checking. A simulation fails only when the complete household
+    // waterfall is exhausted, rather than merely because one preferred account ran short.
     // The cost itself is computed here every year, pre- or post-retirement (it's stored on the row below
     // regardless), but the actual draw only happens right here for pre-retirement years, since there's no
     // "totalSpending"/"guaranteedIncomeAfterTax" concept yet before retirementAge. Post-retirement years
@@ -6882,7 +6887,13 @@ function projectRun(inputs, ctx, randomize, shocks) {
       ltcCostThisYear = inputs.ltcAnnualCost * medicalInflatorNow;
       if (age < inputs.retirementAge) {
         const fromRoth = Math.min(ltcCostThisYear, balRoth); balRoth -= fromRoth; addDirectWithdrawal('roth', fromRoth);
-        if (ltcCostThisYear - fromRoth > 0.01) markShortfall('longTermCare');
+        const ltcFallbackOrder = [
+          ...balBrokeragePies.map((_, i) => 'pie_'+i),
+          ...(tradAvailableForJobLoss ? ['trad'] : []),
+          'hysa', 'savings', 'checking'
+        ];
+        const ltcUnfunded = withdrawInOrder(ltcCostThisYear - fromRoth, ltcFallbackOrder);
+        if (ltcUnfunded > 0.01) markShortfall('longTermCare');
       }
     }
 
@@ -7338,8 +7349,8 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // touches an investment account, matching the same "guaranteed income first" principle everyday
       // spending already follows via `need` just above. LTC claims the shared surplus pool first (essential
       // care cost), Future Expenses gets whatever's left after that (more discretionary/planned); any amount
-      // beyond the surplus falls back to each draw's normal account order (LTC: Roth only, no fallback
-      // beyond Roth, same rule as the pre-retirement branch above; Future Expenses: withdrawInOrder, same as
+      // beyond the surplus falls back to each draw's normal account order (LTC: Roth first, then all other
+      // accessible household resources; Future Expenses: withdrawInOrder, same as
       // the pre-retirement branch above). Pre-retirement years never reach this code — they already drew
       // immediately, with no surplus check, back at LTC's/Future Expenses' original position earlier in the
       // loop, since totalSpending/guaranteedIncomeAfterTax have no pre-retirement equivalent.
@@ -7347,15 +7358,23 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // for tax the same way the main spending waterfall's takeFrom() below is — a Trad TSP or brokerage-pie
       // pull to cover, say, a $12,000 vehicle purchase actually needs to remove more than $12,000 from the
       // account so the taxable event it triggers doesn't quietly shrink the $12,000 itself, and the resulting
-      // tax bill is now recorded into federalTaxAnnual/stateTaxAnnual like any other withdrawal. LTC stays
-      // untaxed with no gross-up needed, since it's Roth-only and Roth withdrawals are already tax-free.
+      // tax bill is now recorded into federalTaxAnnual/stateTaxAnnual like any other withdrawal. The Roth
+      // portion of LTC is tax-free; taxable fallback accounts are grossed up and taxed normally.
       let guaranteedIncomeSurplus = Math.max(0, guaranteedIncomeAfterTax - totalSpending);
       if (ltcCostThisYear > 0) {
         const ltcFromSurplus = Math.min(ltcCostThisYear, guaranteedIncomeSurplus);
         guaranteedIncomeSurplus -= ltcFromSurplus;
         const ltcRemainingAfterSurplus = ltcCostThisYear - ltcFromSurplus;
         const fromRoth = Math.min(ltcRemainingAfterSurplus, balRoth); balRoth -= fromRoth; addDirectWithdrawal('roth', fromRoth);
-        if (ltcRemainingAfterSurplus - fromRoth > 0.01) markShortfall('longTermCare');
+        const ltcFallbackOrder = [
+          ...balBrokeragePies.map((_, i) => 'pie_'+i),
+          ...(effectiveWithdrawalOrder.includes('trad') ? ['trad'] : []),
+          'hysa', 'savings', 'checking'
+        ];
+        const ltcTaxCtx = { earlyPenalty, stackBox: { v: ordinaryIncomeStack } };
+        const ltcUnfunded = withdrawInOrder(ltcRemainingAfterSurplus - fromRoth, ltcFallbackOrder, ltcTaxCtx);
+        ordinaryIncomeStack = ltcTaxCtx.stackBox.v;
+        if (ltcUnfunded > 0.01) markShortfall('longTermCare');
       }
       if (futureExpenseCostThisYear > 0) {
         const feFromSurplus = Math.min(futureExpenseCostThisYear, guaranteedIncomeSurplus);
@@ -7743,7 +7762,8 @@ function renderMonteCarloAssumptions(inputs, ctx) {
     Returns during retirement: <b>${(inputs.postReturn*100).toFixed(1)}%</b> average / <b>${(inputs.postStdev*100).toFixed(1)}%</b> volatility<br>
     Return distribution: <b>${inputs.enhancedMonteCarlo ? 'Fat-tailed mixture (enhanced)' : 'Normal distribution'}</b><br>
     General inflation: <b>${(inputs.inflation*100).toFixed(1)}%</b>; medical inflation: <b>${(inputs.medicalInflation*100).toFixed(1)}%</b><br>
-    Success means every modeled expense is funded with no account-access or portfolio shortfall.`;
+    Primary score: <b>${inputs.enhancedMonteCarlo ? 'enhanced conservative fat-tailed returns' : 'standard normal returns'}</b>; Dashboard also shows a normal-distribution comparison score.<br>
+    Success means every modeled expense is funded after all eligible accessible household accounts are considered.`;
 }
 
 function renderDataQualityChecklist(inputs) {
@@ -9904,7 +9924,7 @@ function generateCoachSuggestions(inputs, ctx, result, score) {
 
   if (inputs.ltcEnabled) {
     const ltcTotalCost = inputs.ltcAnnualCost * inputs.ltcDuration;
-    if (inputs.rothTSPBalance < ltcTotalCost * 0.5) add('medium', '!', `Long-term care is modeled at ~${fmtMoney(ltcTotalCost)} total, funded from Roth TSP first. Your current Roth balance (${fmtMoney(inputs.rothTSPBalance)}) may not fully cover it by itself — the model falls back to Brokerage then Traditional TSP if needed.`);
+    if (inputs.rothTSPBalance < ltcTotalCost * 0.5) add('medium', '!', `Long-term care is modeled at ~${fmtMoney(ltcTotalCost)} total, funded from Roth TSP first. Your current Roth balance (${fmtMoney(inputs.rothTSPBalance)}) may not fully cover it by itself — the model then uses Brokerage, eligible Traditional TSP, and available cash reserves.`);
   }
 
   const rothShare = inputs.rothTSPBalance / Math.max(1, inputs.tradTSPBalance + inputs.rothTSPBalance);
@@ -10614,6 +10634,18 @@ function restoreFromFile(file) {
 // of just the active one" work; this function's job is just to make sure there's real content in the
 // DOM for it to show. Whichever page was open before Print Full Plan was clicked is restored once the
 // print dialog closes (or is cancelled), via the afterprint event.
+let apiKeyBeforePrint = null;
+function removeApiKeyFromPrint() {
+  const keyInput = els('anthropicApiKey');
+  if (!keyInput) return;
+  if (apiKeyBeforePrint === null) apiKeyBeforePrint = keyInput.value;
+  keyInput.value = '';
+}
+function restoreApiKeyAfterPrint() {
+  const keyInput = els('anthropicApiKey');
+  if (keyInput && apiKeyBeforePrint !== null) keyInput.value = apiKeyBeforePrint;
+  apiKeyBeforePrint = null;
+}
 function printFullPlan() {
   render();
   const activePageEl = document.querySelector('.page.active');
@@ -10633,8 +10665,10 @@ function printFullPlan() {
 // existing chart to recompute its size against whatever it's really sitting inside now. Registered
 // globally (not just from the Print Full Plan button) so it also covers a plain Ctrl/Cmd+P.
 window.addEventListener('beforeprint', () => {
+  removeApiKeyFromPrint();
   Object.values(charts).forEach(c => { try { c.resize(); } catch (e) { /* a stale/destroyed chart instance can safely be skipped */ } });
 });
+window.addEventListener('afterprint', restoreApiKeyAfterPrint);
 
 function resetAllData() {
   if (!confirm('This clears everything saved in this browser and reloads the page with defaults. Continue?')) return;
@@ -11020,6 +11054,11 @@ function render() {
 
   // Monte Carlo score
   const score = runMonteCarlo(inputs, ctx, 1000);
+  // Apples-to-apples reference using the same plan, success definition, simulation count, and average
+  // returns, but a conventional normal return distribution instead of the optional fat-tailed mixture.
+  // The enhanced score remains the primary conservative score; this reference makes comparisons with
+  // mainstream planners easier without weakening the underlying household test.
+  const standardComparableScore = runMonteCarlo({ ...inputs, enhancedMonteCarlo:false }, ctx, 1000);
 
   // Mini Monte Carlo scores for all three spending bases (Job Loss / Must Spend / Like to Spend), shown
   // right in the header toggle so you can compare all three at a glance without switching the active one.
@@ -11067,12 +11106,15 @@ function render() {
   els('scoreLifeExp').textContent = lifeExpectancy;
   const ring = els('scoreRing');
   ring.textContent = Math.round(score) + '%';
+  if (els('standardComparableScore')) els('standardComparableScore').textContent = Math.round(standardComparableScore) + '%';
   let ringColor = '#c0392b', label = 'Needs attention';
   if (score >= 80) { ringColor = '#1f7a6c'; label = 'Strong'; }
   else if (score >= 60) { ringColor = '#3f9c7c'; label = 'Good'; }
   else if (score >= 40) { ringColor = '#c07a1f'; label = 'Uncertain'; }
   ring.style.background = ringColor;
-  els('scoreTitle').textContent = `Household Plan Confidence (Both Spouses Assumed Alive) — ${label}`;
+  const primaryScoreMode = inputs.enhancedMonteCarlo ? 'Enhanced Conservative' : 'Standard Returns';
+  els('scoreTitle').textContent = `Household Plan Confidence (${primaryScoreMode}; Both Spouses Assumed Alive) — ${label}`;
+  if (els('scoreDesc')) els('scoreDesc').textContent = `Primary score: 1,000 simulated market scenarios through age ${lifeExpectancy}. The comparison score uses a conventional normal return distribution. Survivorship remains separate.`;
 
   const longevityLabel = depletionAge ? `Runs out at age ${depletionAge}` : `Lasts through age ${lifeExpectancy}`;
   const longevityClass = depletionAge ? 'warn' : 'ok';
