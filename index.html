@@ -6574,7 +6574,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
   let balBrokeragePies = inputs.brokeragePieBalances.slice();
   let balChecking = inputs.checkingBalance, balSavings = inputs.savingsBalance, balHYSA = inputs.hysaBalance;
   let income = inputs.currentIncome;
-  let depletionAge = null, shortfallEver = false;
+  let depletionAge = null, firstShortfallAge = null, firstShortfallReason = null, shortfallEver = false;
   let investableAtRetirement = null, cashAtRetirement = null;
   let initialWithdrawalRate = null;
   // Roth Conversion planner lifetime totals — accumulated across every year the conversion runs,
@@ -6587,6 +6587,10 @@ function projectRun(inputs, ctx, randomize, shocks) {
 
   for (let age = inputs.currentAge; age <= ctx.effectiveLifeExpectancy; age++) {
     const y = age - inputs.currentAge;
+    const markShortfall = (reason) => {
+      shortfallEver = true;
+      if (firstShortfallAge === null) { firstShortfallAge = age; firstShortfallReason = reason; }
+    };
     const startInvestable = balTrad + balRoth + sumPies(balBrokeragePies);
     // Savings page (per-account year-by-year chart): snapshot every tracked account's balance right
     // here, before ANYTHING this year touches it (contributions, growth, mortgage/LTC/Future Expense
@@ -6732,7 +6736,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       const t3 = Math.min(remaining, balHYSA); balHYSA -= t3; remaining -= t3;
       addDirectWithdrawal('hysa', t3);
       if (remaining > 0) {
-        if (remaining - sumPies(balBrokeragePies) > 0.01) shortfallEver = true;
+        if (remaining - sumPies(balBrokeragePies) > 0.01) markShortfall('homePurchase');
         addPooledWithdrawal(applyPooledDelta(balBrokeragePies, -remaining));
       }
     }
@@ -6754,7 +6758,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       ltcCostThisYear = inputs.ltcAnnualCost * medicalInflatorNow;
       if (age < inputs.retirementAge) {
         const fromRoth = Math.min(ltcCostThisYear, balRoth); balRoth -= fromRoth; addDirectWithdrawal('roth', fromRoth);
-        if (ltcCostThisYear - fromRoth > 0.01) shortfallEver = true;
+        if (ltcCostThisYear - fromRoth > 0.01) markShortfall('longTermCare');
       }
     }
 
@@ -6783,7 +6787,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
     });
     if (futureExpenseCostThisYear > 0 && age < inputs.retirementAge) {
       const feRemaining = withdrawInOrder(futureExpenseCostThisYear, effectiveWithdrawalOrder);
-      if (feRemaining > 0.01) shortfallEver = true;
+      if (feRemaining > 0.01) markShortfall('futureExpense');
     }
 
     // Windfalls: one-time inflows at a specific age, deposited into the chosen account.
@@ -7021,7 +7025,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
                 addDirectWithdrawal('trad', fromPreTrad);
               }
             }
-            if (preRemaining > 0.01) shortfallEver = true;
+            if (preRemaining > 0.01) markShortfall('preRetirementGap');
           }
         }
       }
@@ -7223,7 +7227,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         guaranteedIncomeSurplus -= ltcFromSurplus;
         const ltcRemainingAfterSurplus = ltcCostThisYear - ltcFromSurplus;
         const fromRoth = Math.min(ltcRemainingAfterSurplus, balRoth); balRoth -= fromRoth; addDirectWithdrawal('roth', fromRoth);
-        if (ltcRemainingAfterSurplus - fromRoth > 0.01) shortfallEver = true;
+        if (ltcRemainingAfterSurplus - fromRoth > 0.01) markShortfall('longTermCare');
       }
       if (futureExpenseCostThisYear > 0) {
         const feFromSurplus = Math.min(futureExpenseCostThisYear, guaranteedIncomeSurplus);
@@ -7232,7 +7236,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         const feTaxCtx = { earlyPenalty, stackBox: { v: ordinaryIncomeStack } };
         const feRemaining = withdrawInOrder(feRemainingAfterSurplus, effectiveWithdrawalOrder, feTaxCtx);
         ordinaryIncomeStack = feTaxCtx.stackBox.v;
-        if (feRemaining > 0.01) shortfallEver = true;
+        if (feRemaining > 0.01) markShortfall('futureExpense');
       }
 
       // Same cash-vs-equity split applies post-retirement: a cash-like pie keeps growing at its own fixed
@@ -7410,7 +7414,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       }
 
       withdrawal = need - remaining;
-      if (remaining > 1) shortfallEver = true;
+      if (remaining > 1) markShortfall('recurringSpending');
 
       balTrad = Math.max(0, bal.trad); balRoth = Math.max(0, bal.roth); balHYSA = Math.max(0, bal.hysa);
       balBrokeragePies = balBrokeragePies.map((_, i) => Math.max(0, bal['pie_'+i]));
@@ -7465,7 +7469,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
     cashAtRetirement = balChecking + balSavings + balHYSA;
   }
 
-  return { rows, investableAtRetirement, cashAtRetirement, depletionAge, success: !shortfallEver, initialWithdrawalRate, totalRothConverted, totalRothConversionTax };
+  return { rows, investableAtRetirement, cashAtRetirement, depletionAge, firstShortfallAge, firstShortfallReason, success: !shortfallEver, initialWithdrawalRate, totalRothConverted, totalRothConversionTax };
 }
 
 // Whether a single recurring expense row counts as "active" in a given projection year (age) — both
@@ -7810,6 +7814,63 @@ function renderCrisisStressTest(inputs, ctx) {
     </div>
     <p style="font-size:13px;color:var(--muted);margin:10px 0 0;">Returns use actual S&amp;P 500 data; inflation stays at your assumed rate. Full 1928–2025 replay is in the Explorers tab.</p>
   </div>`;
+}
+
+function runMonteCarloDiagnosticsV2(inputs, ctx, N) {
+  const seedInputs = { ...inputs };
+  delete seedInputs.guardrailsEnabled; delete seedInputs.guardBand; delete seedInputs.guardAdj;
+  const seedSource = 'diagnostics-v2|' + JSON.stringify(seedInputs) + JSON.stringify(expenses) + JSON.stringify(debts)
+    + JSON.stringify(futureExpenses) + JSON.stringify(windfalls) + JSON.stringify(insurancePolicies) + JSON.stringify(brokeragePies) + '|' + N;
+  mcRandom = mulberry32(hashStringToSeed(seedSource));
+  let successes = 0;
+  const ages = [], reasons = {};
+  for (let i=0; i<N; i++) {
+    const result = projectRun(inputs, ctx, true);
+    if (result.success) successes++;
+    else {
+      ages.push(result.firstShortfallAge != null ? result.firstShortfallAge : (result.depletionAge || inputs.retirementAge));
+      const reason = result.firstShortfallReason || 'recurringSpending';
+      reasons[reason] = (reasons[reason] || 0) + 1;
+    }
+  }
+  ages.sort((a,b)=>a-b);
+  const failures = N-successes;
+  return { score:successes/N*100, successes, failures, reasons,
+    early:ages.filter(a=>a<=inputs.retirementAge+10).length,
+    medianAge:ages.length?ages[Math.floor(ages.length/2)]:null };
+}
+function renderMCDiagnosticsV2(inputs, ctx) {
+  const host = els('mcDiagnosticsCard');
+  if (!host) return;
+  const active = runMonteCarloDiagnosticsV2(inputs, ctx, 1000);
+  const fixed = inputs.guardrailsEnabled ? runMonteCarloDiagnosticsV2({ ...inputs, guardrailsEnabled:false }, ctx, 1000) : active;
+  const guarded = inputs.guardrailsEnabled ? active : runMonteCarloDiagnosticsV2({ ...inputs, guardrailsEnabled:true }, ctx, 1000);
+  const labels = { recurringSpending:'Recurring retirement spending', preRetirementGap:'Pre-retirement income gap', futureExpense:'Planned future expense', longTermCare:'Long-term care', homePurchase:'Home purchase' };
+  const reasonRows = Object.entries(active.reasons).sort((a,b)=>b[1]-a[1]).map(([key,count]) => `<tr><td>${labels[key]||key}</td><td>${count}</td><td>${Math.round(count/active.failures*100)}%</td></tr>`).join('');
+  const failureBody = active.failures ? `<p><b>${Math.round(active.early/active.failures*100)}%</b> of failed runs first fall short by age ${inputs.retirementAge+10}. Median first-shortfall age: <b>${active.medianAge}</b>.</p><div class="table-scroll"><table><thead><tr><th>First cause of failure</th><th>Runs</th><th>Share</th></tr></thead><tbody>${reasonRows}</tbody></table></div>` : '<p style="color:var(--good);font-weight:700;">All 1,000 simulations succeeded.</p>';
+  const diff = guarded.score-fixed.score;
+  host.innerHTML = `<div class="card no-autocollapse" style="border-left:4px solid var(--primary);"><h3 onclick="toggleCard(this)">Monte Carlo Failure Diagnostics</h3>${failureBody}<div class="results-grid" style="margin-top:14px;"><div class="stat"><div class="label">Fixed spending</div><div class="value">${Math.round(fixed.score)}%</div></div><div class="stat"><div class="label">With guardrails</div><div class="value">${Math.round(guarded.score)}%</div></div><div class="stat"><div class="label">Guardrail difference</div><div class="value">${diff>=0?'+':''}${Math.round(diff)} points</div></div></div><p style="font-size:13px;color:var(--muted);">Both scores use the same 1,000 market paths. Guardrails cannot cut Must Spend, housing, debt, insurance, or medical costs.</p></div>`;
+}
+function renderCrisisStressTestV2(inputs, ctx) {
+  const host = els('crisisStressCard');
+  if (!host) return;
+  const periods = [
+    {name:'Great Depression',year:1929,years:10}, {name:'1966-82 inflation and weak markets',year:1966,years:17},
+    {name:'Dot-com bust',year:2000,years:10}, {name:'Global financial crisis',year:2008,years:5},
+    {name:'2022 stock-market decline',year:2022,years:4}
+  ];
+  const labels = { recurringSpending:'Recurring spending', preRetirementGap:'Pre-retirement gap', futureExpense:'Planned expense', longTermCare:'Long-term care', homePurchase:'Home purchase' };
+  const results = periods.map(period => {
+    const shocks={pre:{},post:{}};
+    for(let y=0;y<period.years && y<=ctx.maxYears;y++){
+      const ret=HISTORICAL_SP500_RETURNS[period.year+y]; if(ret==null) break;
+      const age=inputs.currentAge+y;
+      if(age<inputs.retirementAge) shocks.pre[y]=ret; else shocks.post[age-inputs.retirementAge]=ret;
+    }
+    return {...period,result:projectRun(inputs,ctx,false,shocks)};
+  });
+  const rows=results.map(({name,year,years,result})=>{const last=result.rows[result.rows.length-1];return `<tr><td>${name}</td><td>${year}</td><td>${years} years</td><td style="font-weight:700;color:${result.success?'var(--good)':'var(--danger)'};">${result.success?'Survives':'Shortfall'}</td><td>${result.success?'None':`Age ${result.firstShortfallAge||'-'} - ${labels[result.firstShortfallReason]||'Uncovered need'}`}</td><td>${fmtMoneyK(dv(last?last.investable:0,ctx.effectiveLifeExpectancy,inputs))}</td></tr>`;}).join('');
+  host.innerHTML=`<div class="card no-autocollapse" style="border-left:4px solid #5a4fcf;"><h3 onclick="toggleCard(this)">Named Historical Stress Tests</h3><p style="font-size:15px;color:var(--muted);">Each named period uses its actual S&amp;P 500 returns, then returns to your regular assumptions. Inflation remains your selected assumption.</p><div class="table-scroll"><table><thead><tr><th>Period</th><th>Starts</th><th>Actual sequence</th><th>Result</th><th>First shortfall</th><th>Ending investable</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
 function renderHistoricalBacktest(inputs, ctx) {
@@ -10918,8 +10979,8 @@ function render() {
     </div>`;
 
   // Monte Carlo failure diagnostics + historical crisis stress test
-  renderMCDiagnostics(inputs, ctx, score);
-  renderCrisisStressTest(inputs, ctx);
+  renderMCDiagnosticsV2(inputs, ctx);
+  renderCrisisStressTestV2(inputs, ctx);
 
   // Dashboard chart
   const retirementIndex = rows.findIndex(r => r.age === retirementAge);
