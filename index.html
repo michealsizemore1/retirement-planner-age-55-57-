@@ -7747,8 +7747,8 @@ function renderMCDiagnostics(inputs, ctx, baseScore) {
     : inputs.guardrailsEnabled
       ? `<div style="font-size:14px;color:var(--muted);margin-top:8px;">✓ Dynamic guardrails are enabled and baked into this score.</div>`
       : '';
-  el.innerHTML = `<div class="card" style="border-left:4px solid var(--primary);padding:20px 20px 16px;margin-top:0;">
-    <h3 style="margin:0 0 14px;font-size:18.5px;">Monte Carlo Diagnostics</h3>
+  el.innerHTML = `<div class="card no-autocollapse" style="border-left:4px solid var(--primary);">
+    <h3 onclick="toggleCard(this)">Monte Carlo Diagnostics</h3>
     ${body}
     ${guardrailRow}
   </div>`;
@@ -7793,8 +7793,8 @@ function renderCrisisStressTest(inputs, ctx) {
   const headline = avail.length
     ? `Your plan survives <b>${survived} of ${avail.length}</b> tested crisis sequences.`
     : 'Your plan horizon extends beyond the available historical data.';
-  el.innerHTML = `<div class="card" style="border-left:4px solid #5a4fcf;padding:20px 20px 16px;margin-top:0;">
-    <h3 style="margin:0 0 6px;font-size:18.5px;">Historical Crisis Stress Test</h3>
+  el.innerHTML = `<div class="card no-autocollapse" style="border-left:4px solid #5a4fcf;">
+    <h3 onclick="toggleCard(this)">Historical Crisis Stress Test</h3>
     <p style="font-size:15px;color:var(--muted);margin:0 0 14px;">Your plan replayed using real S&amp;P 500 returns starting in five named crises. ${headline}</p>
     <div class="table-scroll">
     <table style="width:100%;border-collapse:collapse;font-size:15px;">
