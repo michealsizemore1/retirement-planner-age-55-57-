@@ -6984,10 +6984,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
         return sum + Math.max(0, (+d.payment || 0) * 12 - (sched.paymentDuringYear[y] || 0));
       }, 0) : 0;
       const paidOffDebtRedirect = Math.min(paidOffDebtRedirectRaw, excessIncomeAvailable);
-      // Job Loss test: any surplus left over (typically guaranteed income like a pension/VA disability that
-      // keeps flowing and now exceeds Job Loss-level spending) stays as unswept slack rather than getting
-      // invested into a brokerage pie — "no longer contributing to TSP or brokerage accounts" means the whole
-      // paycheck-era contribution pipeline stops, not just the fixed-dollar/% pieces above.
+      // Job Loss test: any surplus left over (guaranteed income exceeds job-loss spending) gets swept
+      // into HYSA rather than a brokerage pie — you're no longer making paycheck-style contributions,
+      // but the pension/VA cash still needs somewhere to land. Pre-retirement surplus goes to HYSA;
+      // post-retirement this is irrelevant (jobLossActive = false at and after retirementAge).
+      const jobLossSurplusToHYSA = jobLossActive ? excessIncomeAvailable : 0;
       excessIncomeSaved = jobLossActive ? 0 : (Math.max(0, excessIncomeAvailable - paidOffDebtRedirect) * (inputs.excessIncomeSavingsPct || 0) + paidOffDebtRedirect);
       // Job Loss test: pre-retirement years never had a withdrawal mechanism before this feature, because a
       // shortfall wasn't possible — your paycheck was always assumed to at least cover living costs, so any
@@ -6996,7 +6997,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // then-Traditional order used everywhere else in this engine for an unplanned shortfall (LTC, future
       // expenses) — rather than pretending the bills simply don't get paid.
       if (jobLossActive) {
-        const preRetireNeed = Math.max(0, recurringLivingCostThisYear - (income + guaranteedIncome));
+        const preRetireNeed = Math.max(0, recurringLivingCostThisYear + federalTaxAnnual + stateTaxAnnual + ficaTaxAnnual - (income + guaranteedIncome));
         if (preRetireNeed > 0.01) {
           let preRemaining = preRetireNeed;
           const j1 = Math.min(preRemaining, balHYSA); balHYSA -= j1; preRemaining -= j1;
@@ -7045,7 +7046,7 @@ function projectRun(inputs, ctx, randomize, shocks) {
         contribByAccount['pie_'+excessDestIdx] = (contribByAccount['pie_'+excessDestIdx]||0) + excessIncomeSaved;
       }
       else applyPooledDelta(balBrokeragePies, excessIncomeSaved);
-      balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate); balHYSA *= (1+inputs.hysaRate);
+      balChecking *= (1+inputs.cashRate); balSavings *= (1+inputs.cashRate); balHYSA = balHYSA*(1+inputs.hysaRate) + jobLossSurplusToHYSA;
       // IRMAA lookback proxy: this year's approximate MAGI (taxable wages after the pre-tax Traditional TSP
       // contribution, plus the taxable share of any guaranteed income already flowing), carried forward as
       // next year's IRMAA basis — see the post-retirement branch below for why a 1-year lookback is used
