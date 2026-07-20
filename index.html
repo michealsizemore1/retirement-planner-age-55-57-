@@ -7123,12 +7123,15 @@ function projectRun(inputs, ctx, randomize, shocks) {
       // reverts to Like to Spend — the reduced job-loss column only models the involuntary gap before
       // age 55, not a permanent retirement lifestyle cut. TSP access restrictions (tradAvailableForJobLoss)
       // still apply through 59.5 regardless, since that's a legal Rule of 55 constraint, not a spending choice.
+      // Current plan choice overrides the older explanatory notes above: Job Loss spending continues
+      // after retirement until age 59.5, then the plan returns to Like to Spend.
+      const jobLossBridgeSpendingActive = jobLossActive && age < 59.5;
       const expensesNonMedicalForYear = survivorshipActive
-        ? (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendNonMedicalSurvivor : expTotalsThisYear.nonMedicalSurvivor)
-        : (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendNonMedical : expTotalsThisYear.nonMedical);
+        ? (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendNonMedicalSurvivor : jobLossBridgeSpendingActive ? expTotalsThisYear.jobLossNonMedicalSurvivor : expTotalsThisYear.nonMedicalSurvivor)
+        : (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendNonMedical : jobLossBridgeSpendingActive ? expTotalsThisYear.jobLossNonMedical : expTotalsThisYear.nonMedical);
       const expensesMedicalForYear = survivorshipActive
-        ? (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendMedicalSurvivor : expTotalsThisYear.medicalSurvivor)
-        : (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendMedical : expTotalsThisYear.medical);
+        ? (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendMedicalSurvivor : jobLossBridgeSpendingActive ? expTotalsThisYear.jobLossMedicalSurvivor : expTotalsThisYear.medicalSurvivor)
+        : (spendingBasis === 'mustspend' ? expTotalsThisYear.mustSpendMedical : jobLossBridgeSpendingActive ? expTotalsThisYear.jobLossMedical : expTotalsThisYear.medical);
       expensesCategoriesAnnual = (expensesNonMedicalForYear * inflator + expensesMedicalForYear * medicalInflator) * spendMult;
       const expensesInflated = expensesCategoriesAnnual + medicalCostAnnual;
       // Must Spend floor for this year's recurring expenses only (housing/debt/insurance/Tricare-Medicare
