@@ -6621,13 +6621,12 @@ function projectRun(inputs, ctx, randomize, shocks) {
     // the 10% early-withdrawal penalty. Roth TSP *contributions* are always penalty-free (only
     // earnings face the penalty before 59.5), so Roth stays in the withdrawal order as a bridge
     // source for the ages-55-to-59.5 gap. Brokerage pies and HYSA remain accessible throughout.
-    const tspAvailableForJobLoss = !(jobLossActive && !ctx.jobLossQualifiesForRuleOf55 && age < 59.5);
-    const tradAvailableForJobLoss = tspAvailableForJobLoss; // kept for legacy references below
-    // Only Traditional TSP is removed from the waterfall when job loss disqualifies Rule of 55;
-    // Roth stays accessible (contributions are penalty-free at any age after separation).
-    const effectiveWithdrawalOrder = tspAvailableForJobLoss
-      ? inputs.withdrawalOrder
-      : inputs.withdrawalOrder.filter(k => k !== 'trad');
+    const tradAvailableForJobLoss = !(jobLossActive && !ctx.jobLossQualifiesForRuleOf55 && age < 59.5);
+    const rothAvailableByAge = age >= 59.5;
+    // Personal strategy: after a pre-55 separation, remove both TSP accounts from the withdrawal
+    // waterfall until age 59.5. Cash and brokerage accounts provide the bridge instead.
+    const effectiveWithdrawalOrder = inputs.withdrawalOrder.filter(k =>
+      (k !== 'trad' || tradAvailableForJobLoss) && (k !== 'roth' || rothAvailableByAge));
 
     // Hoisted up here (rather than declared down near the rest of this year's stats, below) so the
     // mortgage down payment / Long-Term Care / Future Expenses pulls just below — which can all happen
@@ -7015,12 +7014,11 @@ function projectRun(inputs, ctx, randomize, shocks) {
             const fromPreBrokerage = Math.min(preRemaining, preBrokerageAvailable);
             addPooledWithdrawal(applyPooledDelta(balBrokeragePies, -fromPreBrokerage)); preRemaining -= fromPreBrokerage;
             if (preRemaining > 0) {
-              // Roth TSP contributions are penalty-free pre-59.5, so Roth is accessible even
-              // when job loss disqualifies Rule of 55. Only Traditional TSP draws are blocked
-              // (they'd trigger the 10% early-withdrawal penalty without Rule of 55).
-              const fromPreRoth = Math.min(preRemaining, balRoth); balRoth -= fromPreRoth; preRemaining -= fromPreRoth;
+              // Personal strategy: do not withdraw from either TSP account before 59.5 after
+              // a pre-55 separation, even though Roth contribution access can differ legally.
+              const fromPreRoth = rothAvailableByAge ? Math.min(preRemaining, balRoth) : 0; balRoth -= fromPreRoth; preRemaining -= fromPreRoth;
               addDirectWithdrawal('roth', fromPreRoth);
-              if (preRemaining > 0 && tspAvailableForJobLoss) {
+              if (preRemaining > 0 && tradAvailableForJobLoss) {
                 const fromPreTrad = Math.min(preRemaining, balTrad); balTrad -= fromPreTrad; preRemaining -= fromPreTrad;
                 addDirectWithdrawal('trad', fromPreTrad);
               }
